@@ -1,8 +1,16 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
-import '@raruto/leaflet-elevation';
+import 'leaflet/dist/leaflet.css';
 import '@raruto/leaflet-elevation/dist/leaflet-elevation.css';
 import { Track } from '@/types/gpx';
+
+// Make Leaflet globally available for leaflet-elevation
+if (typeof window !== 'undefined') {
+  (window as any).L = L;
+}
+
+// Import elevation after Leaflet is available globally
+import '@raruto/leaflet-elevation';
 
 interface ElevationProfileProps {
   track: Track;
