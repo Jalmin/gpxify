@@ -33,13 +33,12 @@ export function GPXMap({ tracks, onMapReady }: GPXMapProps) {
     if (!mapRef.current) {
       const map = L.map(mapContainerRef.current).setView([46.5, 6.5], 10);
 
-      // Add CartoDB Positron - light gray theme, intermediate tone
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      // Add OpenTopoMap - colorful, high contrast topographic map for outdoor activities
+      L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
         attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors ' +
-          '&copy; <a href="https://carto.com/attributions">CARTO</a>',
-        maxZoom: 19,
-        subdomains: 'abcd',
+          'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+          '<a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+        maxZoom: 17,
       }).addTo(map);
 
       mapRef.current = map;

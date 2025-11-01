@@ -484,13 +484,17 @@ class GPXParser:
         """
         Try to find a valid climb starting from start_idx
 
+        NEW APPROACH: Continue climbing as long as ratio stays good,
+        then check at the end if it meets minimum criteria.
+
         Returns dictionary with climb info if found, None otherwise
         """
         prev_elevation = smoothed_elevations[start_idx]
         current_d_plus = 0.0
         current_d_minus = 0.0
+        best_end_idx = None
 
-        # Scan forward accumulating D+ and D-
+        # Scan forward accumulating D+ and D-, continuing as long as ratio is good
         for end_idx in range(start_idx + 1, len(points)):
             current_elevation = smoothed_elevations[end_idx]
             elev_diff = current_elevation - prev_elevation
@@ -502,53 +506,56 @@ class GPXParser:
 
             prev_elevation = current_elevation
 
-            # Check if ratio becomes bad (we've reached the top)
+            # Track the last point where we still have a good climb
+            if current_d_plus >= min_elevation_gain:
+                if current_d_minus == 0 or current_d_plus / current_d_minus > min_ratio:
+                    best_end_idx = end_idx
+
+            # Check if ratio becomes bad (we've reached the top and started descending)
             if current_d_minus > 0 and current_d_plus / current_d_minus < min_ratio:
-                # Ratio degraded, we've gone too far
+                # Ratio degraded, stop here
                 break
 
-            # Check if we have a valid climb
-            if current_d_plus >= min_elevation_gain:
-                # Check ratio criterion
-                if current_d_minus == 0 or current_d_plus > min_ratio * current_d_minus:
-                    # Potential climb found, refine bounds
-                    refined_start = GPXParser._find_local_minimum(
-                        points, smoothed_elevations, start_idx, search_distance=10
-                    )
-                    refined_end = GPXParser._find_local_maximum(
-                        points, smoothed_elevations, end_idx, search_distance=10
-                    )
+        # Check if we found a valid climb
+        if best_end_idx is not None:
+            # Refine bounds to find true local min/max
+            refined_start = GPXParser._find_local_minimum(
+                points, smoothed_elevations, start_idx, search_distance=10
+            )
+            refined_end = GPXParser._find_local_maximum(
+                points, smoothed_elevations, best_end_idx, search_distance=10
+            )
 
-                    # Recalculate stats with refined bounds
-                    stats = GPXParser._calculate_climb_stats(
-                        points, smoothed_elevations, refined_start, refined_end
-                    )
+            # Recalculate stats with refined bounds
+            stats = GPXParser._calculate_climb_stats(
+                points, smoothed_elevations, refined_start, refined_end
+            )
 
-                    # Verify criteria still met
-                    if (stats["d_plus"] >= min_elevation_gain and
-                        (stats["d_minus"] == 0 or stats["d_plus"] > min_ratio * stats["d_minus"]) and
-                        stats["avg_gradient"] >= min_gradient):
+            # Verify final criteria
+            if (stats["d_plus"] >= min_elevation_gain and
+                (stats["d_minus"] == 0 or stats["d_plus"] > min_ratio * stats["d_minus"]) and
+                stats["avg_gradient"] >= min_gradient):
 
-                        # Create climb segment
-                        start_km = points[refined_start].distance / 1000
-                        end_km = points[refined_end].distance / 1000
-                        distance_km = stats["distance"] / 1000
+                # Create climb segment
+                start_km = points[refined_start].distance / 1000
+                end_km = points[refined_end].distance / 1000
+                distance_km = stats["distance"] / 1000
 
-                        climb_segment = ClimbSegment(
-                            start_km=start_km,
-                            end_km=end_km,
-                            distance_km=distance_km,
-                            elevation_gain=stats["d_plus"],
-                            elevation_loss=stats["d_minus"],
-                            avg_gradient=stats["avg_gradient"]
-                        )
+                climb_segment = ClimbSegment(
+                    start_km=start_km,
+                    end_km=end_km,
+                    distance_km=distance_km,
+                    elevation_gain=stats["d_plus"],
+                    elevation_loss=stats["d_minus"],
+                    avg_gradient=stats["avg_gradient"]
+                )
 
-                        return {
-                            "climb": climb_segment,
-                            "start_idx": refined_start,
-                            "end_idx": refined_end,
-                            "d_plus": stats["d_plus"]
-                        }
+                return {
+                    "climb": climb_segment,
+                    "start_idx": refined_start,
+                    "end_idx": refined_end,
+                    "d_plus": stats["d_plus"]
+                }
 
         return None
 
