@@ -62,8 +62,8 @@ services:
       - "8000"
     labels:
       - caddy_0=gpxify.carapacebleue.com
-      - caddy_0.handle_path=/api*
-      - caddy_0.handle_path.0_reverse_proxy={{upstreams 8000}}
+      - caddy_0.handle=/api*
+      - caddy_0.handle.0_reverse_proxy={{upstreams 8000}}
     networks:
       - gpxify-network
       - coolify
