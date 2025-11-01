@@ -1,92 +1,16 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  db:
-    image: postgres:16-alpine
-    container_name: gpxify-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-gpxify}
-      POSTGRES_USER: ${POSTGRES_USER:-gpxify}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gpxify}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - gpxify-network
-
-  # FastAPI Backend
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: gpxify-backend
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      # Application
-      APP_NAME: ${APP_NAME:-GPXIFY}
-      ENVIRONMENT: ${ENVIRONMENT:-production}
-      DEBUG: ${DEBUG:-False}
-      API_V1_STR: /api/v1
-
-      # CORS
-      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
-
-      # Google OAuth
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
-
-      # Security
-      SECRET_KEY: ${SECRET_KEY}
-      ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 30
-
-      # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gpxify}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-gpxify}
-
-      # Upload
-      MAX_UPLOAD_SIZE: 10485760
-      UPLOAD_DIR: /app/uploads
-    volumes:
-      - gpx_uploads:/app/uploads
-    expose:
-      - "8000"
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.gpxify-backend.rule=(Host(`gpxify.carapacebleue.com`) && PathPrefix(`/api`))
-      - traefik.http.routers.gpxify-backend.entryPoints=http
-      - traefik.http.routers.gpxify-backend.service=gpxify-backend
-      - traefik.http.services.gpxify-backend.loadbalancer.server.port=8000
-      - traefik.http.routers.gpxify-backend-https.rule=(Host(`gpxify.carapacebleue.com`) && PathPrefix(`/api`))
-      - traefik.http.routers.gpxify-backend-https.entryPoints=https
-      - traefik.http.routers.gpxify-backend-https.tls=true
-      - traefik.http.routers.gpxify-backend-https.tls.certresolver=letsencrypt
-      - traefik.http.routers.gpxify-backend-https.service=gpxify-backend
-    networks:
-      - gpxify-network
-      - coolify
-
-  # React Frontend
+  # React Frontend ONLY - testing simplified deployment
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL}
-        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        VITE_API_URL: ${VITE_API_URL:-https://gpxify.carapacebleue.com}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-381330006153-l2o78vsaf54tnof4ikass4ig1a8p9n94.apps.googleusercontent.com}
     container_name: gpxify-frontend
     restart: unless-stopped
-    depends_on:
-      - backend
     expose:
       - "80"
     labels:
@@ -101,17 +25,8 @@ services:
       - traefik.http.routers.gpxify-frontend-https.tls.certresolver=letsencrypt
       - traefik.http.routers.gpxify-frontend-https.service=gpxify-frontend
     networks:
-      - gpxify-network
       - coolify
 
-volumes:
-  postgres_data:
-    driver: local
-  gpx_uploads:
-    driver: local
-
 networks:
-  gpxify-network:
-    driver: bridge
   coolify:
     external: true
