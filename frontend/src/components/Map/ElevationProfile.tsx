@@ -28,7 +28,7 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
       position: 'bottomright',
       collapsed: false,
       detached: true,
-      elevationDiv: elevationRef.current,
+      elevationDiv: '#elevation-div',
       width: elevationRef.current.offsetWidth,
       height: 200,
       margins: {
@@ -84,7 +84,7 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
 
   return (
     <div className="w-full">
-      <div ref={elevationRef} className="elevation-div bg-white rounded-lg shadow-md p-4" />
+      <div id="elevation-div" ref={elevationRef} className="elevation-div bg-white rounded-lg shadow-md p-4" />
     </div>
   );
 }
