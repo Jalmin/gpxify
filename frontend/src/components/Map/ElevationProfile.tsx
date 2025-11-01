@@ -1,16 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '@raruto/leaflet-elevation/dist/leaflet-elevation.css';
 import { Track } from '@/types/gpx';
-
-// Make Leaflet globally available for leaflet-elevation
-if (typeof window !== 'undefined') {
-  (window as any).L = L;
-}
-
-// Import elevation after Leaflet is available globally
-import '@raruto/leaflet-elevation';
 
 interface ElevationProfileProps {
   track: Track;
@@ -20,9 +12,25 @@ interface ElevationProfileProps {
 export function ElevationProfile({ track, map }: ElevationProfileProps) {
   const elevationRef = useRef<HTMLDivElement>(null);
   const elevationControlRef = useRef<any>(null);
+  const [elevationLoaded, setElevationLoaded] = useState(false);
+
+  // Load leaflet-elevation dynamically
+  useEffect(() => {
+    // Make Leaflet globally available
+    if (typeof window !== 'undefined') {
+      (window as any).L = L;
+    }
+
+    // Dynamically import leaflet-elevation
+    import('@raruto/leaflet-elevation').then(() => {
+      setElevationLoaded(true);
+    }).catch(err => {
+      console.error('Failed to load leaflet-elevation:', err);
+    });
+  }, []);
 
   useEffect(() => {
-    if (!elevationRef.current || !map) return;
+    if (!elevationRef.current || !map || !elevationLoaded) return;
 
     // Clean up previous elevation control
     if (elevationControlRef.current) {
@@ -88,7 +96,7 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
         elevationControlRef.current = null;
       }
     };
-  }, [track, map]);
+  }, [track, map, elevationLoaded]);
 
   return (
     <div className="w-full">
