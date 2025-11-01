@@ -415,7 +415,7 @@ class GPXParser:
         3. Continue while D+/D- ratio > min_ratio
         4. Refine bounds to find true local min/max
         5. Keep climbs with highest D+ when overlapping
-        6. Merge consecutive climbs separated by small gaps (< 500m, < 50m D-)
+        6. Merge consecutive climbs separated by small gaps (< 1000m, < 100m D-)
 
         Args:
             points: List of track points with elevation data
@@ -463,8 +463,8 @@ class GPXParser:
             final_climbs,
             points,
             smoothed_elevations,
-            max_gap_distance=500,  # 500m max gap
-            max_gap_descent=50,    # 50m max D- in gap
+            max_gap_distance=1000,  # 1000m max gap
+            max_gap_descent=100,    # 100m max D- in gap
             min_elevation_gain=min_elevation_gain,
             min_ratio=min_ratio,
             min_gradient=min_gradient
