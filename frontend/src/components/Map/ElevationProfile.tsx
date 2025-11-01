@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import L from 'leaflet';
 import {
   Chart as ChartJS,
@@ -31,12 +31,63 @@ interface ElevationProfileProps {
   map?: L.Map;
 }
 
+interface SegmentStats {
+  distance: number;
+  elevationGain: number;
+  elevationLoss: number;
+  startElevation: number;
+  endElevation: number;
+}
+
 export function ElevationProfile({ track, map }: ElevationProfileProps) {
   const markerRef = useRef<L.Marker | null>(null);
+  const [segmentStart, setSegmentStart] = useState<number>(0);
+  const [segmentEnd, setSegmentEnd] = useState<number>(track.statistics.total_distance / 1000);
 
   // Prepare data for chart
   const distances = track.points.map(p => (p.distance / 1000).toFixed(2)); // km
   const elevations = track.points.map(p => p.elevation || 0);
+
+  // Calculate segment statistics
+  const segmentStats = useMemo<SegmentStats>(() => {
+    const startIdx = track.points.findIndex(p => p.distance / 1000 >= segmentStart);
+    const endIdx = track.points.findIndex(p => p.distance / 1000 >= segmentEnd);
+
+    const startPoint = startIdx >= 0 ? startIdx : 0;
+    const endPoint = endIdx >= 0 ? endIdx : track.points.length - 1;
+
+    let elevationGain = 0;
+    let elevationLoss = 0;
+
+    for (let i = startPoint; i < endPoint; i++) {
+      const currentElevation = track.points[i].elevation || 0;
+      const nextElevation = track.points[i + 1].elevation || 0;
+      const diff = nextElevation - currentElevation;
+
+      if (diff > 0) {
+        elevationGain += diff;
+      } else {
+        elevationLoss += Math.abs(diff);
+      }
+    }
+
+    return {
+      distance: (track.points[endPoint].distance - track.points[startPoint].distance) / 1000,
+      elevationGain,
+      elevationLoss,
+      startElevation: track.points[startPoint].elevation || 0,
+      endElevation: track.points[endPoint].elevation || 0,
+    };
+  }, [track.points, segmentStart, segmentEnd]);
+
+  // Create segment highlight data
+  const segmentData = elevations.map((elevation, index) => {
+    const pointDistance = parseFloat(distances[index]);
+    if (pointDistance >= segmentStart && pointDistance <= segmentEnd) {
+      return elevation;
+    }
+    return null;
+  });
 
   const data = {
     labels: distances,
@@ -45,11 +96,22 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
         label: 'Altitude (m)',
         data: elevations,
         fill: true,
-        borderColor: 'rgb(37, 99, 235)',
-        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+        borderColor: 'rgb(203, 213, 225)',
+        backgroundColor: 'rgba(203, 213, 225, 0.1)',
         tension: 0.4,
         pointRadius: 0,
         pointHoverRadius: 6,
+      },
+      {
+        label: 'Segment sélectionné',
+        data: segmentData,
+        fill: true,
+        borderColor: 'rgb(37, 99, 235)',
+        backgroundColor: 'rgba(37, 99, 235, 0.3)',
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        spanGaps: false,
       },
     ],
   };
@@ -138,9 +200,121 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
     };
   }, [map]);
 
+  const maxDistance = track.statistics.total_distance / 1000;
+
   return (
-    <div className="w-full h-64">
-      <Line data={data} options={options} />
+    <div className="w-full space-y-6">
+      {/* Chart */}
+      <div className="w-full h-64">
+        <Line data={data} options={options} />
+      </div>
+
+      {/* Segment Explorer */}
+      <div className="bg-slate-50 rounded-lg p-6 space-y-4">
+        <h3 className="font-semibold text-lg">Explorateur de segment</h3>
+
+        {/* Range Selectors */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Début du segment (km)
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={maxDistance}
+              step={0.1}
+              value={segmentStart.toFixed(1)}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                if (value < segmentEnd) {
+                  setSegmentStart(value);
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="range"
+              min={0}
+              max={maxDistance}
+              step={0.1}
+              value={segmentStart}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                if (value < segmentEnd) {
+                  setSegmentStart(value);
+                }
+              }}
+              className="w-full mt-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Fin du segment (km)
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={maxDistance}
+              step={0.1}
+              value={segmentEnd.toFixed(1)}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                if (value > segmentStart && value <= maxDistance) {
+                  setSegmentEnd(value);
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="range"
+              min={0}
+              max={maxDistance}
+              step={0.1}
+              value={segmentEnd}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                if (value > segmentStart) {
+                  setSegmentEnd(value);
+                }
+              }}
+              className="w-full mt-2"
+            />
+          </div>
+        </div>
+
+        {/* Segment Statistics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <div className="text-sm text-gray-600">Distance</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {segmentStats.distance.toFixed(2)} km
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <div className="text-sm text-gray-600">Dénivelé positif (D+)</div>
+            <div className="text-2xl font-bold text-green-600">
+              {Math.round(segmentStats.elevationGain)} m
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <div className="text-sm text-gray-600">Dénivelé négatif (D-)</div>
+            <div className="text-2xl font-bold text-red-600">
+              {Math.round(segmentStats.elevationLoss)} m
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <div className="text-sm text-gray-600">Altitude</div>
+            <div className="text-lg font-semibold text-gray-700">
+              {Math.round(segmentStats.startElevation)} → {Math.round(segmentStats.endElevation)} m
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
