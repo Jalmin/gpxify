@@ -19,4 +19,16 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'leaflet-elevation': ['@raruto/leaflet-elevation'],
+        },
+      },
+    },
+  },
+  optimizeDeps: {
+    include: ['@raruto/leaflet-elevation'],
+  },
 })
