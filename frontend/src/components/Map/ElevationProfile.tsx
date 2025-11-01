@@ -210,13 +210,13 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
       </div>
 
       {/* Segment Explorer */}
-      <div className="bg-slate-50 rounded-lg p-6 space-y-4">
-        <h3 className="font-semibold text-lg">Explorateur de segment</h3>
+      <div className="bg-secondary rounded-lg p-6 space-y-4 border border-border">
+        <h3 className="font-semibold text-lg text-foreground">Explorateur de segment</h3>
 
         {/* Range Selectors */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Début du segment (km)
             </label>
             <input
@@ -231,7 +231,7 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
                   setSegmentStart(value);
                 }
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-card border border-border text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <input
               type="range"
@@ -245,12 +245,12 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
                   setSegmentStart(value);
                 }
               }}
-              className="w-full mt-2"
+              className="w-full mt-2 accent-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Fin du segment (km)
             </label>
             <input
@@ -265,7 +265,7 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
                   setSegmentEnd(value);
                 }
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-card border border-border text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <input
               type="range"
@@ -279,37 +279,37 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
                   setSegmentEnd(value);
                 }
               }}
-              className="w-full mt-2"
+              className="w-full mt-2 accent-blue-500"
             />
           </div>
         </div>
 
         {/* Segment Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-sm text-gray-600">Distance</div>
-            <div className="text-2xl font-bold text-blue-600">
+          <div className="bg-card border border-border rounded-lg p-4">
+            <div className="text-sm text-muted-foreground">Distance</div>
+            <div className="text-2xl font-bold text-blue-500">
               {segmentStats.distance.toFixed(2)} km
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-sm text-gray-600">Dénivelé positif (D+)</div>
-            <div className="text-2xl font-bold text-green-600">
+          <div className="bg-card border border-border rounded-lg p-4">
+            <div className="text-sm text-muted-foreground">Dénivelé positif (D+)</div>
+            <div className="text-2xl font-bold text-green-500">
               {Math.round(segmentStats.elevationGain)} m
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-sm text-gray-600">Dénivelé négatif (D-)</div>
-            <div className="text-2xl font-bold text-red-600">
+          <div className="bg-card border border-border rounded-lg p-4">
+            <div className="text-sm text-muted-foreground">Dénivelé négatif (D-)</div>
+            <div className="text-2xl font-bold text-red-500">
               {Math.round(segmentStats.elevationLoss)} m
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-sm text-gray-600">Altitude</div>
-            <div className="text-lg font-semibold text-gray-700">
+          <div className="bg-card border border-border rounded-lg p-4">
+            <div className="text-sm text-muted-foreground">Altitude</div>
+            <div className="text-lg font-semibold text-foreground">
               {Math.round(segmentStats.startElevation)} → {Math.round(segmentStats.endElevation)} m
             </div>
           </div>

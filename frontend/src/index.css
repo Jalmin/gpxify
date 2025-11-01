@@ -40,6 +40,27 @@
 /* Leaflet overrides */
 .leaflet-container {
   font-family: inherit;
+  background-color: hsl(var(--background));
+}
+
+/* Dark theme for Leaflet popups */
+.leaflet-popup-content-wrapper {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+.leaflet-popup-tip {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: hsl(var(--muted-foreground));
+}
+
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: hsl(var(--foreground));
 }
 
 /* Elevation profile styling */

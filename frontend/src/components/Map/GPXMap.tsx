@@ -33,11 +33,12 @@ export function GPXMap({ tracks, onMapReady }: GPXMapProps) {
     if (!mapRef.current) {
       const map = L.map(mapContainerRef.current).setView([46.5, 6.5], 10);
 
-      // Add CyclOSM tiles (optimized for outdoor)
-      L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+      // Add CartoDB Dark Matter tiles (dark theme optimized)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | ' +
-          '<a href="https://www.cyclosm.org">CyclOSM</a>',
+          '&copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
         maxZoom: 20,
       }).addTo(map);
 
@@ -67,7 +68,8 @@ export function GPXMap({ tracks, onMapReady }: GPXMapProps) {
     });
     polylineLayersRef.current = [];
 
-    const colors = ['#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ea580c'];
+    // Vibrant colors that stand out on dark background
+    const colors = ['#3b82f6', '#a855f7', '#22c55e', '#f97316', '#ec4899'];
     const allBounds: L.LatLngBounds[] = [];
 
     // Add new tracks
@@ -79,8 +81,8 @@ export function GPXMap({ tracks, onMapReady }: GPXMapProps) {
       const color = colors[index % colors.length];
       const polyline = L.polyline(points, {
         color,
-        weight: 3,
-        opacity: 0.7,
+        weight: 4,
+        opacity: 0.9,
       }).addTo(mapRef.current!);
 
       polylineLayersRef.current.push(polyline);
