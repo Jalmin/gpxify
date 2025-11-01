@@ -15,14 +15,6 @@ export function ClimbsList({ climbs, onSelectClimb }: ClimbsListProps) {
     );
   }
 
-  const getClimbTypeLabel = (type: string) => {
-    return type === 'type_a' ? 'Type A' : 'Type B';
-  };
-
-  const getClimbTypeColor = (type: string) => {
-    return type === 'type_a' ? 'text-orange-500 bg-orange-500/10 border-orange-500' : 'text-purple-500 bg-purple-500/10 border-purple-500';
-  };
-
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-4">
@@ -41,9 +33,6 @@ export function ClimbsList({ climbs, onSelectClimb }: ClimbsListProps) {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <span className="text-2xl font-bold text-primary">#{index + 1}</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getClimbTypeColor(climb.climb_type)}`}>
-                  {getClimbTypeLabel(climb.climb_type)}
-                </span>
               </div>
               <button
                 onClick={() => onSelectClimb(climb)}

@@ -77,7 +77,6 @@ class ClimbSegment(BaseModel):
     elevation_gain: float  # D+ in meters
     elevation_loss: float  # D- in meters
     avg_gradient: float  # percentage
-    climb_type: str  # "type_a" (>300m, <10km) or "type_b" (>1000m, <30km)
 
 
 class ExportSegmentRequest(BaseModel):

@@ -67,7 +67,6 @@ export interface ClimbSegment {
   elevation_gain: number; // D+ in meters
   elevation_loss: number; // D- in meters
   avg_gradient: number; // percentage
-  climb_type: 'type_a' | 'type_b';
 }
 
 export interface ExportSegmentRequest {
