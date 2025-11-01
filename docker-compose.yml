@@ -61,18 +61,9 @@ services:
     expose:
       - "8000"
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.gpxify-backend.rule=Host(`gpxify.carapacebleue.com`) && PathPrefix(`/api`)
-      - traefik.http.routers.gpxify-backend.entryPoints=http
-      - traefik.http.routers.gpxify-backend.priority=100
-      - traefik.http.routers.gpxify-backend.service=gpxify-backend
-      - traefik.http.services.gpxify-backend.loadbalancer.server.port=8000
-      - traefik.http.routers.gpxify-backend-https.rule=Host(`gpxify.carapacebleue.com`) && PathPrefix(`/api`)
-      - traefik.http.routers.gpxify-backend-https.entryPoints=https
-      - traefik.http.routers.gpxify-backend-https.priority=100
-      - traefik.http.routers.gpxify-backend-https.tls=true
-      - traefik.http.routers.gpxify-backend-https.tls.certresolver=letsencrypt
-      - traefik.http.routers.gpxify-backend-https.service=gpxify-backend
+      - caddy_0=gpxify.carapacebleue.com
+      - caddy_0.handle_path=/api*
+      - caddy_0.handle_path.0_reverse_proxy={{upstreams 8000}}
     networks:
       - gpxify-network
       - coolify
@@ -92,18 +83,8 @@ services:
     expose:
       - "80"
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.gpxify-frontend.rule=Host(`gpxify.carapacebleue.com`)
-      - traefik.http.routers.gpxify-frontend.entryPoints=http
-      - traefik.http.routers.gpxify-frontend.priority=10
-      - traefik.http.routers.gpxify-frontend.service=gpxify-frontend
-      - traefik.http.services.gpxify-frontend.loadbalancer.server.port=80
-      - traefik.http.routers.gpxify-frontend-https.rule=Host(`gpxify.carapacebleue.com`)
-      - traefik.http.routers.gpxify-frontend-https.entryPoints=https
-      - traefik.http.routers.gpxify-frontend-https.priority=10
-      - traefik.http.routers.gpxify-frontend-https.tls=true
-      - traefik.http.routers.gpxify-frontend-https.tls.certresolver=letsencrypt
-      - traefik.http.routers.gpxify-frontend-https.service=gpxify-frontend
+      - caddy_0=gpxify.carapacebleue.com
+      - caddy_0.reverse_proxy={{upstreams 80}}
     networks:
       - gpxify-network
       - coolify
