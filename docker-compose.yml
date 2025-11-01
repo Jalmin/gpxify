@@ -60,6 +60,17 @@ services:
       - gpx_uploads:/app/uploads
     expose:
       - "8000"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.gpxify-backend.rule=(Host(`gpxify.carapacebleue.com`) && PathPrefix(`/api`))
+      - traefik.http.routers.gpxify-backend.entryPoints=http
+      - traefik.http.routers.gpxify-backend.service=gpxify-backend
+      - traefik.http.services.gpxify-backend.loadbalancer.server.port=8000
+      - traefik.http.routers.gpxify-backend-https.rule=(Host(`gpxify.carapacebleue.com`) && PathPrefix(`/api`))
+      - traefik.http.routers.gpxify-backend-https.entryPoints=https
+      - traefik.http.routers.gpxify-backend-https.tls=true
+      - traefik.http.routers.gpxify-backend-https.tls.certresolver=letsencrypt
+      - traefik.http.routers.gpxify-backend-https.service=gpxify-backend
     networks:
       - gpxify-network
     healthcheck:
