@@ -33,11 +33,18 @@ export function GPXMap({ tracks, onMapReady }: GPXMapProps) {
     if (!mapRef.current) {
       const map = L.map(mapContainerRef.current).setView([46.5, 6.5], 10);
 
-      // Add CartoDB Dark Matter tiles (dark theme optimized)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      // Add CartoDB Dark Matter with labels (balanced dark theme)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | ' +
           '&copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20,
+      }).addTo(map);
+
+      // Add labels layer on top for better readability
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+        attribution: '',
         subdomains: 'abcd',
         maxZoom: 20,
       }).addTo(map);

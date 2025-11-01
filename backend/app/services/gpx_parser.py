@@ -4,6 +4,7 @@ GPX file parsing and analysis service using gpxpy
 import gpxpy
 import gpxpy.gpx
 from typing import List, Optional, Tuple
+from datetime import datetime
 from app.models.gpx import (
     GPXData,
     Track,
@@ -236,11 +237,19 @@ class GPXParser:
 
         # Add points to segment
         for point in segment_points:
+            # Parse time string to datetime if available
+            point_time = None
+            if point.time:
+                try:
+                    point_time = datetime.fromisoformat(point.time.replace('Z', '+00:00'))
+                except:
+                    pass  # Skip if time parsing fails
+
             gpx_point = gpxpy.gpx.GPXTrackPoint(
                 latitude=point.lat,
                 longitude=point.lon,
                 elevation=point.elevation,
-                time=point.time if point.time else None
+                time=point_time
             )
             gpx_segment.points.append(gpx_point)
 

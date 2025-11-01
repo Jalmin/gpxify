@@ -58,22 +58,21 @@ export function Sidebar({ activeSection = 'dashboard' }: SidebarProps) {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
             return (
-              <a
+              <div
                 key={item.id}
-                href={`#${item.id}`}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-lg
                   transition-colors duration-200
                   ${
                     isActive
                       ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      : 'text-muted-foreground'
                   }
                 `}
               >
                 <Icon className="w-5 h-5" />
                 <span className="font-medium">{item.label}</span>
-              </a>
+              </div>
             );
           })}
         </nav>
