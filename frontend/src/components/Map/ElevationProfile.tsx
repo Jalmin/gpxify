@@ -12,7 +12,10 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { Track } from '@/types/gpx';
+import { Track, ClimbSegment } from '@/types/gpx';
+import { gpxApi } from '@/services/api';
+import { ClimbsList } from '@/components/ClimbsList';
+import { Download, TrendingUp as TrendingUpIcon } from 'lucide-react';
 
 // Register ChartJS components
 ChartJS.register(
@@ -43,6 +46,10 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
   const markerRef = useRef<L.Marker | null>(null);
   const [segmentStart, setSegmentStart] = useState<number>(0);
   const [segmentEnd, setSegmentEnd] = useState<number>(track.statistics.total_distance / 1000);
+  const [climbs, setClimbs] = useState<ClimbSegment[]>([]);
+  const [isDetectingClimbs, setIsDetectingClimbs] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const segmentExplorerRef = useRef<HTMLDivElement>(null);
 
   // Prepare data for chart
   const distances = track.points.map(p => (p.distance / 1000).toFixed(2)); // km
@@ -202,16 +209,112 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
 
   const maxDistance = track.statistics.total_distance / 1000;
 
+  // Handle export segment
+  const handleExportSegment = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await gpxApi.exportSegment({
+        track_points: track.points,
+        start_km: segmentStart,
+        end_km: segmentEnd,
+        track_name: track.name || 'track'
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${track.name || 'track'}_segment_${segmentStart.toFixed(1)}km-${segmentEnd.toFixed(1)}km.gpx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting segment:', error);
+      alert('Erreur lors de l\'export du segment');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Handle detect climbs
+  const handleDetectClimbs = async () => {
+    setIsDetectingClimbs(true);
+    try {
+      const detectedClimbs = await gpxApi.detectClimbs({
+        track_points: track.points,
+        start_km: 0,
+        end_km: maxDistance,
+        track_name: track.name || 'track'
+      });
+      setClimbs(detectedClimbs);
+    } catch (error) {
+      console.error('Error detecting climbs:', error);
+      alert('Erreur lors de la détection des montées');
+    } finally {
+      setIsDetectingClimbs(false);
+    }
+  };
+
+  // Handle climb selection
+  const handleSelectClimb = (climb: ClimbSegment) => {
+    setSegmentStart(climb.start_km);
+    setSegmentEnd(climb.end_km);
+
+    // Scroll to segment explorer
+    if (segmentExplorerRef.current) {
+      segmentExplorerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      // Add temporary highlight effect
+      segmentExplorerRef.current.classList.add('ring-4', 'ring-primary', 'ring-opacity-50');
+      setTimeout(() => {
+        segmentExplorerRef.current?.classList.remove('ring-4', 'ring-primary', 'ring-opacity-50');
+      }, 2000);
+    }
+  };
+
   return (
     <div className="w-full space-y-6">
+      {/* Detect Climbs Button */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleDetectClimbs}
+          disabled={isDetectingClimbs}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <TrendingUpIcon className="w-4 h-4" />
+          {isDetectingClimbs ? 'Détection en cours...' : 'Détecter les montées'}
+        </button>
+      </div>
+
+      {/* Climbs List */}
+      {climbs.length > 0 && (
+        <div className="bg-card border border-border rounded-lg p-6">
+          <ClimbsList climbs={climbs} onSelectClimb={handleSelectClimb} />
+        </div>
+      )}
+
       {/* Chart */}
       <div className="w-full h-64">
         <Line data={data} options={options} />
       </div>
 
       {/* Segment Explorer */}
-      <div className="bg-secondary rounded-lg p-6 space-y-4 border border-border">
-        <h3 className="font-semibold text-lg text-foreground">Explorateur de segment</h3>
+      <div
+        ref={segmentExplorerRef}
+        className="bg-secondary rounded-lg p-6 space-y-4 border border-border transition-all duration-300"
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-lg text-foreground">Explorateur de segment</h3>
+          <button
+            onClick={handleExportSegment}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="w-4 h-4" />
+            {isExporting ? 'Export...' : 'Exporter GPX'}
+          </button>
+        </div>
 
         {/* Range Selectors */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -59,3 +59,20 @@ export interface SegmentAnalysis {
   max_slope: number;
   segment_type: string;
 }
+
+export interface ClimbSegment {
+  start_km: number;
+  end_km: number;
+  distance_km: number;
+  elevation_gain: number; // D+ in meters
+  elevation_loss: number; // D- in meters
+  avg_gradient: number; // percentage
+  climb_type: 'type_a' | 'type_b';
+}
+
+export interface ExportSegmentRequest {
+  track_points: TrackPoint[];
+  start_km: number;
+  end_km: number;
+  track_name: string;
+}

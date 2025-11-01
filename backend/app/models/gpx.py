@@ -67,3 +67,22 @@ class SegmentAnalysis(BaseModel):
     avg_slope: float  # percentage
     max_slope: float  # percentage
     segment_type: str  # "climb", "descent", "flat"
+
+
+class ClimbSegment(BaseModel):
+    """Detected climb segment with statistics"""
+    start_km: float
+    end_km: float
+    distance_km: float
+    elevation_gain: float  # D+ in meters
+    elevation_loss: float  # D- in meters
+    avg_gradient: float  # percentage
+    climb_type: str  # "type_a" (>300m, <10km) or "type_b" (>1000m, <30km)
+
+
+class ExportSegmentRequest(BaseModel):
+    """Request to export a segment as GPX"""
+    track_points: List[TrackPoint]
+    start_km: float
+    end_km: float
+    track_name: str

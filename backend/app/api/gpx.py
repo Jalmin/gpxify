@@ -2,10 +2,11 @@
 GPX file upload and analysis API endpoints
 """
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
-from app.models.gpx import GPXUploadResponse, GPXData
+from fastapi.responses import JSONResponse, Response
+from app.models.gpx import GPXUploadResponse, GPXData, ExportSegmentRequest, ClimbSegment
 from app.services.gpx_parser import GPXParser
 from app.core.config import settings
+from typing import List
 import uuid
 import os
 
@@ -71,3 +72,71 @@ async def upload_gpx(file: UploadFile = File(...)):
 async def test_endpoint():
     """Test endpoint to verify API is running"""
     return {"message": "GPX API is running", "version": "1.0.0"}
+
+
+@router.post("/export-segment")
+async def export_segment(request: ExportSegmentRequest):
+    """
+    Export a segment of a GPX track as a downloadable .gpx file
+
+    Args:
+        request: Export segment request with track points and segment range
+
+    Returns:
+        GPX file as downloadable attachment
+    """
+    try:
+        # Generate GPX XML from segment
+        gpx_xml = GPXParser.generate_gpx_from_segment(
+            points=request.track_points,
+            start_km=request.start_km,
+            end_km=request.end_km,
+            track_name=request.track_name
+        )
+
+        # Create filename
+        filename = f"{request.track_name.replace(' ', '_')}_segment_{request.start_km:.1f}km-{request.end_km:.1f}km.gpx"
+
+        # Return as downloadable file
+        return Response(
+            content=gpx_xml,
+            media_type="application/gpx+xml",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error generating GPX file: {str(e)}"
+        )
+
+
+@router.post("/detect-climbs", response_model=List[ClimbSegment])
+async def detect_climbs(request: ExportSegmentRequest):
+    """
+    Detect climb segments in a GPX track based on elevation criteria
+
+    Type A: >300m D+, <10km, <100m D-
+    Type B: >1000m D+, <30km, <300m D-
+
+    Args:
+        request: Contains track points for analysis
+
+    Returns:
+        List of detected climb segments
+    """
+    try:
+        # Detect climbs
+        climbs = GPXParser.detect_climbs(
+            points=request.track_points
+        )
+
+        return climbs
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error detecting climbs: {str(e)}"
+        )

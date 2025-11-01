@@ -10,6 +10,7 @@ from app.models.gpx import (
     TrackPoint,
     TrackStatistics,
     Coordinate,
+    ClimbSegment,
 )
 
 
@@ -190,3 +191,189 @@ class GPXParser:
             "elevation_loss": elevation_loss,
             "num_points": len(segment_points),
         }
+
+    @staticmethod
+    def generate_gpx_from_segment(
+        points: List[TrackPoint],
+        start_km: float,
+        end_km: float,
+        track_name: str
+    ) -> str:
+        """
+        Generate GPX XML string from a segment of track points
+
+        Args:
+            points: List of all track points
+            start_km: Start of segment in kilometers
+            end_km: End of segment in kilometers
+            track_name: Name for the exported track
+
+        Returns:
+            GPX XML string
+        """
+        # Filter points within segment range
+        start_m = start_km * 1000
+        end_m = end_km * 1000
+        segment_points = [p for p in points if start_m <= p.distance <= end_m]
+
+        if not segment_points:
+            raise ValueError("No points found in the specified segment range")
+
+        # Create new GPX object
+        gpx = gpxpy.gpx.GPX()
+
+        # Add metadata
+        gpx.name = f"{track_name} - Segment {start_km:.1f}km to {end_km:.1f}km"
+        gpx.description = f"Exported segment from GPXIFY"
+
+        # Create track and segment
+        gpx_track = gpxpy.gpx.GPXTrack()
+        gpx_track.name = gpx.name
+        gpx.tracks.append(gpx_track)
+
+        gpx_segment = gpxpy.gpx.GPXTrackSegment()
+        gpx_track.segments.append(gpx_segment)
+
+        # Add points to segment
+        for point in segment_points:
+            gpx_point = gpxpy.gpx.GPXTrackPoint(
+                latitude=point.lat,
+                longitude=point.lon,
+                elevation=point.elevation,
+                time=point.time if point.time else None
+            )
+            gpx_segment.points.append(gpx_point)
+
+        # Convert to XML string
+        return gpx.to_xml()
+
+    @staticmethod
+    def detect_climbs(
+        points: List[TrackPoint],
+        min_elevation_gain_a: float = 300,  # meters for Type A
+        max_distance_a: float = 10000,      # meters for Type A
+        max_elevation_loss_a: float = 100,  # meters for Type A
+        min_elevation_gain_b: float = 1000, # meters for Type B
+        max_distance_b: float = 30000,      # meters for Type B
+        max_elevation_loss_b: float = 300,  # meters for Type B
+    ) -> List[ClimbSegment]:
+        """
+        Detect climb segments based on elevation criteria
+
+        Type A criteria: >300m D+, <10km, <100m D-
+        Type B criteria: >1000m D+, <30km, <300m D-
+
+        Args:
+            points: List of track points with elevation data
+            Criteria parameters (with defaults matching requirements)
+
+        Returns:
+            List of detected climb segments
+        """
+        if len(points) < 2:
+            return []
+
+        climbs = []
+        i = 0
+
+        while i < len(points):
+            # Try to find a climb starting at point i
+            climb = GPXParser._find_climb_from_point(
+                points, i,
+                min_elevation_gain_a, max_distance_a, max_elevation_loss_a,
+                min_elevation_gain_b, max_distance_b, max_elevation_loss_b
+            )
+
+            if climb:
+                climbs.append(climb["climb"])
+                # Skip to end of detected climb to avoid overlaps
+                i = climb["end_idx"]
+            else:
+                i += 1
+
+        return climbs
+
+    @staticmethod
+    def _find_climb_from_point(
+        points: List[TrackPoint],
+        start_idx: int,
+        min_gain_a: float,
+        max_dist_a: float,
+        max_loss_a: float,
+        min_gain_b: float,
+        max_dist_b: float,
+        max_loss_b: float,
+    ) -> Optional[dict]:
+        """
+        Try to find a valid climb starting from start_idx
+
+        Returns ClimbSegment if found, None otherwise
+        """
+        start_point = points[start_idx]
+        current_gain = 0.0
+        current_loss = 0.0
+        prev_elevation = start_point.elevation or 0
+
+        # Scan forward to find potential climb
+        for end_idx in range(start_idx + 1, len(points)):
+            end_point = points[end_idx]
+            distance = end_point.distance - start_point.distance
+
+            # Calculate elevation change
+            current_elevation = end_point.elevation or 0
+            elevation_diff = current_elevation - prev_elevation
+
+            if elevation_diff > 0:
+                current_gain += elevation_diff
+            else:
+                current_loss += abs(elevation_diff)
+
+            prev_elevation = current_elevation
+
+            # Check if we've exceeded max distance for either type
+            if distance > max_dist_b:
+                break
+
+            # Check Type B criteria (more lenient, check first)
+            if (distance <= max_dist_b and
+                current_gain >= min_gain_b and
+                current_loss <= max_loss_b):
+
+                start_km = start_point.distance / 1000
+                end_km = end_point.distance / 1000
+                distance_km = distance / 1000
+                avg_gradient = (current_gain / distance * 100) if distance > 0 else 0
+
+                climb_segment = ClimbSegment(
+                    start_km=start_km,
+                    end_km=end_km,
+                    distance_km=distance_km,
+                    elevation_gain=current_gain,
+                    elevation_loss=current_loss,
+                    avg_gradient=avg_gradient,
+                    climb_type="type_b"
+                )
+                return {"climb": climb_segment, "end_idx": end_idx}
+
+            # Check Type A criteria
+            if (distance <= max_dist_a and
+                current_gain >= min_gain_a and
+                current_loss <= max_loss_a):
+
+                start_km = start_point.distance / 1000
+                end_km = end_point.distance / 1000
+                distance_km = distance / 1000
+                avg_gradient = (current_gain / distance * 100) if distance > 0 else 0
+
+                climb_segment = ClimbSegment(
+                    start_km=start_km,
+                    end_km=end_km,
+                    distance_km=distance_km,
+                    elevation_gain=current_gain,
+                    elevation_loss=current_loss,
+                    avg_gradient=avg_gradient,
+                    climb_type="type_a"
+                )
+                return {"climb": climb_segment, "end_idx": end_idx}
+
+        return None
