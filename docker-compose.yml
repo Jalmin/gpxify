@@ -73,6 +73,7 @@ services:
       - traefik.http.routers.gpxify-backend-https.service=gpxify-backend
     networks:
       - gpxify-network
+      - coolify
 
   # React Frontend
   frontend:
@@ -101,6 +102,7 @@ services:
       - traefik.http.routers.gpxify-frontend-https.service=gpxify-frontend
     networks:
       - gpxify-network
+      - coolify
 
 volumes:
   postgres_data:
@@ -111,3 +113,5 @@ volumes:
 networks:
   gpxify-network:
     driver: bridge
+  coolify:
+    external: true
