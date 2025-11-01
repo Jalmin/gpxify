@@ -1,9 +1,9 @@
 """
 Application configuration settings
 """
-from typing import List
+from typing import List, Union
 from pydantic_settings import BaseSettings
-from pydantic import validator
+from pydantic import field_validator
 import os
 
 
@@ -17,12 +17,13 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # CORS
-    BACKEND_CORS_ORIGINS: List[str] = [
+    BACKEND_CORS_ORIGINS: Union[str, List[str]] = [
         "http://localhost:5173",
         "http://localhost:3000",
     ]
 
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
     def assemble_cors_origins(cls, v):
         if isinstance(v, str):
             if not v or v.strip() == "":
