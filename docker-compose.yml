@@ -58,8 +58,8 @@ services:
       UPLOAD_DIR: /app/uploads
     volumes:
       - gpx_uploads:/app/uploads
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     networks:
       - gpxify-network
     healthcheck:
@@ -81,8 +81,8 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     networks:
       - gpxify-network
     healthcheck:
