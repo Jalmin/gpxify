@@ -46,7 +46,6 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
       legend: true,
       followMarker: true,
       autohide: false,
-      collapsed: false,
       downloadLink: false,
     });
 
