@@ -38,7 +38,7 @@ services:
       API_V1_STR: /api/v1
 
       # CORS
-      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-https://gpxify.carapacebleue.com,http://gpxify.carapacebleue.com}
 
       # Google OAuth
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
