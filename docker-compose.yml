@@ -83,8 +83,8 @@ services:
     expose:
       - "80"
     labels:
-      - caddy_0=gpxify.carapacebleue.com
-      - caddy_0.reverse_proxy={{upstreams 80}}
+      - caddy_1=gpxify.carapacebleue.com
+      - caddy_1.reverse_proxy={{upstreams 80}}
     networks:
       - gpxify-network
       - coolify
