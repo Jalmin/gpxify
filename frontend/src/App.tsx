@@ -9,8 +9,13 @@ import { GPXData } from './types/gpx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './components/ui/Card';
 import { Mountain } from 'lucide-react';
 
+interface GPXFileData extends GPXData {
+  id: string;
+  uploadedAt: Date;
+}
+
 function App() {
-  const [gpxData, setGpxData] = useState<GPXData | null>(null);
+  const [gpxFiles, setGpxFiles] = useState<GPXFileData[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [map, setMap] = useState<L.Map | null>(null);
@@ -23,7 +28,12 @@ function App() {
       const response = await gpxApi.uploadGPX(file);
 
       if (response.success && response.data) {
-        setGpxData(response.data);
+        const newFile: GPXFileData = {
+          ...response.data,
+          id: response.file_id || crypto.randomUUID(),
+          uploadedAt: new Date(),
+        };
+        setGpxFiles(prev => [...prev, newFile]);
       } else {
         setError(response.message || 'Erreur lors du téléchargement');
       }
@@ -33,6 +43,10 @@ function App() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleRemoveFile = (id: string) => {
+    setGpxFiles(prev => prev.filter(f => f.id !== id));
   };
 
   const handleMapReady = (mapInstance: L.Map) => {
@@ -56,7 +70,7 @@ function App() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {!gpxData ? (
+        {gpxFiles.length === 0 ? (
           /* Upload Section */
           <div className="max-w-2xl mx-auto">
             <Card>
@@ -120,22 +134,48 @@ function App() {
         ) : (
           /* Analysis View */
           <div className="space-y-6">
-            {/* File Info Header */}
+            {/* Files List & Upload */}
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle>{gpxData.filename}</CardTitle>
-                    <CardDescription>{gpxData.tracks.length} trace(s) trouvée(s)</CardDescription>
+                    <CardTitle>Fichiers GPX ({gpxFiles.length})</CardTitle>
+                    <CardDescription>Comparez plusieurs traces sur la même carte</CardDescription>
                   </div>
                   <button
-                    onClick={() => setGpxData(null)}
-                    className="text-sm text-primary hover:underline"
+                    onClick={() => setGpxFiles([])}
+                    className="text-sm text-red-600 hover:underline"
                   >
-                    Charger un autre fichier
+                    Tout supprimer
                   </button>
                 </div>
               </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {gpxFiles.map((file, index) => (
+                    <div key={file.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-md">
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: ['#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ea580c'][index % 5] }}></div>
+                        <div>
+                          <div className="font-medium">{file.filename}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {file.tracks.length} trace(s) · {(file.tracks.reduce((sum, t) => sum + t.statistics.total_distance, 0) / 1000).toFixed(2)} km
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveFile(file.id)}
+                        className="text-sm text-red-600 hover:underline"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  ))}
+                  <div className="pt-2">
+                    <FileUpload onFileSelect={handleFileSelect} isUploading={isUploading} />
+                  </div>
+                </div>
+              </CardContent>
             </Card>
 
             {/* Map */}
@@ -145,29 +185,34 @@ function App() {
               </CardHeader>
               <CardContent>
                 <div className="h-[500px]">
-                  <GPXMap tracks={gpxData.tracks} onMapReady={handleMapReady} />
+                  <GPXMap
+                    tracks={gpxFiles.flatMap(f => f.tracks)}
+                    onMapReady={handleMapReady}
+                  />
                 </div>
               </CardContent>
             </Card>
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {gpxData.tracks.map((track, index) => (
-                <TrackStats key={index} track={track} />
-              ))}
+              {gpxFiles.map((file) =>
+                file.tracks.map((track, index) => (
+                  <TrackStats key={`${file.id}-${index}`} track={track} />
+                ))
+              )}
             </div>
 
             {/* Elevation Profile */}
-            {gpxData.tracks.length > 0 && map && (
+            {gpxFiles.length > 0 && gpxFiles[0].tracks.length > 0 && map && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Profil d'altitude</CardTitle>
+                  <CardTitle>Profil d'altitude - {gpxFiles[0].filename}</CardTitle>
                   <CardDescription>
                     Cliquez sur le graphique pour voir la position sur la carte
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ElevationProfile track={gpxData.tracks[0]} map={map} />
+                  <ElevationProfile track={gpxFiles[0].tracks[0]} map={map} />
                 </CardContent>
               </Card>
             )}
