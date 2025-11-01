@@ -83,6 +83,17 @@ services:
       - backend
     expose:
       - "80"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.gpxify-frontend.rule=Host(`gpxify.carapacebleue.com`)
+      - traefik.http.routers.gpxify-frontend.entryPoints=http
+      - traefik.http.routers.gpxify-frontend.service=gpxify-frontend
+      - traefik.http.services.gpxify-frontend.loadbalancer.server.port=80
+      - traefik.http.routers.gpxify-frontend-https.rule=Host(`gpxify.carapacebleue.com`)
+      - traefik.http.routers.gpxify-frontend-https.entryPoints=https
+      - traefik.http.routers.gpxify-frontend-https.tls=true
+      - traefik.http.routers.gpxify-frontend-https.tls.certresolver=letsencrypt
+      - traefik.http.routers.gpxify-frontend-https.service=gpxify-frontend
     networks:
       - gpxify-network
     healthcheck:
