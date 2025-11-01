@@ -118,8 +118,10 @@ async def detect_climbs(request: ExportSegmentRequest):
     """
     Detect climb segments in a GPX track based on elevation criteria
 
-    Type A: >300m D+, <10km, <100m D-
-    Type B: >1000m D+, <30km, <300m D-
+    Criteria:
+    - D+ ≥ 300m (minimum elevation gain)
+    - D+ > 4 × D- (ratio criterion for clean climbs)
+    - Average gradient ≥ 4% (real climbs, not gentle slopes)
 
     Args:
         request: Contains track points for analysis
