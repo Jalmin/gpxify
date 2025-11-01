@@ -33,9 +33,12 @@ export function GPXMap({ tracks, onMapReady }: GPXMapProps) {
     if (!mapRef.current) {
       const map = L.map(mapContainerRef.current).setView([46.5, 6.5], 10);
 
-      // Add OpenStreetMap standard tiles - clear and readable
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Add Stamen Toner Lite - intermediate between dark and light
+      L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png', {
         attribution:
+          '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+          '&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> ' +
+          '&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
       }).addTo(map);
