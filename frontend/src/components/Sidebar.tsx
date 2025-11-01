@@ -1,0 +1,90 @@
+import { Mountain, Map, TrendingUp, Upload, Menu, X } from 'lucide-react';
+import { useState } from 'react';
+
+interface SidebarProps {
+  activeSection?: string;
+}
+
+export function Sidebar({ activeSection = 'dashboard' }: SidebarProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Mountain },
+    { id: 'map', label: 'Carte', icon: Map },
+    { id: 'elevation', label: 'Profil', icon: TrendingUp },
+    { id: 'upload', label: 'Importer', icon: Upload },
+  ];
+
+  return (
+    <>
+      {/* Mobile menu button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-lg bg-card text-foreground border border-border"
+      >
+        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
+
+      {/* Sidebar backdrop for mobile */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed top-0 left-0 z-40 h-screen w-64
+          bg-card border-r border-border
+          transition-transform duration-300 ease-in-out
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0
+        `}
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-3 p-6 border-b border-border">
+          <Mountain className="w-8 h-8 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground">GPXIFY</h1>
+            <p className="text-xs text-muted-foreground">Analyse GPX</p>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="p-4 space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            return (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                className={`
+                  flex items-center gap-3 px-4 py-3 rounded-lg
+                  transition-colors duration-200
+                  ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  }
+                `}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </a>
+            );
+          })}
+        </nav>
+
+        {/* Footer */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
+          <p className="text-xs text-muted-foreground text-center">
+            GPXIFY v1.0.0
+          </p>
+        </div>
+      </aside>
+    </>
+  );
+}

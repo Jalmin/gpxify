@@ -4,10 +4,12 @@ import { FileUpload } from './components/FileUpload';
 import { GPXMap } from './components/Map/GPXMap';
 import { ElevationProfile } from './components/Map/ElevationProfile';
 import { TrackStats } from './components/TrackStats';
+import { Sidebar } from './components/Sidebar';
+import { StatCard } from './components/StatCard';
 import { gpxApi } from './services/api';
 import { GPXData } from './types/gpx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './components/ui/Card';
-import { Mountain } from 'lucide-react';
+import { Mountain, Route, TrendingUp, TrendingDown, X } from 'lucide-react';
 
 interface GPXFileData extends GPXData {
   id: string;
@@ -53,125 +55,175 @@ function App() {
     setMap(mapInstance);
   };
 
+  // Calculate aggregate statistics
+  const totalStats = gpxFiles.reduce(
+    (acc, file) => {
+      file.tracks.forEach((track) => {
+        acc.distance += track.statistics.total_distance;
+        acc.elevationGain += track.statistics.total_elevation_gain || 0;
+        acc.elevationLoss += track.statistics.total_elevation_loss || 0;
+      });
+      return acc;
+    },
+    { distance: 0, elevationGain: 0, elevationLoss: 0 }
+  );
+
+  // Color palette for GPX files
+  const gpxColors = [
+    { bg: 'bg-blue-500/10', border: 'border-blue-500', text: 'text-blue-500', hex: '#3b82f6' },
+    { bg: 'bg-purple-500/10', border: 'border-purple-500', text: 'text-purple-500', hex: '#a855f7' },
+    { bg: 'bg-green-500/10', border: 'border-green-500', text: 'text-green-500', hex: '#22c55e' },
+    { bg: 'bg-orange-500/10', border: 'border-orange-500', text: 'text-orange-500', hex: '#f97316' },
+    { bg: 'bg-pink-500/10', border: 'border-pink-500', text: 'text-pink-500', hex: '#ec4899' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Mountain className="w-8 h-8 text-primary" />
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">GPXIFY</h1>
-              <p className="text-sm text-muted-foreground">Analyseur de fichiers GPX</p>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background text-foreground">
+      <Sidebar activeSection="dashboard" />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="lg:ml-64 min-h-screen">
         {gpxFiles.length === 0 ? (
-          /* Upload Section */
-          <div className="max-w-2xl mx-auto">
-            <Card>
-              <CardHeader>
-                <CardTitle>Importer un fichier GPX</CardTitle>
-                <CardDescription>
-                  Téléchargez un fichier GPX pour visualiser votre trace et analyser le profil
-                  d'altitude
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FileUpload onFileSelect={handleFileSelect} isUploading={isUploading} />
+          /* Upload Section - Welcome Screen */
+          <div className="flex items-center justify-center min-h-screen p-6">
+            <div className="max-w-2xl w-full space-y-8">
+              <div className="text-center space-y-4">
+                <Mountain className="w-20 h-20 mx-auto text-primary" />
+                <h1 className="text-4xl font-bold">Bienvenue sur GPXIFY</h1>
+                <p className="text-xl text-muted-foreground">
+                  Analysez vos traces GPX avec précision
+                </p>
+              </div>
 
-                {error && (
-                  <div className="mt-4 p-4 bg-destructive/10 text-destructive rounded-md">
-                    {error}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Feature Preview */}
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <div className="text-3xl mb-2">🗺️</div>
-                    <h3 className="font-semibold mb-1">Carte interactive</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Visualisez votre trace sur une carte outdoor
-                    </p>
-                  </div>
+                <CardHeader>
+                  <CardTitle>Importer un fichier GPX</CardTitle>
+                  <CardDescription>
+                    Téléchargez un ou plusieurs fichiers GPX pour commencer l'analyse
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FileUpload onFileSelect={handleFileSelect} isUploading={isUploading} />
+
+                  {error && (
+                    <div className="mt-4 p-4 bg-destructive/10 text-destructive rounded-md border border-destructive">
+                      {error}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <div className="text-3xl mb-2">📊</div>
-                    <h3 className="font-semibold mb-1">Profil d'altitude</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Analysez l'élévation et la pente de votre parcours
-                    </p>
+              {/* Feature Preview */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-card border border-border rounded-lg p-6 text-center">
+                  <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <Mountain className="w-6 h-6 text-blue-500" />
                   </div>
-                </CardContent>
-              </Card>
+                  <h3 className="font-semibold mb-2">Carte interactive</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Visualisez vos traces sur une carte détaillée
+                  </p>
+                </div>
 
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <div className="text-3xl mb-2">📈</div>
-                    <h3 className="font-semibold mb-1">Statistiques</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Distance, dénivelé, durée et plus encore
-                    </p>
+                <div className="bg-card border border-border rounded-lg p-6 text-center">
+                  <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-purple-500/10 flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-purple-500" />
                   </div>
-                </CardContent>
-              </Card>
+                  <h3 className="font-semibold mb-2">Profil d'altitude</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Analysez l'élévation et les segments
+                  </p>
+                </div>
+
+                <div className="bg-card border border-border rounded-lg p-6 text-center">
+                  <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <Route className="w-6 h-6 text-green-500" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Statistiques</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Distance, dénivelé et durée détaillés
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
           /* Analysis View */
-          <div className="space-y-6">
+          <div className="p-6 space-y-6">
+            {/* Header with Stats Overview */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold">Dashboard</h1>
+                  <p className="text-muted-foreground mt-1">{gpxFiles.length} fichier(s) chargé(s)</p>
+                </div>
+                <button
+                  onClick={() => setGpxFiles([])}
+                  className="px-4 py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-lg border border-destructive transition-colors"
+                >
+                  Tout supprimer
+                </button>
+              </div>
+
+              {/* Aggregate Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <StatCard
+                  title="Distance totale"
+                  value={`${(totalStats.distance / 1000).toFixed(2)} km`}
+                  icon={Route}
+                  color="blue"
+                />
+                <StatCard
+                  title="Dénivelé positif total"
+                  value={`${Math.round(totalStats.elevationGain)} m`}
+                  icon={TrendingUp}
+                  color="green"
+                />
+                <StatCard
+                  title="Dénivelé négatif total"
+                  value={`${Math.round(totalStats.elevationLoss)} m`}
+                  icon={TrendingDown}
+                  color="red"
+                />
+              </div>
+            </div>
+
             {/* Files List & Upload */}
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Fichiers GPX ({gpxFiles.length})</CardTitle>
-                    <CardDescription>Comparez plusieurs traces sur la même carte</CardDescription>
-                  </div>
-                  <button
-                    onClick={() => setGpxFiles([])}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Tout supprimer
-                  </button>
-                </div>
+                <CardTitle>Fichiers GPX</CardTitle>
+                <CardDescription>Gérez vos traces et ajoutez-en de nouvelles</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {gpxFiles.map((file, index) => (
-                    <div key={file.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-md">
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: ['#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ea580c'][index % 5] }}></div>
-                        <div>
-                          <div className="font-medium">{file.filename}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {file.tracks.length} trace(s) · {(file.tracks.reduce((sum, t) => sum + t.statistics.total_distance, 0) / 1000).toFixed(2)} km
+                  {gpxFiles.map((file, index) => {
+                    const colorScheme = gpxColors[index % gpxColors.length];
+                    return (
+                      <div
+                        key={file.id}
+                        className={`flex items-center justify-between p-4 rounded-lg border-2 ${colorScheme.border} ${colorScheme.bg} transition-all hover:scale-[1.02]`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`w-3 h-3 rounded-full ${colorScheme.text}`} style={{ backgroundColor: colorScheme.hex }}></div>
+                          <div>
+                            <div className={`font-semibold ${colorScheme.text}`}>{file.filename}</div>
+                            <div className="text-sm text-muted-foreground flex items-center gap-3 mt-1">
+                              <span>{file.tracks.length} trace(s)</span>
+                              <span>·</span>
+                              <span>{(file.tracks.reduce((sum, t) => sum + t.statistics.total_distance, 0) / 1000).toFixed(2)} km</span>
+                            </div>
                           </div>
                         </div>
+                        <button
+                          onClick={() => handleRemoveFile(file.id)}
+                          className="p-2 hover:bg-destructive/20 rounded-lg transition-colors group"
+                        >
+                          <X className="w-5 h-5 text-muted-foreground group-hover:text-destructive" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleRemoveFile(file.id)}
-                        className="text-sm text-red-600 hover:underline"
-                      >
-                        Supprimer
-                      </button>
-                    </div>
-                  ))}
-                  <div className="pt-2">
+                    );
+                  })}
+                  <div className="pt-2 border-t border-border mt-4">
                     <FileUpload onFileSelect={handleFileSelect} isUploading={isUploading} />
                   </div>
                 </div>
@@ -219,13 +271,6 @@ function App() {
           </div>
         )}
       </main>
-
-      {/* Footer */}
-      <footer className="mt-16 py-6 border-t bg-white">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>GPXIFY v1.0.0 - Phase 1 MVP</p>
-        </div>
-      </footer>
     </div>
   );
 }
