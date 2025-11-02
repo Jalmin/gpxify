@@ -53,7 +53,24 @@ function App() {
       }
     } catch (err: any) {
       console.error('Upload error:', err);
-      setError(err.response?.data?.detail || 'Erreur lors du téléchargement du fichier');
+      // Provide more specific error messages
+      let errorMessage = 'Erreur lors du téléchargement du fichier';
+
+      if (err.response?.status === 413) {
+        errorMessage = 'Fichier trop volumineux. La taille maximale est de 10 MB.';
+      } else if (err.response?.status === 415) {
+        errorMessage = 'Format de fichier non supporté. Veuillez uploader un fichier GPX valide.';
+      } else if (err.response?.status === 400) {
+        errorMessage = err.response?.data?.detail || 'Fichier GPX invalide. Vérifiez que votre fichier contient des données GPS valides.';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Erreur serveur. Veuillez réessayer dans quelques instants.';
+      } else if (err.message === 'Network Error') {
+        errorMessage = 'Erreur de connexion. Vérifiez votre connexion internet et réessayez.';
+      } else if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      }
+
+      setError(errorMessage);
     } finally {
       setIsUploading(false);
     }

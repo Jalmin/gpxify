@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, X, Table as TableIcon, Download, Clock, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
+import { Tooltip } from './ui/Tooltip';
 import { Track, AidStation, AidStationTableRequest, AidStationTableResponse } from '@/types/gpx';
 
 interface AidStationTableProps {
@@ -218,7 +219,10 @@ export function AidStationTable({ track }: AidStationTableProps) {
 
       {/* Time Estimation Options */}
       <Card className="p-4">
-        <h3 className="font-semibold mb-4">Options de calcul</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <h3 className="font-semibold">Options de calcul</h3>
+          <Tooltip content="Choisissez entre la formule de Naismith (adaptée au trail avec dénivelé) ou une allure constante personnalisée pour calculer les temps estimés." />
+        </div>
 
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -235,6 +239,7 @@ export function AidStationTable({ track }: AidStationTableProps) {
                 12 km/h plat + 5 min par 100m D+ - 5 min par 100m D- (pente &gt; 12%)
               </span>
             </label>
+            <Tooltip content="Cette formule classique ajuste automatiquement votre vitesse en fonction du dénivelé. Elle est particulièrement adaptée aux parcours de trail et randonnée avec du relief." />
           </div>
 
           <div className="flex items-center gap-2">

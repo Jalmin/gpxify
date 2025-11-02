@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Upload, X, ArrowDownUp, Settings, Download, GripVertical } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
+import { Tooltip } from './ui/Tooltip';
 import { cn } from '@/lib/utils';
 import { GPXFileInput, MergeGPXRequest, MergeGPXResponse } from '@/types/gpx';
 import { GPXMap } from './Map/GPXMap';
@@ -209,9 +210,10 @@ export function GPXMerge() {
               }
               className="w-4 h-4"
             />
-            <label htmlFor="interpolate-gaps" className="text-sm">
+            <label htmlFor="interpolate-gaps" className="text-sm flex-1">
               Ligne droite entre les trous (recommandé)
             </label>
+            <Tooltip content="Crée une ligne droite pour relier les segments séparés par un trou. Utile si votre GPS s'est arrêté puis redémarré." />
           </div>
 
           <div className="flex items-center gap-2">
@@ -224,15 +226,19 @@ export function GPXMerge() {
               }
               className="w-4 h-4"
             />
-            <label htmlFor="sort-by-time" className="text-sm">
+            <label htmlFor="sort-by-time" className="text-sm flex-1">
               Trier automatiquement par horodatage (ignorer l'ordre manuel)
             </label>
+            <Tooltip content="Trie les points GPS par date/heure au lieu de suivre l'ordre des fichiers. Activez si vos fichiers ne sont pas dans le bon ordre chronologique." />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Seuil de détection des trous (secondes)
-            </label>
+            <div className="flex items-center gap-2 mb-1">
+              <label className="block text-sm font-medium">
+                Seuil de détection des trous (secondes)
+              </label>
+              <Tooltip content="Durée minimale entre deux points GPS pour qu'un trou soit détecté. 300 secondes (5 minutes) est une bonne valeur par défaut." />
+            </div>
             <input
               type="number"
               value={mergeOptions.gap_threshold_seconds}
