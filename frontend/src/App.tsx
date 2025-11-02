@@ -413,7 +413,7 @@ function App() {
       <Route path="/" element={renderMainApp()} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/legal" element={<Legal />} />
-      <Route path="/share/:shareId" element={<SharedView onStateLoaded={handleStateLoaded} />} />
+      <Route path="/share" element={<SharedView onStateLoaded={handleStateLoaded} />} />
     </Routes>
   );
 }
