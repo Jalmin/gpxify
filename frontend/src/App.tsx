@@ -29,6 +29,7 @@ function App() {
   const [map, setMap] = useState<L.Map | null>(null);
   const [activeTab, setActiveTab] = useState<'analyze' | 'merge' | 'aid-stations'>('analyze');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [selectedGpxForAidStations, setSelectedGpxForAidStations] = useState<string | null>(null);
 
   const handleFileSelect = async (file: File) => {
     setIsUploading(true);
@@ -291,7 +292,64 @@ function App() {
 
           {/* Tab Content: Aid Stations / Predictions */}
           {activeTab === 'aid-stations' && (
-            <AidStationTable track={gpxFiles.length > 0 && gpxFiles[0].tracks.length > 0 ? gpxFiles[0].tracks[0] : null} />
+            <div className="space-y-6">
+              {gpxFiles.length === 0 ? (
+                <Card className="p-8">
+                  <div className="text-center text-muted-foreground">
+                    <Table className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium mb-2">Aucun fichier GPX chargé</p>
+                    <p className="text-sm">Uploadez un fichier GPX pour créer un tableau de prévisions</p>
+                  </div>
+                </Card>
+              ) : (
+                <>
+                  {/* GPX File Selector */}
+                  <Card className="p-4">
+                    <h3 className="font-semibold mb-3">Sélectionner un fichier GPX</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {gpxFiles.map((file, index) => {
+                        const colorScheme = gpxColors[index % gpxColors.length];
+                        const isSelected = selectedGpxForAidStations === file.id ||
+                          (selectedGpxForAidStations === null && index === 0);
+
+                        return (
+                          <button
+                            key={file.id}
+                            onClick={() => setSelectedGpxForAidStations(file.id)}
+                            className={`p-3 rounded-lg border-2 text-left transition-all ${
+                              isSelected
+                                ? `${colorScheme.border} ${colorScheme.bg} ring-2 ring-offset-2 ring-primary`
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: colorScheme.hex }}
+                              />
+                              <span className={`font-medium text-sm ${isSelected ? colorScheme.text : ''}`}>
+                                {file.filename}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {(file.tracks.reduce((sum, t) => sum + t.statistics.total_distance, 0) / 1000).toFixed(1)} km
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Card>
+
+                  {/* Aid Station Table */}
+                  <AidStationTable
+                    track={(() => {
+                      const selectedFile = gpxFiles.find(f => f.id === selectedGpxForAidStations) || gpxFiles[0];
+                      return selectedFile.tracks.length > 0 ? selectedFile.tracks[0] : null;
+                    })()}
+                  />
+                </>
+              )}
+            </div>
           )}
         </main>
       </div>
