@@ -15,8 +15,8 @@ router = APIRouter()
 
 
 @router.post("/save", response_model=SaveStateResponse)
-@limiter.limit("10/minute")  # 10 share creations per minute per IP
-async def save_state(http_request: Request, request: SaveStateRequest, db: Session = Depends(get_db)):
+# @limiter.limit("10/minute")  # 10 share creations per minute per IP - TEMPORARILY DISABLED
+async def save_state(request: SaveStateRequest, http_request: Request, db: Session = Depends(get_db)):
     """
     Save application state and generate shareable URL
 
