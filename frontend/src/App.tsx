@@ -11,10 +11,11 @@ import { StatCard } from './components/StatCard';
 import { ShareButton } from './components/ShareButton';
 import { SharedView } from './pages/SharedView';
 import { GPXMerge } from './components/GPXMerge';
+import { AidStationTable } from './components/AidStationTable';
 import { gpxApi } from './services/api';
 import { GPXData } from './types/gpx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './components/ui/Card';
-import { Navigation, TrendingUp, TrendingDown, X, GripVertical, Merge } from 'lucide-react';
+import { Navigation, TrendingUp, TrendingDown, X, GripVertical, Merge, Table } from 'lucide-react';
 
 interface GPXFileData extends GPXData {
   id: string;
@@ -26,7 +27,7 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [map, setMap] = useState<L.Map | null>(null);
-  const [activeTab, setActiveTab] = useState<'analyze' | 'merge'>('analyze');
+  const [activeTab, setActiveTab] = useState<'analyze' | 'merge' | 'aid-stations'>('analyze');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const handleFileSelect = async (file: File) => {
@@ -157,6 +158,17 @@ function App() {
               <Merge className="w-4 h-4" />
               Fusionner
             </button>
+            <button
+              onClick={() => setActiveTab('aid-stations')}
+              className={`px-4 py-2 font-medium transition-colors flex items-center gap-2 ${
+                activeTab === 'aid-stations'
+                  ? 'border-b-2 border-primary text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Table className="w-4 h-4" />
+              Prévisions
+            </button>
           </div>
 
           {/* Tab Content: Analyze */}
@@ -276,6 +288,11 @@ function App() {
 
           {/* Tab Content: Merge */}
           {activeTab === 'merge' && <GPXMerge />}
+
+          {/* Tab Content: Aid Stations / Predictions */}
+          {activeTab === 'aid-stations' && (
+            <AidStationTable track={gpxFiles.length > 0 && gpxFiles[0].tracks.length > 0 ? gpxFiles[0].tracks[0] : null} />
+          )}
         </main>
       </div>
     );
