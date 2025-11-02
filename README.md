@@ -1,144 +1,176 @@
-# GPXIFY - Analyseur de fichiers GPX
+# GPXIFY
 
-Application web pour l'analyse de fichiers GPX avec visualisation cartographique et analyse de segments.
+**L'outil tout-en-un pour analyser, fusionner et optimiser vos traces GPX de trail**
 
-**🌐 Production** : https://gpxify.carapacebleue.com (déploiement Coolify/Hetzner)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green.svg)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org)
 
-## Fonctionnalités
+🌐 **[gpxify.carapacebleue.com](https://gpxify.carapacebleue.com)**
 
-### Phase 2 - Google OAuth + Database (En cours de déploiement)
-- ✅ Upload de fichiers GPX
-- ✅ Affichage sur carte interactive (Leaflet + CyclOSM)
-- ✅ Profil d'altitude interactif
-- ✅ Authentification Google OAuth
-- ✅ Base de données PostgreSQL
-- ✅ Multi-traces avec couleurs
-- ✅ Statistiques détaillées
-- 🚀 Google Drive integration (à venir)
+---
 
-### Phases Futures
-- Phase 3: Analyse de segments personnalisés
-- Phase 4: Détection segments singuliers (montées/descentes)
-- Phase 5: Auth0 + Features avancées
+## ✨ Fonctionnalités
 
-## Stack Technique
+### 📊 Analyse complète de traces GPX
+- **Profil d'altitude** interactif avec carte synchronisée
+- **Statistiques détaillées** : distance, D+, D-, pente moyenne, altitude min/max
+- **Visualisation cartographique** avec Leaflet et profils d'élévation
+- **Support multi-traces** : chargez et comparez plusieurs fichiers GPX
 
-**Backend:**
-- FastAPI (Python 3.9+)
-- gpxpy (parsing GPX)
-- Authlib (Google OAuth)
-- uvicorn (ASGI server)
+### 🔀 Fusion de fichiers GPX
+- **Drag & drop** pour réorganiser l'ordre de fusion
+- **Détection automatique** des trous et chevauchements
+- **Interpolation intelligente** entre segments discontinus
+- **Options avancées** : tri temporel, seuil de détection personnalisable
+- **Aperçu et téléchargement** du fichier fusionné
 
-**Frontend:**
-- React 18 + TypeScript
-- Vite (build tool)
-- Leaflet (cartographie)
-- @raruto/leaflet-elevation (profils)
-- shadcn/ui + Tailwind CSS
-- @we-gold/gpxjs (parsing GPX client)
+### 📋 Tableaux de ravitaillement
+- **Calcul automatique** des statistiques entre ravitaillements
+- **Formule de Naismith** pour estimer les temps (ou allure personnalisée)
+- **Export CSV** pour impression ou partage
+- **Statistiques par segment** : distance, D+/D-, pente, temps estimé et cumulé
 
-**Cartes:**
-- CyclOSM (tiles outdoor gratuites)
-- OpenTopoMap (fallback)
+### 🔗 Partage anonyme
+- **Liens partageables** sans inscription requise
+- **Expiration automatique** après 30 jours
+- **Partage sécurisé** de vos analyses complètes
 
-## Structure du Projet
+---
 
-```
-GPXIFY/
-├── backend/               # FastAPI application
-│   ├── app/
-│   │   ├── main.py       # Point d'entrée FastAPI
-│   │   ├── api/          # Routes API
-│   │   ├── core/         # Configuration
-│   │   ├── models/       # Modèles de données
-│   │   └── services/     # Logique métier
-│   ├── requirements.txt
-│   └── .env.example
-│
-├── frontend/             # React application
-│   ├── src/
-│   │   ├── components/   # Composants React
-│   │   ├── services/     # API calls
-│   │   ├── types/        # TypeScript types
-│   │   └── App.tsx       # Composant principal
-│   ├── package.json
-│   └── vite.config.ts
-│
-└── README.md
-```
-
-## Installation
-
-### Prérequis
-- Python 3.9+
-- Node.js 18+
-- npm ou yarn
-
-### Backend
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Sur Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
-# Configurer les variables d'environnement dans .env
-uvicorn app.main:app --reload
-```
+## 🛠️ Stack technique
 
 ### Frontend
+- **React 18** avec TypeScript
+- **Vite** pour le build ultra-rapide
+- **TailwindCSS** pour le design
+- **React Router v7** pour la navigation
+- **Leaflet** pour les cartes interactives
+- **Leaflet Elevation** pour les profils d'altitude
+
+### Backend
+- **FastAPI** (Python) pour l'API REST
+- **GPXpy** pour le parsing de fichiers GPX
+- **PostgreSQL** pour le stockage des partages
+- **SQLAlchemy** comme ORM
+- **Pandas & NumPy** pour les calculs statistiques
+- **SlowAPI** pour le rate limiting
+
+### Infrastructure
+- **Docker** multi-stage builds
+- **Nginx** pour le reverse proxy
+- **Coolify** pour le déploiement
+- **Fathom Analytics** (RGPD compliant, sans cookies)
+
+---
+
+## 🚀 Démarrage rapide
+
+### Option 1 : Utilisation en ligne
+
+Visitez [gpxify.carapacebleue.com](https://gpxify.carapacebleue.com) - aucune installation nécessaire !
+
+### Option 2 : Installation locale avec Docker
 
 ```bash
-cd frontend
-npm install
-npm run dev
+# Cloner le repository
+git clone https://github.com/Jalmin/gpxify.git
+cd gpxify
+
+# Lancer avec Docker Compose
+docker-compose up
 ```
 
-## Configuration Google OAuth
+L'application sera accessible sur :
+- Frontend : [http://localhost](http://localhost)
+- Backend API : [http://localhost:8000](http://localhost:8000)
+- Documentation API : [http://localhost:8000/docs](http://localhost:8000/docs)
 
-1. Créer un projet sur [Google Cloud Console](https://console.cloud.google.com/)
-2. Activer Google Drive API
-3. Créer des identifiants OAuth 2.0
-4. Ajouter http://localhost:5173 dans les origines autorisées
-5. Copier Client ID et Client Secret dans `.env`
+---
 
-## Développement
+## 📖 Documentation
 
-- Backend API: http://localhost:8000
-- Frontend: http://localhost:5173
-- API Docs: http://localhost:8000/docs
+### API Endpoints
 
-## 🚀 Déploiement sur Coolify (Hetzner)
+#### GPX Analysis
+```bash
+# Upload et analyse d'un fichier GPX
+POST /api/v1/gpx/upload
+Content-Type: multipart/form-data
 
-**Démarrage rapide** : Voir [DEPLOY_START.md](./DEPLOY_START.md)
+# Fusionner plusieurs fichiers GPX
+POST /api/v1/gpx/merge
+Content-Type: application/json
 
-### Fichiers de déploiement disponibles
+# Générer un tableau de ravitaillement
+POST /api/v1/gpx/aid-station-table
+Content-Type: application/json
+```
 
-| Fichier | Description |
-|---------|-------------|
-| [DEPLOY_START.md](./DEPLOY_START.md) | ⭐ Guide ultra-rapide (3 étapes) |
-| [GOOGLE_CLOUD_CHECKLIST.md](./GOOGLE_CLOUD_CHECKLIST.md) | ✅ Checklist Google Cloud (avec cases à cocher) |
-| [GOOGLE_CLOUD_SETUP.md](./GOOGLE_CLOUD_SETUP.md) | Guide détaillé Google Cloud |
-| [GOOGLE_OPTIONS.md](./GOOGLE_OPTIONS.md) | Comparaison des options Google Cloud |
-| [DEPLOY_CHECKLIST.md](./DEPLOY_CHECKLIST.md) | Checklist déploiement Coolify |
-| [DEPLOY_COOLIFY.md](./DEPLOY_COOLIFY.md) | Guide Coolify détaillé + dépannage |
-| [CREDENTIALS.md](./CREDENTIALS.md) | Credentials & secrets (local only) |
-| [docker-compose.yml](./docker-compose.yml) | Configuration des services |
+#### Partage
+```bash
+# Créer un lien de partage
+POST /api/v1/share/save
 
-### Services déployés
+# Récupérer un état partagé
+GET /api/v1/share/{share_id}
+```
 
-- **Backend** : FastAPI (port 8000)
-- **Frontend** : React + Nginx (port 80/443)
-- **Database** : PostgreSQL 16
+Documentation complète : [API Documentation](https://gpxify.carapacebleue.com/api/docs)
 
-### Configuration requise
+---
 
-1. DNS : `gpxify.carapacebleue.com` → IP Hetzner
-2. Google OAuth configuré (credentials inclus)
-3. Variables d'environnement dans Coolify
+## 🔒 Confidentialité & Sécurité
 
-**Temps de déploiement** : ~20 minutes
+- ✅ **Aucun cookie** : Analytics via Fathom (conforme RGPD)
+- ✅ **Données temporaires** : fichiers GPX supprimés immédiatement après analyse
+- ✅ **Partages éphémères** : expiration automatique après 30 jours
+- ✅ **Rate limiting** : protection contre les abus
+- ✅ **HTTPS** : communications chiffrées
+- ✅ **Open source** : code auditable publiquement
 
-## Licence
+---
 
-MIT
+## 📝 Formats supportés
+
+- **GPX** (GPS Exchange Format) - `.gpx`
+- Taille maximale : **10 MB** par fichier
+- Compatible avec toutes les montres GPS et applications (Garmin, Suunto, Strava, Komoot, etc.)
+
+---
+
+## 🤝 Contribution
+
+Les contributions sont les bienvenues !
+
+1. Fork le projet
+2. Créez votre branche (`git checkout -b feature/AmazingFeature`)
+3. Committez vos changements (`git commit -m 'Add some AmazingFeature'`)
+4. Poussez vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrez une Pull Request
+
+---
+
+## 📜 Licence
+
+Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
+
+---
+
+## 💬 Support & Contact
+
+- 🐛 **Issues** : [GitHub Issues](https://github.com/Jalmin/gpxify/issues)
+- ❓ **FAQ** : [gpxify.carapacebleue.com/faq](https://gpxify.carapacebleue.com/faq)
+- 📧 **Email** : Via GitHub
+
+---
+
+## 🙏 Remerciements
+
+- Créé avec ❤️ pour la communauté trail et outdoor
+- Propulsé par [Claude Code](https://claude.com/claude-code)
+- Merci à tous les contributeurs et utilisateurs !
+
+---
+
+**⭐ Si vous aimez ce projet, n'hésitez pas à lui donner une étoile sur GitHub !**
