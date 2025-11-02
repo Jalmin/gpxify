@@ -10,37 +10,46 @@ interface HeroProps {
 
 export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
   const features = [
-    { icon: Edit3, label: 'Éditer', color: 'from-blue-500 to-cyan-500' },
-    { icon: Merge, label: 'Fusionner', color: 'from-purple-500 to-pink-500' },
-    { icon: Scissors, label: 'Découper', color: 'from-orange-500 to-red-500' },
-    { icon: BarChart3, label: 'Analyser', color: 'from-green-500 to-emerald-500' },
-    { icon: Search, label: 'Identifier', color: 'from-indigo-500 to-blue-500' },
+    { icon: Edit3, label: 'Éditer' },
+    { icon: Merge, label: 'Fusionner' },
+    { icon: Scissors, label: 'Découper' },
+    { icon: BarChart3, label: 'Analyser' },
+    { icon: Search, label: 'Identifier' },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-6">
+    <div className="min-h-screen bg-black flex items-center justify-center p-6">
       <div className="max-w-4xl w-full space-y-12">
-        {/* Hero Banner */}
-        <div className="text-center space-y-4">
+        {/* Hero Banner with Pixel Logo */}
+        <div className="text-center space-y-6">
+          {/* Pixel Logo */}
+          <div className="flex justify-center mb-8">
+            <img
+              src="/kanjilogogpx.png"
+              alt="GPX 忍者道具"
+              className="w-64 h-auto pixelated"
+              style={{ imageRendering: 'pixelated' }}
+            />
+          </div>
           <h1 className="text-7xl font-black text-white">
             GPXIFY
           </h1>
-          <p className="text-2xl text-muted-foreground font-medium">
+          <p className="text-2xl text-gray-400 font-medium">
             L'outil tout-en-un pour vos traces GPX de trail
           </p>
         </div>
 
-        {/* Feature Icons */}
+        {/* Feature Icons - Black & White */}
         <div className="flex justify-center items-center gap-8 flex-wrap">
           {features.map((feature, index) => (
             <div
               key={index}
               className="group relative flex flex-col items-center gap-3 transition-transform hover:scale-110"
             >
-              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.color} p-4 shadow-lg group-hover:shadow-xl transition-all`}>
-                <feature.icon className="w-full h-full text-white" strokeWidth={2.5} />
+              <div className="w-16 h-16 rounded-2xl bg-white p-4 shadow-lg group-hover:shadow-2xl group-hover:bg-gray-200 transition-all">
+                <feature.icon className="w-full h-full text-black" strokeWidth={2.5} />
               </div>
-              <span className="text-sm font-semibold text-foreground/80 group-hover:text-foreground transition-colors">
+              <span className="text-sm font-semibold text-gray-400 group-hover:text-white transition-colors">
                 {feature.label}
               </span>
             </div>
