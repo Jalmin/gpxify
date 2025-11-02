@@ -1,25 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  db:
-    image: postgres:16-alpine
-    container_name: gpxify-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-gpxify}
-      POSTGRES_USER: ${POSTGRES_USER:-gpxify}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gpxify}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - gpxify-network
-
   # FastAPI Backend
   backend:
     build:
@@ -27,9 +8,6 @@ services:
       dockerfile: Dockerfile
     container_name: gpxify-backend
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
       # Application
       APP_NAME: ${APP_NAME:-GPXIFY}
@@ -50,8 +28,8 @@ services:
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
 
-      # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gpxify}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-gpxify}
+      # Database - Use DATABASE_URL from environment if provided, otherwise fallback to local db
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-gpxify}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-gpxify}}
 
       # Upload
       MAX_UPLOAD_SIZE: 10485760
@@ -90,8 +68,6 @@ services:
       - coolify
 
 volumes:
-  postgres_data:
-    driver: local
   gpx_uploads:
     driver: local
 
