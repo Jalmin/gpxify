@@ -487,12 +487,17 @@ class GPXParser:
         NEW APPROACH: Continue climbing as long as ratio stays good,
         then check at the end if it meets minimum criteria.
 
+        IMPROVED: Stop early if we detect a significant descent after reaching summit.
+
         Returns dictionary with climb info if found, None otherwise
         """
         prev_elevation = smoothed_elevations[start_idx]
         current_d_plus = 0.0
         current_d_minus = 0.0
         best_end_idx = None
+        peak_elevation = smoothed_elevations[start_idx]
+        descent_from_peak = 0.0
+        max_descent_from_peak = 50  # Stop if we descend more than 50m from highest point
 
         # Scan forward accumulating D+ and D-, continuing as long as ratio is good
         for end_idx in range(start_idx + 1, len(points)):
@@ -501,8 +506,14 @@ class GPXParser:
 
             if elev_diff > 0:
                 current_d_plus += elev_diff
+                # Update peak if we reached a new high
+                if current_elevation > peak_elevation:
+                    peak_elevation = current_elevation
+                    descent_from_peak = 0
             else:
                 current_d_minus += abs(elev_diff)
+                # Track descent from peak
+                descent_from_peak = peak_elevation - current_elevation
 
             prev_elevation = current_elevation
 
@@ -511,9 +522,13 @@ class GPXParser:
                 if current_d_minus == 0 or current_d_plus / current_d_minus > min_ratio:
                     best_end_idx = end_idx
 
-            # Check if ratio becomes bad (we've reached the top and started descending)
+            # STOP CONDITIONS:
+            # 1. Descended too much from peak (we're past the summit)
+            if descent_from_peak > max_descent_from_peak:
+                break
+
+            # 2. Ratio becomes bad (too much D- overall)
             if current_d_minus > 0 and current_d_plus / current_d_minus < min_ratio:
-                # Ratio degraded, stop here
                 break
 
         # Check if we found a valid climb
