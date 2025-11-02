@@ -18,7 +18,7 @@ import { AidStationTable } from './components/AidStationTable';
 import { gpxApi } from './services/api';
 import { GPXData } from './types/gpx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './components/ui/Card';
-import { Navigation, TrendingUp, TrendingDown, X, GripVertical, Merge, Table } from 'lucide-react';
+import { Navigation, TrendingUp, TrendingDown, X, GripVertical, Merge, Table, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 
 interface GPXFileData extends GPXData {
   id: string;
@@ -33,6 +33,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<'analyze' | 'merge' | 'aid-stations'>('analyze');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [selectedGpxForAidStations, setSelectedGpxForAidStations] = useState<string | null>(null);
+  const [showUploadSection, setShowUploadSection] = useState(false);
 
   const handleFileSelect = async (file: File) => {
     setIsUploading(true);
@@ -125,9 +126,9 @@ function App() {
     { distance: 0, elevationGain: 0, elevationLoss: 0 }
   );
 
-  // Color palette for GPX files
+  // Color palette for GPX files (red first for better visibility)
   const gpxColors = [
-    { bg: 'bg-blue-500/10', border: 'border-blue-500', text: 'text-blue-500', hex: '#3b82f6' },
+    { bg: 'bg-red-500/10', border: 'border-red-500', text: 'text-red-500', hex: '#ef4444' },
     { bg: 'bg-purple-500/10', border: 'border-purple-500', text: 'text-purple-500', hex: '#a855f7' },
     { bg: 'bg-green-500/10', border: 'border-green-500', text: 'text-green-500', hex: '#22c55e' },
     { bg: 'bg-orange-500/10', border: 'border-orange-500', text: 'text-orange-500', hex: '#f97316' },
@@ -155,7 +156,7 @@ function App() {
           }
         />
 
-        <main className="container mx-auto p-6 space-y-6">
+        <main className="container mx-auto p-4 space-y-4">
           {/* Tabs */}
           <div className="flex gap-2 border-b border-border">
             <button
@@ -259,8 +260,29 @@ function App() {
                     </div>
                   );
                 })}
+
+                {/* Collapsible Upload Section */}
                 <div className="pt-2 border-t border-border mt-4">
-                  <FileUpload onFileSelect={handleFileSelect} isUploading={isUploading} />
+                  <button
+                    onClick={() => setShowUploadSection(!showUploadSection)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      <span>Ajouter un fichier GPX</span>
+                    </div>
+                    {showUploadSection ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  {showUploadSection && (
+                    <div className="mt-3 p-4 bg-muted/30 rounded-lg">
+                      <FileUpload onFileSelect={handleFileSelect} isUploading={isUploading} />
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -268,11 +290,11 @@ function App() {
 
           {/* Map */}
           <Card>
-            <CardHeader>
-              <CardTitle>Carte</CardTitle>
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Carte</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="h-[500px]">
+            <CardContent className="p-3">
+              <div className="h-[400px]">
                 <GPXMap
                   tracks={gpxFiles.flatMap(f => f.tracks)}
                   onMapReady={handleMapReady}
@@ -282,7 +304,7 @@ function App() {
           </Card>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {gpxFiles.map((file) =>
               file.tracks.map((track, index) => (
                 <TrackStats key={`${file.id}-${index}`} track={track} />
@@ -293,13 +315,13 @@ function App() {
               {/* Elevation Profile */}
               {gpxFiles.length > 0 && gpxFiles[0].tracks.length > 0 && map && (
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Profil d'altitude - {gpxFiles[0].filename}</CardTitle>
-                    <CardDescription>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-lg">Profil d'altitude - {gpxFiles[0].filename}</CardTitle>
+                    <CardDescription className="text-sm">
                       Cliquez sur le graphique pour voir la position sur la carte
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-3">
                     <ElevationProfile track={gpxFiles[0].tracks[0]} map={map} />
                   </CardContent>
                 </Card>
