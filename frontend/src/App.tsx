@@ -10,10 +10,11 @@ import { TrackStats } from './components/TrackStats';
 import { StatCard } from './components/StatCard';
 import { ShareButton } from './components/ShareButton';
 import { SharedView } from './pages/SharedView';
+import { GPXMerge } from './components/GPXMerge';
 import { gpxApi } from './services/api';
 import { GPXData } from './types/gpx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './components/ui/Card';
-import { Navigation, TrendingUp, TrendingDown, X } from 'lucide-react';
+import { Navigation, TrendingUp, TrendingDown, X, GripVertical, Merge } from 'lucide-react';
 
 interface GPXFileData extends GPXData {
   id: string;
@@ -25,6 +26,8 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [map, setMap] = useState<L.Map | null>(null);
+  const [activeTab, setActiveTab] = useState<'analyze' | 'merge'>('analyze');
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const handleFileSelect = async (file: File) => {
     setIsUploading(true);
@@ -53,6 +56,28 @@ function App() {
 
   const handleRemoveFile = (id: string) => {
     setGpxFiles(prev => prev.filter(f => f.id !== id));
+  };
+
+  // Drag & Drop for reordering files
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newFiles = [...gpxFiles];
+    const draggedFile = newFiles[draggedIndex];
+    newFiles.splice(draggedIndex, 1);
+    newFiles.splice(index, 0, draggedFile);
+
+    setGpxFiles(newFiles);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
   };
 
   const handleMapReady = (mapInstance: L.Map) => {
@@ -109,30 +134,58 @@ function App() {
         />
 
         <main className="container mx-auto p-6 space-y-6">
-          {/* Aggregate Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <StatCard
-              title="Distance totale"
-              value={`${(totalStats.distance / 1000).toFixed(2)} km`}
-              icon={Navigation}
-              color="blue"
-            />
-            <StatCard
-              title="Dénivelé positif total"
-              value={`${Math.round(totalStats.elevationGain)} m`}
-              icon={TrendingUp}
-              color="green"
-            />
-            <StatCard
-              title="Dénivelé négatif total"
-              value={`${Math.round(totalStats.elevationLoss)} m`}
-              icon={TrendingDown}
-              color="red"
-            />
+          {/* Tabs */}
+          <div className="flex gap-2 border-b border-border">
+            <button
+              onClick={() => setActiveTab('analyze')}
+              className={`px-4 py-2 font-medium transition-colors ${
+                activeTab === 'analyze'
+                  ? 'border-b-2 border-primary text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Analyser
+            </button>
+            <button
+              onClick={() => setActiveTab('merge')}
+              className={`px-4 py-2 font-medium transition-colors flex items-center gap-2 ${
+                activeTab === 'merge'
+                  ? 'border-b-2 border-primary text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Merge className="w-4 h-4" />
+              Fusionner
+            </button>
           </div>
 
-          {/* Files List & Upload */}
-          <Card>
+          {/* Tab Content: Analyze */}
+          {activeTab === 'analyze' && (
+            <>
+              {/* Aggregate Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <StatCard
+                  title="Distance totale"
+                  value={`${(totalStats.distance / 1000).toFixed(2)} km`}
+                  icon={Navigation}
+                  color="blue"
+                />
+                <StatCard
+                  title="Dénivelé positif total"
+                  value={`${Math.round(totalStats.elevationGain)} m`}
+                  icon={TrendingUp}
+                  color="green"
+                />
+                <StatCard
+                  title="Dénivelé négatif total"
+                  value={`${Math.round(totalStats.elevationLoss)} m`}
+                  icon={TrendingDown}
+                  color="red"
+                />
+              </div>
+
+              {/* Files List & Upload */}
+              <Card>
             <CardHeader>
               <CardTitle>Fichiers GPX</CardTitle>
               <CardDescription>Gérez vos traces et ajoutez-en de nouvelles</CardDescription>
@@ -144,9 +197,16 @@ function App() {
                   return (
                     <div
                       key={file.id}
-                      className={`flex items-center justify-between p-4 rounded-lg border-2 ${colorScheme.border} ${colorScheme.bg} transition-all hover:scale-[1.02]`}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      className={`flex items-center justify-between p-4 rounded-lg border-2 ${colorScheme.border} ${colorScheme.bg} transition-all hover:scale-[1.02] cursor-move ${
+                        draggedIndex === index ? 'opacity-50' : ''
+                      }`}
                     >
                       <div className="flex items-center gap-4">
+                        <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         <div className={`w-3 h-3 rounded-full ${colorScheme.text}`} style={{ backgroundColor: colorScheme.hex }}></div>
                         <div>
                           <div className={`font-semibold ${colorScheme.text}`}>{file.filename}</div>
@@ -197,20 +257,25 @@ function App() {
             )}
           </div>
 
-          {/* Elevation Profile */}
-          {gpxFiles.length > 0 && gpxFiles[0].tracks.length > 0 && map && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Profil d'altitude - {gpxFiles[0].filename}</CardTitle>
-                <CardDescription>
-                  Cliquez sur le graphique pour voir la position sur la carte
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ElevationProfile track={gpxFiles[0].tracks[0]} map={map} />
-              </CardContent>
-            </Card>
+              {/* Elevation Profile */}
+              {gpxFiles.length > 0 && gpxFiles[0].tracks.length > 0 && map && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Profil d'altitude - {gpxFiles[0].filename}</CardTitle>
+                    <CardDescription>
+                      Cliquez sur le graphique pour voir la position sur la carte
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ElevationProfile track={gpxFiles[0].tracks[0]} map={map} />
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
+
+          {/* Tab Content: Merge */}
+          {activeTab === 'merge' && <GPXMerge />}
         </main>
       </div>
     );
