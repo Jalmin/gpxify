@@ -2,43 +2,18 @@ import { useState } from 'react';
 import { Share2, Copy, Check } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
-import pako from 'pako';
+import { shareApi } from '@/services/api';
 
 interface ShareButtonProps {
   appState: Record<string, any>;
   className?: string;
 }
 
-/**
- * Compress and encode app state into URL-safe string
- * Uses pako (zlib) for compression and base64url encoding
- */
-function encodeState(state: Record<string, any>): string {
-  try {
-    // Convert to JSON string
-    const jsonStr = JSON.stringify(state);
-
-    // Compress using deflate
-    const compressed = pako.deflate(jsonStr, { level: 9 });
-
-    // Convert to base64url (URL-safe base64)
-    const base64 = btoa(String.fromCharCode(...compressed));
-    const base64url = base64
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-
-    return base64url;
-  } catch (error) {
-    console.error('Failed to encode state:', error);
-    throw new Error('Impossible de compresser les données');
-  }
-}
-
 export function ShareButton({ appState, className }: ShareButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,20 +22,18 @@ export function ShareButton({ appState, className }: ShareButtonProps) {
     setError(null);
 
     try {
-      // Encode state into URL parameter
-      const encoded = encodeState(appState);
+      const response = await shareApi.saveState(appState);
 
-      // Check if URL is too long (browsers typically support ~2000 chars)
-      const fullUrl = `${window.location.origin}/share?state=${encoded}`;
-      if (fullUrl.length > 2000) {
-        throw new Error('État trop volumineux pour être partagé par URL. Essayez de supprimer certains fichiers.');
+      if (response.success) {
+        // Build full URL with current origin
+        const fullUrl = `${window.location.origin}/share/${response.share_id}`;
+        setShareUrl(fullUrl);
+        setExpiresAt(new Date(response.expires_at).toLocaleDateString('fr-FR'));
+        setIsModalOpen(true);
       }
-
-      setShareUrl(fullUrl);
-      setIsModalOpen(true);
     } catch (err: any) {
       console.error('Share error:', err);
-      setError(err.message || 'Erreur lors de la création du lien');
+      setError(err.response?.data?.detail || 'Erreur lors de la sauvegarde');
     } finally {
       setIsSharing(false);
     }
@@ -79,6 +52,7 @@ export function ShareButton({ appState, className }: ShareButtonProps) {
   const handleClose = () => {
     setIsModalOpen(false);
     setShareUrl('');
+    setExpiresAt('');
     setCopied(false);
     setError(null);
   };
@@ -135,8 +109,8 @@ export function ShareButton({ appState, className }: ShareButtonProps) {
           </div>
 
           <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded">
-            <strong>Note :</strong> Ce lien contient l'intégralité de votre travail encodé dans l'URL.
-            Aucune donnée n'est stockée sur nos serveurs. Le lien ne nécessite pas de compte pour y accéder.
+            <strong>Note :</strong> Ce lien expirera le {expiresAt}. Aucun compte n'est
+            nécessaire pour y accéder.
           </div>
         </div>
       </Modal>

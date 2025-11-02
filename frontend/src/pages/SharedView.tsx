@@ -1,83 +1,56 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { shareApi } from '@/services/api';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import pako from 'pako';
 
 interface SharedViewProps {
   onStateLoaded: (state: Record<string, any>) => void;
 }
 
-/**
- * Decode and decompress app state from URL-safe string
- * Inverse of encodeState in ShareButton.tsx
- */
-function decodeState(encodedState: string): Record<string, any> {
-  try {
-    // Convert from base64url to base64
-    let base64 = encodedState
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
-
-    // Add padding if needed
-    while (base64.length % 4) {
-      base64 += '=';
-    }
-
-    // Decode base64 to binary
-    const binaryString = atob(base64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    // Decompress using inflate
-    const decompressed = pako.inflate(bytes, { to: 'string' });
-
-    // Parse JSON
-    return JSON.parse(decompressed);
-  } catch (error) {
-    console.error('Failed to decode state:', error);
-    throw new Error('Impossible de décoder les données partagées');
-  }
-}
-
 export function SharedView({ onStateLoaded }: SharedViewProps) {
-  const [searchParams] = useSearchParams();
+  const { shareId } = useParams<{ shareId: string }>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadSharedState = async () => {
-      // Get state parameter from URL
-      const stateParam = searchParams.get('state');
-
-      if (!stateParam) {
-        setError('Lien de partage invalide ou incomplet');
+      if (!shareId) {
+        setError('ID de partage invalide');
         setIsLoading(false);
         return;
       }
 
       try {
-        // Decode the state from URL
-        const decodedState = decodeState(stateParam);
+        const response = await shareApi.getSharedState(shareId);
 
-        // Load the shared state into the app
-        onStateLoaded(decodedState);
+        if (response.success && response.state_json) {
+          // Load the shared state into the app
+          onStateLoaded(response.state_json);
 
-        // Navigate to the main app (dashboard)
-        navigate('/', { replace: true });
+          // Navigate to the main app (dashboard)
+          navigate('/', { replace: true });
+        } else {
+          setError('Impossible de charger le partage');
+        }
       } catch (err: any) {
         console.error('Load shared state error:', err);
-        setError(err.message || 'Erreur lors du chargement du partage');
+
+        if (err.response?.status === 404) {
+          setError('Ce partage n\'existe pas ou a été supprimé');
+        } else if (err.response?.status === 410) {
+          setError('Ce partage a expiré (30 jours maximum)');
+        } else {
+          setError(err.response?.data?.detail || 'Erreur lors du chargement du partage');
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     loadSharedState();
-  }, [searchParams, onStateLoaded, navigate]);
+  }, [shareId, onStateLoaded, navigate]);
 
   if (isLoading) {
     return (
