@@ -31,3 +31,6 @@ alembic==1.13.1
 # Data Processing
 pandas==2.2.3
 numpy==2.1.2
+
+# Rate Limiting
+slowapi==0.1.9

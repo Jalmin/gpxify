@@ -8,12 +8,14 @@ from app.db.database import get_db
 from app.db.models import SharedState
 from app.models.gpx import SaveStateRequest, SaveStateResponse, SharedStateResponse
 from app.utils.share_id import generate_share_id
+from app.middleware.rate_limit import limiter
 import json
 
 router = APIRouter()
 
 
 @router.post("/save", response_model=SaveStateResponse)
+@limiter.limit("10/minute")  # 10 share creations per minute per IP
 async def save_state(request: SaveStateRequest, http_request: Request, db: Session = Depends(get_db)):
     """
     Save application state and generate shareable URL

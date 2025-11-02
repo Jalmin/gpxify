@@ -1,11 +1,13 @@
 """
 FastAPI main application entry point
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.api import gpx, share
 from app.db.database import init_db
+from app.middleware.rate_limit import limiter, rate_limit_exceeded_handler
 
 # Create FastAPI application
 app = FastAPI(
@@ -15,6 +17,12 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+# Add rate limiter to app state
+app.state.limiter = limiter
+
+# Add rate limit exceeded handler
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # Configure CORS
 app.add_middleware(

@@ -1,7 +1,7 @@
 """
 GPX file upload and analysis API endpoints
 """
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 from app.models.gpx import (
     GPXUploadResponse,
@@ -16,6 +16,7 @@ from app.models.gpx import (
 )
 from app.services.gpx_parser import GPXParser
 from app.core.config import settings
+from app.middleware.rate_limit import limiter
 from typing import List
 import uuid
 import os
@@ -24,7 +25,8 @@ router = APIRouter()
 
 
 @router.post("/upload", response_model=GPXUploadResponse)
-async def upload_gpx(file: UploadFile = File(...)):
+@limiter.limit("30/minute")  # 30 uploads per minute per IP
+async def upload_gpx(request: Request, file: UploadFile = File(...)):
     """
     Upload and parse a GPX file
 
@@ -155,7 +157,8 @@ async def detect_climbs(request: ExportSegmentRequest):
 
 
 @router.post("/merge", response_model=MergeGPXResponse)
-async def merge_gpx_files(request: MergeGPXRequest):
+@limiter.limit("10/minute")  # 10 merge operations per minute per IP
+async def merge_gpx_files(http_request: Request, request: MergeGPXRequest):
     """
     Merge multiple GPX files into a single GPX track
 
@@ -222,7 +225,8 @@ async def merge_gpx_files(request: MergeGPXRequest):
 
 
 @router.post("/aid-station-table", response_model=AidStationTableResponse)
-async def generate_aid_station_table(request: AidStationTableRequest):
+@limiter.limit("20/minute")  # 20 table generations per minute per IP
+async def generate_aid_station_table(http_request: Request, request: AidStationTableRequest):
     """
     Generate aid station table with segment statistics
 
