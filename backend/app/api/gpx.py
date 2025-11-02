@@ -3,7 +3,17 @@ GPX file upload and analysis API endpoints
 """
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse, Response
-from app.models.gpx import GPXUploadResponse, GPXData, ExportSegmentRequest, ClimbSegment
+from app.models.gpx import (
+    GPXUploadResponse,
+    GPXData,
+    ExportSegmentRequest,
+    ClimbSegment,
+    MergeGPXRequest,
+    MergeGPXResponse,
+    GPXFileInput,
+    AidStationTableRequest,
+    AidStationTableResponse,
+)
 from app.services.gpx_parser import GPXParser
 from app.core.config import settings
 from typing import List
@@ -141,4 +151,129 @@ async def detect_climbs(request: ExportSegmentRequest):
         raise HTTPException(
             status_code=400,
             detail=f"Error detecting climbs: {str(e)}"
+        )
+
+
+@router.post("/merge", response_model=MergeGPXResponse)
+async def merge_gpx_files(request: MergeGPXRequest):
+    """
+    Merge multiple GPX files into a single GPX track
+
+    Features:
+    - Auto-sort by timestamp or keep manual order
+    - Detect and report gaps between tracks
+    - Detect and report overlapping segments
+    - Handle segments with or without timestamps
+    - Create visual gaps on map when gaps detected
+
+    Args:
+        request: Contains list of GPX files and merge options
+
+    Returns:
+        Merged GPX file (XML) and parsed data for preview
+    """
+    try:
+        # Validate input
+        if len(request.files) < 2:
+            raise HTTPException(
+                status_code=400,
+                detail="At least 2 GPX files are required for merging"
+            )
+
+        # Prepare files for merge
+        files_content = [(f.filename, f.content) for f in request.files]
+
+        # Merge GPX files
+        merged_gpx, warnings = GPXParser.merge_gpx_files(
+            files_content=files_content,
+            gap_threshold_seconds=request.options.gap_threshold_seconds,
+            interpolate_gaps=request.options.interpolate_gaps,
+            sort_by_time=request.options.sort_by_time,
+            merged_track_name=request.merged_track_name or "Merged Track"
+        )
+
+        # Convert merged GPX to XML string
+        merged_gpx_xml = merged_gpx.to_xml()
+
+        # Parse the merged GPX for preview data
+        merged_data = GPXParser.parse_gpx_file(
+            merged_gpx_xml,
+            filename=f"{request.merged_track_name or 'Merged_Track'}.gpx"
+        )
+
+        return MergeGPXResponse(
+            success=True,
+            message=f"Successfully merged {len(request.files)} files",
+            merged_gpx=merged_gpx_xml,
+            data=merged_data,
+            warnings=warnings
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error merging GPX files: {str(e)}"
+        )
+
+
+@router.post("/aid-station-table", response_model=AidStationTableResponse)
+async def generate_aid_station_table(request: AidStationTableRequest):
+    """
+    Generate aid station table with segment statistics
+
+    Creates a table showing statistics between consecutive aid stations:
+    - Distance between stations (delta km)
+    - Elevation gain (D+) and loss (D-) for each segment
+    - Average gradient %
+    - Estimated time using Naismith's rule or custom pace
+
+    Naismith's Rule (modified):
+    - Base: 12 km/h on flat terrain
+    - Add 5 min per 100m D+ (climbing)
+    - Subtract 5 min per 100m D- for steep descents (gradient > 12%)
+
+    Args:
+        request: Contains track points, aid stations, and calculation options
+
+    Returns:
+        Table with segments and cumulative statistics
+    """
+    try:
+        # Validate input
+        if len(request.aid_stations) < 2:
+            raise HTTPException(
+                status_code=400,
+                detail="At least 2 aid stations are required"
+            )
+
+        if not request.track_points:
+            raise HTTPException(
+                status_code=400,
+                detail="No track points provided"
+            )
+
+        # Generate table
+        result = GPXParser.generate_aid_station_table(
+            points=request.track_points,
+            aid_stations=request.aid_stations,
+            use_naismith=request.use_naismith,
+            custom_pace_kmh=request.custom_pace_kmh
+        )
+
+        return result
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating aid station table: {str(e)}"
         )

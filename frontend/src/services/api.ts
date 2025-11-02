@@ -2,7 +2,14 @@
  * API service for backend communication
  */
 import axios from 'axios';
-import { GPXUploadResponse, ExportSegmentRequest, ClimbSegment } from '@/types/gpx';
+import {
+  GPXUploadResponse,
+  ExportSegmentRequest,
+  ClimbSegment,
+  SaveStateRequest,
+  SaveStateResponse,
+  SharedStateResponse,
+} from '@/types/gpx';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const API_V1 = `${API_BASE_URL}/api/v1`;
@@ -54,6 +61,33 @@ export const gpxApi = {
    */
   detectClimbs: async (request: ExportSegmentRequest): Promise<ClimbSegment[]> => {
     const response = await apiClient.post<ClimbSegment[]>('/gpx/detect-climbs', request);
+    return response.data;
+  },
+};
+
+export const shareApi = {
+  /**
+   * Save application state and get shareable URL
+   */
+  saveState: async (state: Record<string, any>): Promise<SaveStateResponse> => {
+    const request: SaveStateRequest = { state_json: state };
+    const response = await apiClient.post<SaveStateResponse>('/share/save', request);
+    return response.data;
+  },
+
+  /**
+   * Get shared state by ID
+   */
+  getSharedState: async (shareId: string): Promise<SharedStateResponse> => {
+    const response = await apiClient.get<SharedStateResponse>(`/share/${shareId}`);
+    return response.data;
+  },
+
+  /**
+   * Delete a shared state
+   */
+  deleteSharedState: async (shareId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.delete(`/share/${shareId}`);
     return response.data;
   },
 };

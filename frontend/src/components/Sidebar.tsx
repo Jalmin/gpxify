@@ -1,15 +1,18 @@
-import { Mountain, Map, TrendingUp, Upload, Menu, X } from 'lucide-react';
+import { Mountain, Map, TrendingUp, Upload, Menu, X, ArrowDownUp, Table } from 'lucide-react';
 import { useState } from 'react';
 
 interface SidebarProps {
   activeSection?: string;
+  onSectionChange?: (section: string) => void;
 }
 
-export function Sidebar({ activeSection = 'dashboard' }: SidebarProps) {
+export function Sidebar({ activeSection = 'dashboard', onSectionChange }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Mountain },
+    { id: 'merge', label: 'Fusion GPX', icon: ArrowDownUp },
+    { id: 'aidstation', label: 'Ravitaillements', icon: Table },
     { id: 'map', label: 'Carte', icon: Map },
     { id: 'elevation', label: 'Profil', icon: TrendingUp },
     { id: 'upload', label: 'Importer', icon: Upload },
@@ -58,21 +61,25 @@ export function Sidebar({ activeSection = 'dashboard' }: SidebarProps) {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
             return (
-              <div
+              <button
                 key={item.id}
+                onClick={() => {
+                  onSectionChange?.(item.id);
+                  setIsOpen(false);
+                }}
                 className={`
-                  flex items-center gap-3 px-4 py-3 rounded-lg
+                  w-full flex items-center gap-3 px-4 py-3 rounded-lg
                   transition-colors duration-200
                   ${
                     isActive
                       ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground'
+                      : 'text-muted-foreground hover:bg-muted'
                   }
                 `}
               >
                 <Icon className="w-5 h-5" />
                 <span className="font-medium">{item.label}</span>
-              </div>
+              </button>
             );
           })}
         </nav>

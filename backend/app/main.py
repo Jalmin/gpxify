@@ -4,7 +4,8 @@ FastAPI main application entry point
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api import gpx
+from app.api import gpx, share
+from app.db.database import init_db
 
 # Create FastAPI application
 app = FastAPI(
@@ -24,11 +25,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database tables on application startup"""
+    init_db()
+
 # Include routers
 app.include_router(
     gpx.router,
     prefix=f"{settings.API_V1_STR}/gpx",
     tags=["gpx"],
+)
+
+app.include_router(
+    share.router,
+    prefix=f"{settings.API_V1_STR}/share",
+    tags=["share"],
 )
 
 

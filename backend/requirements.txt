@@ -23,9 +23,10 @@ fastapi-cors==0.0.6
 # Environment
 python-dotenv==1.0.1
 
-# Database (Phase 2+)
-# sqlalchemy==2.0.35
-# psycopg2-binary==2.9.9
+# Database (Phase 3 - Sharing)
+sqlalchemy==2.0.35
+psycopg2-binary==2.9.9
+alembic==1.13.1
 
 # Data Processing
 pandas==2.2.3
