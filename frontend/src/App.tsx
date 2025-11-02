@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import L from 'leaflet';
 import { Hero } from './components/Hero';
 import { Navbar } from './components/Navbar';
+import { Footer } from './components/Footer';
 import { FileUpload } from './components/FileUpload';
 import { GPXMap } from './components/Map/GPXMap';
 import { ElevationProfile } from './components/Map/ElevationProfile';
@@ -10,6 +11,8 @@ import { TrackStats } from './components/TrackStats';
 import { StatCard } from './components/StatCard';
 import { ShareButton } from './components/ShareButton';
 import { SharedView } from './pages/SharedView';
+import { FAQ } from './pages/FAQ';
+import { Legal } from './pages/Legal';
 import { GPXMerge } from './components/GPXMerge';
 import { AidStationTable } from './components/AidStationTable';
 import { gpxApi } from './services/api';
@@ -352,6 +355,8 @@ function App() {
             </div>
           )}
         </main>
+
+        <Footer />
       </div>
     );
   };
@@ -359,6 +364,8 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={renderMainApp()} />
+      <Route path="/faq" element={<FAQ />} />
+      <Route path="/legal" element={<Legal />} />
       <Route path="/share/:shareId" element={<SharedView onStateLoaded={handleStateLoaded} />} />
     </Routes>
   );

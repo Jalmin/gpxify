@@ -1,5 +1,6 @@
 import { Edit3, Merge, Scissors, BarChart3, Search, Upload } from 'lucide-react';
 import { FileUpload } from './FileUpload';
+import { Footer } from './Footer';
 
 interface HeroProps {
   onFileSelect: (file: File) => void;
@@ -73,6 +74,9 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
         <div className="text-center text-sm text-muted-foreground">
           <p>Formats supportés : GPX • Taille max : 10 MB</p>
         </div>
+
+        {/* Footer */}
+        <Footer />
       </div>
     </div>
   );
