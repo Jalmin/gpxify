@@ -19,24 +19,34 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-6">
-      <div className="max-w-4xl w-full space-y-12">
-        {/* Hero Banner with Pixel Logo */}
-        <div className="text-center space-y-6">
-          {/* Pixel Logo */}
-          <div className="flex justify-center mb-8">
+      <div className="max-w-6xl w-full space-y-12">
+        {/* Hero Banner with Dual Logos */}
+        <div className="text-center space-y-8">
+          {/* Dual Logos Layout */}
+          <div className="flex items-center justify-center gap-12 flex-wrap">
+            {/* Logo Gauche */}
             <img
-              src="/kanjilogogpx.png"
-              alt="GPX 忍者道具"
-              className="w-64 h-auto pixelated"
+              src="/logoGPXgauche.png"
+              alt="GPX Logo Left"
+              className="w-40 h-auto pixelated"
+              style={{ imageRendering: 'pixelated' }}
+            />
+
+            {/* Pixel Text */}
+            <div className="flex flex-col items-center gap-6 max-w-md">
+              <h1 className="text-2xl text-white leading-relaxed" style={{ fontFamily: "'Press Start 2P', monospace" }}>
+                L'outil tout-en-un pour vos traces GPX
+              </h1>
+            </div>
+
+            {/* Logo Droite */}
+            <img
+              src="/logoGPXdroite.png"
+              alt="GPX Logo Right"
+              className="w-40 h-auto pixelated"
               style={{ imageRendering: 'pixelated' }}
             />
           </div>
-          <h1 className="text-7xl font-black text-white">
-            GPXIFY
-          </h1>
-          <p className="text-2xl text-gray-400 font-medium">
-            L'outil tout-en-un pour vos traces GPX de trail
-          </p>
         </div>
 
         {/* Feature Icons - Black & White */}
