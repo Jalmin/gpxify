@@ -21,7 +21,7 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
       <div className="max-w-4xl w-full space-y-12">
         {/* Hero Banner */}
         <div className="text-center space-y-4">
-          <h1 className="text-7xl font-black bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+          <h1 className="text-7xl font-black text-white">
             GPXIFY
           </h1>
           <p className="text-2xl text-muted-foreground font-medium">
