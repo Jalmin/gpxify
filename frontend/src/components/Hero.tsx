@@ -32,13 +32,6 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
               style={{ imageRendering: 'pixelated' }}
             />
 
-            {/* Pixel Text */}
-            <div className="flex flex-col items-center gap-6 max-w-md">
-              <h1 className="text-2xl text-white leading-relaxed" style={{ fontFamily: "'Press Start 2P', monospace" }}>
-                L'outil tout-en-un pour vos traces GPX
-              </h1>
-            </div>
-
             {/* Logo Droite */}
             <img
               src="/logoGPXdroite.png"
