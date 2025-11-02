@@ -13,6 +13,7 @@ import { ShareButton } from './components/ShareButton';
 import { SharedView } from './pages/SharedView';
 import { FAQ } from './pages/FAQ';
 import { Legal } from './pages/Legal';
+import { RaceRecovery } from './pages/RaceRecovery';
 import { GPXMerge } from './components/GPXMerge';
 import { AidStationTable } from './components/AidStationTable';
 import { gpxApi } from './services/api';
@@ -413,6 +414,7 @@ function App() {
       <Route path="/" element={renderMainApp()} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/legal" element={<Legal />} />
+      <Route path="/race-recovery" element={<RaceRecovery />} />
       <Route path="/share/:shareId" element={<SharedView onStateLoaded={handleStateLoaded} />} />
     </Routes>
   );

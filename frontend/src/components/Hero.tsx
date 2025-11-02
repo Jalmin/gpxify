@@ -1,6 +1,7 @@
-import { Edit3, Merge, Scissors, BarChart3, Search, Upload } from 'lucide-react';
+import { Edit3, Merge, Scissors, BarChart3, Search, Upload, Heart } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 import { Footer } from './Footer';
+import { Link } from 'react-router-dom';
 
 interface HeroProps {
   onFileSelect: (file: File) => void;
@@ -79,6 +80,18 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Race Recovery Link */}
+        <div className="text-center">
+          <Link
+            to="/race-recovery"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg border-2 border-primary/30 hover:border-primary transition-all"
+          >
+            <Heart className="w-5 h-5" />
+            <span className="font-semibold">Sauve ma course</span>
+            <span className="text-sm opacity-75">- Batterie vide ?</span>
+          </Link>
         </div>
 
         {/* Footer Info */}

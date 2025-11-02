@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
-from app.api import gpx, share
+from app.api import gpx, share, race_recovery
 from app.db.database import init_db
 from app.middleware.rate_limit import limiter, rate_limit_exceeded_handler
 
@@ -50,6 +50,12 @@ app.include_router(
     share.router,
     prefix=f"{settings.API_V1_STR}/share",
     tags=["share"],
+)
+
+app.include_router(
+    race_recovery.router,
+    prefix=f"{settings.API_V1_STR}/race",
+    tags=["race"],
 )
 
 
