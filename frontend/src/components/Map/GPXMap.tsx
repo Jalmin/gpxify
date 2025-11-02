@@ -67,8 +67,8 @@ export function GPXMap({ tracks, onMapReady }: GPXMapProps) {
     });
     polylineLayersRef.current = [];
 
-    // Vibrant colors that stand out on dark background
-    const colors = ['#3b82f6', '#a855f7', '#22c55e', '#f97316', '#ec4899'];
+    // Vibrant colors that stand out on dark background (red first for better visibility)
+    const colors = ['#ef4444', '#a855f7', '#22c55e', '#f97316', '#ec4899'];
     const allBounds: L.LatLngBounds[] = [];
 
     // Add new tracks

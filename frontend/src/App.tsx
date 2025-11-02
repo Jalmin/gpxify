@@ -196,30 +196,34 @@ function App() {
           {/* Tab Content: Analyze */}
           {activeTab === 'analyze' && (
             <>
-              {/* Aggregate Statistics */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard
-                  title="Distance totale"
-                  value={`${(totalStats.distance / 1000).toFixed(2)} km`}
-                  icon={Navigation}
-                  color="blue"
-                />
-                <StatCard
-                  title="Dénivelé positif total"
-                  value={`${Math.round(totalStats.elevationGain)} m`}
-                  icon={TrendingUp}
-                  color="green"
-                />
-                <StatCard
-                  title="Dénivelé négatif total"
-                  value={`${Math.round(totalStats.elevationLoss)} m`}
-                  icon={TrendingDown}
-                  color="red"
-                />
-              </div>
+              {/* Main Layout: Stats (1/3) + Map (2/3) */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Left Column: Stats and Files (1/3) */}
+                <div className="lg:col-span-1 space-y-4">
+                  {/* Aggregate Statistics */}
+                  <div className="grid grid-cols-3 lg:grid-cols-1 gap-3">
+                    <StatCard
+                      title="Distance totale"
+                      value={`${(totalStats.distance / 1000).toFixed(2)} km`}
+                      icon={Navigation}
+                      color="blue"
+                    />
+                    <StatCard
+                      title="Dénivelé positif total"
+                      value={`${Math.round(totalStats.elevationGain)} m`}
+                      icon={TrendingUp}
+                      color="green"
+                    />
+                    <StatCard
+                      title="Dénivelé négatif total"
+                      value={`${Math.round(totalStats.elevationLoss)} m`}
+                      icon={TrendingDown}
+                      color="red"
+                    />
+                  </div>
 
-              {/* Files List & Upload */}
-              <Card>
+                  {/* Files List & Upload */}
+                  <Card>
             <CardHeader>
               <CardTitle>Fichiers GPX</CardTitle>
               <CardDescription>Gérez vos traces et ajoutez-en de nouvelles</CardDescription>
@@ -286,33 +290,28 @@ function App() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+                  </Card>
+                </div>
 
-          {/* Map */}
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Carte</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3">
-              <div className="h-[400px]">
-                <GPXMap
-                  tracks={gpxFiles.flatMap(f => f.tracks)}
-                  onMapReady={handleMapReady}
-                />
+                {/* Right Column: Map (2/3) */}
+                <div className="lg:col-span-2">
+                  <Card>
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-lg">Carte</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      <div className="h-[600px]">
+                        <GPXMap
+                          tracks={gpxFiles.flatMap(f => f.tracks)}
+                          onMapReady={handleMapReady}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {gpxFiles.map((file) =>
-              file.tracks.map((track, index) => (
-                <TrackStats key={`${file.id}-${index}`} track={track} />
-              ))
-            )}
-          </div>
-
-              {/* Elevation Profile */}
+              {/* Elevation Profile - Full Width Below */}
               {gpxFiles.length > 0 && gpxFiles[0].tracks.length > 0 && map && (
                 <Card>
                   <CardHeader className="py-3">
@@ -326,6 +325,15 @@ function App() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Climbs Details - Full Width Below */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {gpxFiles.map((file) =>
+                  file.tracks.map((track, index) => (
+                    <TrackStats key={`${file.id}-${index}`} track={track} />
+                  ))
+                )}
+              </div>
             </>
           )}
 
