@@ -1,4 +1,4 @@
-import { Mountain, Share2, Trash2 } from 'lucide-react';
+import { Mountain, Trash2 } from 'lucide-react';
 import { Button } from './ui/Button';
 
 interface NavbarProps {

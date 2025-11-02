@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { shareApi } from '@/services/api';
-import { Mountain, Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 interface SharedViewProps {
