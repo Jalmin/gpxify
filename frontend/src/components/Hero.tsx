@@ -23,7 +23,7 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
         {/* Hero Banner with Dual Logos */}
         <div className="text-center space-y-8">
           {/* Dual Logos Layout */}
-          <div className="flex items-center justify-center gap-12 flex-wrap">
+          <div className="flex items-center justify-center gap-0">
             {/* Logo Gauche */}
             <img
               src="/logoGPXgauche.png"
@@ -31,7 +31,6 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
               className="w-40 h-auto pixelated"
               style={{ imageRendering: 'pixelated' }}
             />
-
             {/* Logo Droite */}
             <img
               src="/logoGPXdroite.png"
