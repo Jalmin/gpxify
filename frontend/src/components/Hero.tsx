@@ -29,14 +29,14 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
             <img
               src="/logoGPXgauche.png"
               alt="GPX Logo Left"
-              className="w-40 h-auto pixelated"
+              className="w-80 h-auto pixelated"
               style={{ imageRendering: 'pixelated' }}
             />
             {/* Logo Droite */}
             <img
               src="/logoGPXdroite.png"
               alt="GPX Logo Right"
-              className="w-40 h-auto pixelated"
+              className="w-80 h-auto pixelated"
               style={{ imageRendering: 'pixelated' }}
             />
           </div>
@@ -63,9 +63,6 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
         <div className="bg-card border-2 border-border rounded-2xl p-8 shadow-xl">
           <div className="space-y-6">
             <div className="text-center space-y-2">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                <Upload className="w-8 h-8 text-primary" />
-              </div>
               <h2 className="text-2xl font-bold">Commencez maintenant</h2>
               <p className="text-muted-foreground">
                 Importez votre fichier GPX pour analyser, éditer et optimiser vos traces

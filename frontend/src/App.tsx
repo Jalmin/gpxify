@@ -19,7 +19,7 @@ import { AidStationTable } from './components/AidStationTable';
 import { gpxApi } from './services/api';
 import { GPXData } from './types/gpx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './components/ui/Card';
-import { Navigation, TrendingUp, TrendingDown, X, GripVertical, Merge, Table, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { Navigation, TrendingUp, TrendingDown, X, GripVertical, Merge, Table, ChevronDown, ChevronUp, Plus, Heart } from 'lucide-react';
 
 interface GPXFileData extends GPXData {
   id: string;
@@ -31,7 +31,7 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [map, setMap] = useState<L.Map | null>(null);
-  const [activeTab, setActiveTab] = useState<'analyze' | 'merge' | 'aid-stations'>('analyze');
+  const [activeTab, setActiveTab] = useState<'analyze' | 'merge' | 'aid-stations' | 'race-recovery'>('analyze');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [selectedGpxForAidStations, setSelectedGpxForAidStations] = useState<string | null>(null);
   const [showUploadSection, setShowUploadSection] = useState(false);
@@ -191,6 +191,17 @@ function App() {
             >
               <Table className="w-4 h-4" />
               Prévisions
+            </button>
+            <button
+              onClick={() => setActiveTab('race-recovery')}
+              className={`px-4 py-2 font-medium transition-colors flex items-center gap-2 ${
+                activeTab === 'race-recovery'
+                  ? 'border-b-2 border-primary text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Heart className="w-4 h-4" />
+              Sauve ma course
             </button>
           </div>
 
@@ -400,6 +411,31 @@ function App() {
                   />
                 </>
               )}
+            </div>
+          )}
+
+          {/* Tab Content: Race Recovery */}
+          {activeTab === 'race-recovery' && (
+            <div className="space-y-6">
+              <Card className="p-8">
+                <div className="text-center space-y-4">
+                  <Heart className="w-16 h-16 text-primary mx-auto" />
+                  <h2 className="text-2xl font-bold">Sauve ma course</h2>
+                  <p className="text-muted-foreground max-w-2xl mx-auto">
+                    Votre montre a rendu l'âme en pleine course ? Pas de panique !
+                    Utilisez notre outil pour reconstruire votre trace GPX complète avec des timestamps précis.
+                  </p>
+                  <div className="pt-4">
+                    <a
+                      href="/race-recovery"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+                    >
+                      <Heart className="w-5 h-5" />
+                      Ouvrir l'outil de récupération
+                    </a>
+                  </div>
+                </div>
+              </Card>
             </div>
           )}
         </main>
