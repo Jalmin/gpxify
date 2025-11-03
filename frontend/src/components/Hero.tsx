@@ -24,19 +24,19 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
         {/* Hero Banner with Dual Logos */}
         <div className="text-center space-y-8">
           {/* Dual Logos Layout */}
-          <div className="flex items-center justify-center gap-0">
+          <div className="flex items-center justify-center gap-0 w-full">
             {/* Logo Gauche */}
             <img
               src="/logoGPXgauche.png"
               alt="GPX Logo Left"
-              className="w-80 h-auto pixelated"
+              className="w-1/2 max-w-80 h-auto pixelated"
               style={{ imageRendering: 'pixelated' }}
             />
             {/* Logo Droite */}
             <img
               src="/logoGPXdroite.png"
               alt="GPX Logo Right"
-              className="w-80 h-auto pixelated"
+              className="w-1/2 max-w-80 h-auto pixelated"
               style={{ imageRendering: 'pixelated' }}
             />
           </div>
