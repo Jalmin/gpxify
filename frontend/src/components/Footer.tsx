@@ -8,7 +8,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* About */}
           <div>
-            <h3 className="font-semibold mb-3">GPXIFY</h3>
+            <h3 className="font-semibold mb-3">GPX Ninja</h3>
             <p className="text-sm text-muted-foreground">
               L'outil tout-en-un pour analyser, fusionner et optimiser vos traces GPX de trail.
             </p>
@@ -46,7 +46,7 @@ export function Footer() {
           <div>
             <h3 className="font-semibold mb-3">Projet Open Source</h3>
             <p className="text-sm text-muted-foreground mb-3">
-              GPXIFY est gratuit, sans publicité et respectueux de votre vie privée.
+              GPX Ninja est gratuit, sans publicité et respectueux de votre vie privée.
             </p>
             <p className="text-sm text-muted-foreground flex items-center gap-1">
               Fait avec <Heart className="w-4 h-4 text-red-500 fill-red-500" /> pour la communauté trail
@@ -55,7 +55,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-border mt-8 pt-6 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} GPXIFY - Tous droits réservés</p>
+          <p>© {new Date().getFullYear()} GPX Ninja - Tous droits réservés</p>
         </div>
       </div>
     </footer>

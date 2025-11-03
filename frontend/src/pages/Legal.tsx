@@ -37,7 +37,7 @@ export function Legal() {
               <div>
                 <h3 className="font-semibold text-foreground mb-2">Éditeur du site</h3>
                 <p>
-                  GPXIFY est un projet open-source développé et maintenu par la communauté trail et outdoor.
+                  GPX Ninja est un projet open-source développé et maintenu par la communauté trail et outdoor.
                 </p>
               </div>
 
@@ -53,7 +53,7 @@ export function Legal() {
               <div>
                 <h3 className="font-semibold text-foreground mb-2">Propriété intellectuelle</h3>
                 <p>
-                  Le code source de GPXIFY est disponible sous licence open-source sur GitHub.
+                  Le code source de GPX Ninja est disponible sous licence open-source sur GitHub.
                   Les marques, logos et éléments graphiques sont la propriété de leurs auteurs respectifs.
                 </p>
               </div>
@@ -90,7 +90,7 @@ export function Legal() {
                   Données collectées
                 </h3>
                 <p className="mb-3">
-                  GPXIFY collecte un minimum de données pour fonctionner :
+                  GPX Ninja collecte un minimum de données pour fonctionner :
                 </p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>
@@ -113,7 +113,7 @@ export function Legal() {
                   Fathom Analytics - Respect de votre vie privée
                 </h3>
                 <p className="mb-3">
-                  GPXIFY utilise{' '}
+                  GPX Ninja utilise{' '}
                   <a
                     href="https://usefathom.com"
                     target="_blank"
@@ -176,7 +176,7 @@ export function Legal() {
               <div>
                 <h3 className="font-semibold text-foreground mb-2">Cookies</h3>
                 <p>
-                  GPXIFY n'utilise aucun cookie. Fathom Analytics fonctionne sans cookies et respecte les
+                  GPX Ninja n'utilise aucun cookie. Fathom Analytics fonctionne sans cookies et respecte les
                   directives ePrivacy de l'UE.
                 </p>
               </div>
@@ -199,7 +199,7 @@ export function Legal() {
             <div className="space-y-4">
               <h3 className="text-xl font-semibold">Projet Open Source</h3>
               <p className="text-muted-foreground">
-                GPXIFY est un projet open-source. Le code source est disponible publiquement et peut être
+                GPX Ninja est un projet open-source. Le code source est disponible publiquement et peut être
                 audité par n'importe qui. Cela garantit transparence et confiance dans le traitement de vos
                 données.
               </p>

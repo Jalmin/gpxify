@@ -50,7 +50,7 @@ export function Sidebar({ activeSection = 'dashboard', onSectionChange }: Sideba
         <div className="flex items-center gap-3 p-6 border-b border-border">
           <Mountain className="w-8 h-8 text-primary" />
           <div>
-            <h1 className="text-xl font-bold text-foreground">GPXIFY</h1>
+            <h1 className="text-xl font-bold text-foreground">GPX Ninja</h1>
             <p className="text-xs text-muted-foreground">Analyse GPX</p>
           </div>
         </div>
@@ -87,7 +87,7 @@ export function Sidebar({ activeSection = 'dashboard', onSectionChange }: Sideba
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
           <p className="text-xs text-muted-foreground text-center">
-            GPXIFY v1.0.0
+            GPX Ninja v1.0.0
           </p>
         </div>
       </aside>

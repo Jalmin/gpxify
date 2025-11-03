@@ -24,7 +24,7 @@ export function FAQ() {
     },
     {
       question: 'Quels formats de fichiers sont supportés ?',
-      answer: 'GPXIFY supporte uniquement les fichiers au format GPX (GPS Exchange Format), qui est le standard universel pour les traces GPS. La taille maximale par fichier est de 10 MB. Les fichiers GPX peuvent provenir de n\'importe quelle montre GPS, application ou plateforme (Garmin, Suunto, Strava, Komoot, etc.).',
+      answer: 'GPX Ninja supporte uniquement les fichiers au format GPX (GPS Exchange Format), qui est le standard universel pour les traces GPS. La taille maximale par fichier est de 10 MB. Les fichiers GPX peuvent provenir de n\'importe quelle montre GPS, application ou plateforme (Garmin, Suunto, Strava, Komoot, etc.).',
     },
     {
       question: 'Mes données sont-elles sauvegardées sur vos serveurs ?',
@@ -47,12 +47,12 @@ export function FAQ() {
       answer: 'Le profil d\'altitude affiche l\'élévation en fonction de la distance parcourue. Vous pouvez cliquer sur n\'importe quel point du graphique pour voir la position correspondante sur la carte. Les zones en montée apparaissent avec une pente positive, les descentes avec une pente négative. Les statistiques détaillées (D+, D-, pente moyenne) sont affichées dans les cartes de statistiques.',
     },
     {
-      question: 'GPXIFY est-il gratuit ?',
-      answer: 'Oui, GPXIFY est entièrement gratuit et sans publicité. L\'outil a été créé pour la communauté trail et outdoor. Aucune inscription n\'est nécessaire, aucune limite d\'utilisation n\'est imposée (dans la mesure du raisonnable).',
+      question: 'GPX Ninja est-il gratuit ?',
+      answer: 'Oui, GPX Ninja est entièrement gratuit et sans publicité. L\'outil a été créé pour la communauté trail et outdoor. Aucune inscription n\'est nécessaire, aucune limite d\'utilisation n\'est imposée (dans la mesure du raisonnable).',
     },
     {
       question: 'Mes données GPS sont-elles privées ?',
-      answer: 'Oui. GPXIFY utilise Fathom Analytics, une solution respectueuse de la vie privée qui ne collecte aucune donnée personnelle, n\'utilise pas de cookies, et est conforme RGPD. Seules des statistiques d\'utilisation anonymes sont collectées (pages visitées, durée de visite). Vos traces GPX ne sont jamais partagées avec des tiers.',
+      answer: 'Oui. GPX Ninja utilise Fathom Analytics, une solution respectueuse de la vie privée qui ne collecte aucune donnée personnelle, n\'utilise pas de cookies, et est conforme RGPD. Seules des statistiques d\'utilisation anonymes sont collectées (pages visitées, durée de visite). Vos traces GPX ne sont jamais partagées avec des tiers.',
     },
   ];
 
@@ -71,7 +71,7 @@ export function FAQ() {
             </div>
             <h1 className="text-4xl font-bold">Questions fréquentes</h1>
             <p className="text-lg text-muted-foreground">
-              Tout ce que vous devez savoir sur GPXIFY
+              Tout ce que vous devez savoir sur GPX Ninja
             </p>
           </div>
         </div>
@@ -113,7 +113,7 @@ export function FAQ() {
               Vous ne trouvez pas votre réponse ?
             </h3>
             <p className="text-muted-foreground mb-6">
-              Essayez GPXIFY dès maintenant, c'est gratuit et sans inscription !
+              Essayez GPX Ninja dès maintenant, c'est gratuit et sans inscription !
             </p>
             <Button onClick={() => navigate('/')} size="lg">
               Commencer à analyser

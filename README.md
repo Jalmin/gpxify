@@ -1,4 +1,4 @@
-# GPXIFY
+# GPX Ninja
 
 **L'outil tout-en-un pour analyser, fusionner et optimiser vos traces GPX de trail**
 

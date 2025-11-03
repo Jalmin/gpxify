@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
     environment:
       # Application
-      APP_NAME: ${APP_NAME:-GPXIFY}
+      APP_NAME: ${APP_NAME:-GPX Ninja}
       ENVIRONMENT: ${ENVIRONMENT:-production}
       DEBUG: ${DEBUG:-False}
       API_V1_STR: /api/v1
