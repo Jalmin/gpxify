@@ -1,4 +1,4 @@
-import { Edit3, Merge, Scissors, BarChart3, Search, Upload, Heart } from 'lucide-react';
+import { Edit3, Merge, Scissors, BarChart3, Search, Heart } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 import { Footer } from './Footer';
 import { Link } from 'react-router-dom';
