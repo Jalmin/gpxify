@@ -16,7 +16,7 @@ services:
       API_V1_STR: /api/v1
 
       # CORS
-      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-https://www.gpx.ninja,http://www.gpx.ninja}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-https://www.gpx.ninja,http://www.gpx.ninja,https://gpx.ninja,http://gpx.ninja}
 
       # Google OAuth
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
@@ -42,6 +42,9 @@ services:
       - caddy_0=www.gpx.ninja
       - caddy_0.handle=/api*
       - caddy_0.handle.0_reverse_proxy={{upstreams 8000}}
+      - caddy_2=gpx.ninja
+      - caddy_2.handle=/api*
+      - caddy_2.handle.0_reverse_proxy={{upstreams 8000}}
     networks:
       - gpxify-network
       - coolify
@@ -63,6 +66,8 @@ services:
     labels:
       - caddy_1=www.gpx.ninja
       - caddy_1.reverse_proxy={{upstreams 80}}
+      - caddy_3=gpx.ninja
+      - caddy_3.reverse_proxy={{upstreams 80}}
     networks:
       - gpxify-network
       - coolify
