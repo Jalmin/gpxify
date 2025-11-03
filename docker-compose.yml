@@ -16,7 +16,7 @@ services:
       API_V1_STR: /api/v1
 
       # CORS
-      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-https://gpxify.carapacebleue.com,http://gpxify.carapacebleue.com}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-https://www.gpx.ninja,http://www.gpx.ninja}
 
       # Google OAuth
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
@@ -39,7 +39,7 @@ services:
     expose:
       - "8000"
     labels:
-      - caddy_0=gpxify.carapacebleue.com
+      - caddy_0=www.gpx.ninja
       - caddy_0.handle=/api*
       - caddy_0.handle.0_reverse_proxy={{upstreams 8000}}
     networks:
@@ -52,7 +52,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-https://gpxify.carapacebleue.com}
+        VITE_API_URL: ${VITE_API_URL:-https://www.gpx.ninja}
         VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-381330006153-l2o78vsaf54tnof4ikass4ig1a8p9n94.apps.googleusercontent.com}
     container_name: gpxify-frontend
     restart: unless-stopped
@@ -61,7 +61,7 @@ services:
     expose:
       - "80"
     labels:
-      - caddy_1=gpxify.carapacebleue.com
+      - caddy_1=www.gpx.ninja
       - caddy_1.reverse_proxy={{upstreams 80}}
     networks:
       - gpxify-network

@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /share/
 
-Sitemap: https://gpxify.carapacebleue.com/sitemap.xml
+Sitemap: https://www.gpx.ninja/sitemap.xml

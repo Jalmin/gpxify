@@ -6,7 +6,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green.svg)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org)
 
-🌐 **[gpxify.carapacebleue.com](https://gpxify.carapacebleue.com)**
+🌐 **[www.gpx.ninja](https://www.gpx.ninja)**
 
 ---
 
