@@ -54,7 +54,7 @@ export function RaceRecovery() {
       formData.append('complete_gpx', completeFile);
       formData.append('official_time', officialTime);
 
-      const response = await fetch(`${API_BASE_URL}/race/recover`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/race/recover`, {
         method: 'POST',
         body: formData,
       });
