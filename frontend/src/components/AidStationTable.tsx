@@ -105,26 +105,38 @@ export function AidStationTable({ track }: AidStationTableProps) {
   const exportToCSV = () => {
     if (!tableResult) return;
 
+    // Helper function to escape CSV values
+    const escapeCSV = (value: string | number): string => {
+      const str = String(value);
+      // If value contains comma, quote, or newline, wrap in quotes and escape quotes
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
     const headers = ['De', 'À', 'Distance (km)', 'D+ (m)', 'D- (m)', 'Pente moy. (%)', 'Temps estimé', 'Temps cumulé'];
     const rows = tableResult.segments.map((seg, index) => [
-      seg.from_station,
-      seg.to_station,
+      escapeCSV(seg.from_station),
+      escapeCSV(seg.to_station),
       seg.distance_km.toFixed(2),
       Math.round(seg.elevation_gain),
       Math.round(seg.elevation_loss),
       seg.avg_gradient.toFixed(1),
-      formatTime(seg.estimated_time_minutes),
-      formatCumulativeTime(tableResult.segments, index),
+      escapeCSV(formatTime(seg.estimated_time_minutes)),
+      escapeCSV(formatCumulativeTime(tableResult.segments, index)),
     ]);
 
-    const csv = [
-      headers.join(','),
+    // Add BOM for UTF-8 encoding (helps Excel recognize UTF-8)
+    const BOM = '\uFEFF';
+    const csv = BOM + [
+      headers.map(h => escapeCSV(h)).join(','),
       ...rows.map((row) => row.join(',')),
       '',
-      `Total,${tableResult.total_distance_km.toFixed(2)} km,${Math.round(tableResult.total_elevation_gain)} m,${Math.round(tableResult.total_elevation_loss)} m,,${formatTime(tableResult.total_time_minutes)},`,
+      `Total,${tableResult.total_distance_km.toFixed(2)} km,${Math.round(tableResult.total_elevation_gain)} m,${Math.round(tableResult.total_elevation_loss)} m,,${escapeCSV(formatTime(tableResult.total_time_minutes))},`,
     ].join('\n');
 
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
