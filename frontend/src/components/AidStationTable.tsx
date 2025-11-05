@@ -76,8 +76,16 @@ export function AidStationTable({ track }: AidStationTableProps) {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Erreur lors de la génération');
+        let errorMessage = 'Erreur lors de la génération';
+        try {
+          const error = await response.json();
+          errorMessage = error.detail || errorMessage;
+        } catch {
+          // If JSON parsing fails, try to get text
+          const text = await response.text();
+          errorMessage = `Erreur ${response.status}: ${text.substring(0, 100)}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const result: AidStationTableResponse = await response.json();
