@@ -158,7 +158,7 @@ async def detect_climbs(request: ExportSegmentRequest):
 
 @router.post("/merge", response_model=MergeGPXResponse)
 @limiter.limit("10/minute")  # 10 merge operations per minute per IP
-async def merge_gpx_files(http_request: Request, request: MergeGPXRequest):
+async def merge_gpx_files(request: Request, merge_request: MergeGPXRequest):
     """
     Merge multiple GPX files into a single GPX track
 
@@ -177,22 +177,22 @@ async def merge_gpx_files(http_request: Request, request: MergeGPXRequest):
     """
     try:
         # Validate input
-        if len(request.files) < 2:
+        if len(merge_request.files) < 2:
             raise HTTPException(
                 status_code=400,
                 detail="At least 2 GPX files are required for merging"
             )
 
         # Prepare files for merge
-        files_content = [(f.filename, f.content) for f in request.files]
+        files_content = [(f.filename, f.content) for f in merge_request.files]
 
         # Merge GPX files
         merged_gpx, warnings = GPXParser.merge_gpx_files(
             files_content=files_content,
-            gap_threshold_seconds=request.options.gap_threshold_seconds,
-            interpolate_gaps=request.options.interpolate_gaps,
-            sort_by_time=request.options.sort_by_time,
-            merged_track_name=request.merged_track_name or "Merged Track"
+            gap_threshold_seconds=merge_request.options.gap_threshold_seconds,
+            interpolate_gaps=merge_request.options.interpolate_gaps,
+            sort_by_time=merge_request.options.sort_by_time,
+            merged_track_name=merge_request.merged_track_name or "Merged Track"
         )
 
         # Convert merged GPX to XML string
@@ -201,12 +201,12 @@ async def merge_gpx_files(http_request: Request, request: MergeGPXRequest):
         # Parse the merged GPX for preview data
         merged_data = GPXParser.parse_gpx_file(
             merged_gpx_xml,
-            filename=f"{request.merged_track_name or 'Merged_Track'}.gpx"
+            filename=f"{merge_request.merged_track_name or 'Merged_Track'}.gpx"
         )
 
         return MergeGPXResponse(
             success=True,
-            message=f"Successfully merged {len(request.files)} files",
+            message=f"Successfully merged {len(merge_request.files)} files",
             merged_gpx=merged_gpx_xml,
             data=merged_data,
             warnings=warnings
@@ -226,7 +226,7 @@ async def merge_gpx_files(http_request: Request, request: MergeGPXRequest):
 
 @router.post("/aid-station-table", response_model=AidStationTableResponse)
 @limiter.limit("20/minute")  # 20 table generations per minute per IP
-async def generate_aid_station_table(http_request: Request, request: AidStationTableRequest):
+async def generate_aid_station_table(request: Request, table_request: AidStationTableRequest):
     """
     Generate aid station table with segment statistics
 
@@ -249,13 +249,13 @@ async def generate_aid_station_table(http_request: Request, request: AidStationT
     """
     try:
         # Validate input
-        if len(request.aid_stations) < 2:
+        if len(table_request.aid_stations) < 2:
             raise HTTPException(
                 status_code=400,
                 detail="At least 2 aid stations are required"
             )
 
-        if not request.track_points:
+        if not table_request.track_points:
             raise HTTPException(
                 status_code=400,
                 detail="No track points provided"
@@ -263,10 +263,10 @@ async def generate_aid_station_table(http_request: Request, request: AidStationT
 
         # Generate table
         result = GPXParser.generate_aid_station_table(
-            points=request.track_points,
-            aid_stations=request.aid_stations,
-            use_naismith=request.use_naismith,
-            custom_pace_kmh=request.custom_pace_kmh
+            points=table_request.track_points,
+            aid_stations=table_request.aid_stations,
+            use_naismith=table_request.use_naismith,
+            custom_pace_kmh=table_request.custom_pace_kmh
         )
 
         return result
