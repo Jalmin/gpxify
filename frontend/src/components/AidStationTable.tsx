@@ -3,6 +3,7 @@ import { Plus, X, Table as TableIcon, Download, Clock, TrendingUp, TrendingDown 
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Tooltip } from './ui/Tooltip';
+import { GPXMap } from './Map/GPXMap';
 import { Track, AidStation, AidStationTableRequest, AidStationTableResponse } from '@/types/gpx';
 
 interface AidStationTableProps {
@@ -100,6 +101,31 @@ export function AidStationTable({ track }: AidStationTableProps) {
     if (!segments) return '-';
     const totalMinutes = segments.slice(0, upToIndex + 1).reduce((sum, seg) => sum + (seg.estimated_time_minutes || 0), 0);
     return formatTime(totalMinutes);
+  };
+
+  const createSegmentTracks = (): Track[] => {
+    if (!track || !tableResult) return [];
+
+    return tableResult.segments.map((segment) => {
+      // Convert km to meters for comparison
+      const startMeters = segment.start_km * 1000;
+      const endMeters = segment.end_km * 1000;
+
+      // Filter points that fall within this segment's distance range
+      const segmentPoints = track.points.filter(
+        (p) => p.distance >= startMeters && p.distance <= endMeters
+      );
+
+      return {
+        name: `${segment.from_station} → ${segment.to_station}`,
+        points: segmentPoints,
+        statistics: {
+          total_distance: segment.distance_km * 1000,
+          total_elevation_gain: segment.elevation_gain,
+          total_elevation_loss: segment.elevation_loss,
+        },
+      };
+    });
   };
 
   const exportToCSV = () => {
@@ -287,6 +313,36 @@ export function AidStationTable({ track }: AidStationTableProps) {
           {isGenerating ? 'Génération...' : 'Générer le tableau'}
         </Button>
       </Card>
+
+      {/* Map with colored segments */}
+      {tableResult && (
+        <Card className="p-4">
+          <h3 className="font-semibold mb-4">Carte des segments</h3>
+          <div className="w-full" style={{ height: '500px' }}>
+            <GPXMap tracks={createSegmentTracks()} />
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-3 items-center">
+            <span className="text-sm font-medium text-muted-foreground">Légende :</span>
+            {tableResult.segments.map((segment, index) => {
+              const colors = ['#ef4444', '#a855f7', '#22c55e', '#f97316', '#ec4899'];
+              const color = colors[index % colors.length];
+              return (
+                <div key={index} className="flex items-center gap-2">
+                  <div
+                    className="w-4 h-4 rounded-sm"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span className="text-xs">
+                    {segment.from_station} → {segment.to_station}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {/* Results Table */}
       {tableResult && (
