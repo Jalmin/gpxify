@@ -17,13 +17,20 @@ import { RaceRecovery } from './pages/RaceRecovery';
 import { GPXMerge } from './components/GPXMerge';
 import { AidStationTable } from './components/AidStationTable';
 import { gpxApi } from './services/api';
-import { GPXData } from './types/gpx';
+import { GPXData, AidStation, AidStationTableResponse } from './types/gpx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './components/ui/Card';
 import { Navigation, TrendingUp, TrendingDown, X, GripVertical, Merge, Table, ChevronDown, ChevronUp, Plus, Heart } from 'lucide-react';
 
 interface GPXFileData extends GPXData {
   id: string;
   uploadedAt: Date;
+}
+
+interface AidStationTableState {
+  aidStations: AidStation[];
+  useNaismith: boolean;
+  customPace: string;
+  tableResult: AidStationTableResponse | null;
 }
 
 function App() {
@@ -35,6 +42,12 @@ function App() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [selectedGpxForAidStations, setSelectedGpxForAidStations] = useState<string | null>(null);
   const [showUploadSection, setShowUploadSection] = useState(false);
+  const [aidStationTableState, setAidStationTableState] = useState<AidStationTableState>({
+    aidStations: [],
+    useNaismith: true,
+    customPace: '12',
+    tableResult: null,
+  });
 
   const handleFileSelect = async (file: File) => {
     setIsUploading(true);
@@ -112,6 +125,12 @@ function App() {
     if (state.gpxFiles && Array.isArray(state.gpxFiles)) {
       setGpxFiles(state.gpxFiles);
     }
+    if (state.aidStationTable) {
+      setAidStationTableState(state.aidStationTable);
+    }
+    if (state.selectedGpxForAidStations) {
+      setSelectedGpxForAidStations(state.selectedGpxForAidStations);
+    }
   };
 
   // Calculate aggregate statistics
@@ -151,6 +170,8 @@ function App() {
             <ShareButton
               appState={{
                 gpxFiles,
+                aidStationTable: aidStationTableState,
+                selectedGpxForAidStations,
                 timestamp: new Date().toISOString(),
               }}
             />
@@ -408,6 +429,11 @@ function App() {
                       const selectedFile = gpxFiles.find(f => f.id === selectedGpxForAidStations) || gpxFiles[0];
                       return selectedFile.tracks.length > 0 ? selectedFile.tracks[0] : null;
                     })()}
+                    aidStations={aidStationTableState.aidStations}
+                    useNaismith={aidStationTableState.useNaismith}
+                    customPace={aidStationTableState.customPace}
+                    tableResult={aidStationTableState.tableResult}
+                    onStateChange={setAidStationTableState}
                   />
                 </>
               )}

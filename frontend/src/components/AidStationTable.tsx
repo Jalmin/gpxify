@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, X, Table as TableIcon, Download, Clock, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -8,16 +8,45 @@ import { Track, AidStation, AidStationTableRequest, AidStationTableResponse } fr
 
 interface AidStationTableProps {
   track: Track | null;
+  aidStations?: AidStation[];
+  useNaismith?: boolean;
+  customPace?: string;
+  tableResult?: AidStationTableResponse | null;
+  onStateChange?: (state: {
+    aidStations: AidStation[];
+    useNaismith: boolean;
+    customPace: string;
+    tableResult: AidStationTableResponse | null;
+  }) => void;
 }
 
-export function AidStationTable({ track }: AidStationTableProps) {
-  const [aidStations, setAidStations] = useState<AidStation[]>([]);
+export function AidStationTable({
+  track,
+  aidStations: initialAidStations = [],
+  useNaismith: initialUseNaismith = true,
+  customPace: initialCustomPace = '12',
+  tableResult: initialTableResult = null,
+  onStateChange
+}: AidStationTableProps) {
+  const [aidStations, setAidStations] = useState<AidStation[]>(initialAidStations);
   const [newStationName, setNewStationName] = useState('');
   const [newStationKm, setNewStationKm] = useState('');
-  const [useNaismith, setUseNaismith] = useState(true);
-  const [customPace, setCustomPace] = useState('12');
+  const [useNaismith, setUseNaismith] = useState(initialUseNaismith);
+  const [customPace, setCustomPace] = useState(initialCustomPace);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [tableResult, setTableResult] = useState<AidStationTableResponse | null>(null);
+  const [tableResult, setTableResult] = useState<AidStationTableResponse | null>(initialTableResult);
+
+  // Notify parent of state changes
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange({
+        aidStations,
+        useNaismith,
+        customPace,
+        tableResult,
+      });
+    }
+  }, [aidStations, useNaismith, customPace, tableResult, onStateChange]);
 
   const handleAddStation = () => {
     if (!newStationName || !newStationKm) {
