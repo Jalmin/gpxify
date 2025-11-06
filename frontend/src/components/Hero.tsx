@@ -1,4 +1,4 @@
-import { Edit3, Merge, Scissors, BarChart3, Search, Heart } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 import { Footer } from './Footer';
 import { Link } from 'react-router-dom';
@@ -10,37 +10,9 @@ interface HeroProps {
 }
 
 export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
-  const features = [
-    {
-      icon: Edit3,
-      label: 'Éditer',
-      description: 'Extrayez des sections pour vos reconnaissances ou parcours off'
-    },
-    {
-      icon: Merge,
-      label: 'Fusionner',
-      description: 'Combinez plusieurs traces en une seule'
-    },
-    {
-      icon: Scissors,
-      label: 'Découper',
-      description: 'Isolez une section de votre parcours'
-    },
-    {
-      icon: BarChart3,
-      label: 'Analyser',
-      description: 'Stats détaillées, profil d\'altitude, ravitaillements'
-    },
-    {
-      icon: Search,
-      label: 'Identifier',
-      description: 'Trouvez les détails de n\'importe quel point'
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-6">
-      <div className="max-w-6xl w-full space-y-12">
+      <div className="max-w-6xl w-full space-y-10">
         {/* Hero Banner with Dual Logos */}
         <div className="text-center space-y-8">
           {/* Dual Logos Layout */}
@@ -62,24 +34,14 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
           </div>
         </div>
 
-        {/* Feature Icons - Black & White */}
-        <div className="flex justify-center items-start gap-6 flex-wrap max-w-5xl mx-auto">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="group relative flex flex-col items-center gap-2 transition-transform hover:scale-105 w-40"
-            >
-              <div className="w-16 h-16 rounded-2xl bg-white p-4 shadow-lg group-hover:shadow-2xl group-hover:bg-gray-200 transition-all">
-                <feature.icon className="w-full h-full text-black" strokeWidth={2.5} />
-              </div>
-              <span className="text-sm font-bold text-white transition-colors">
-                {feature.label}
-              </span>
-              <p className="text-xs text-gray-400 text-center leading-tight group-hover:text-gray-300 transition-colors">
-                {feature.description}
-              </p>
+        {/* Upload Section - Simple et épuré */}
+        <div className="bg-card border-2 border-border rounded-2xl p-6 shadow-xl max-w-2xl mx-auto">
+          <FileUpload onFileSelect={onFileSelect} isUploading={isUploading} />
+          {error && (
+            <div className="mt-4 p-4 bg-destructive/10 text-destructive rounded-lg border border-destructive text-center text-sm">
+              {error}
             </div>
-          ))}
+          )}
         </div>
 
         {/* Use Cases Section */}
@@ -133,26 +95,6 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Upload Section */}
-        <div className="bg-card border-2 border-border rounded-2xl p-8 shadow-xl">
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold">Commencez maintenant</h2>
-              <p className="text-muted-foreground">
-                Importez votre fichier GPX pour analyser, éditer et optimiser vos traces
-              </p>
-            </div>
-
-            <FileUpload onFileSelect={onFileSelect} isUploading={isUploading} />
-
-            {error && (
-              <div className="p-4 bg-destructive/10 text-destructive rounded-lg border border-destructive text-center">
-                {error}
-              </div>
-            )}
           </div>
         </div>
 
