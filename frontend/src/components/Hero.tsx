@@ -14,7 +14,7 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
     {
       icon: Edit3,
       label: 'Éditer',
-      description: 'Modifiez vos traces GPS point par point'
+      description: 'Extrayez des sections pour vos reconnaissances ou parcours off'
     },
     {
       icon: Merge,
