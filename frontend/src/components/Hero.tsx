@@ -11,11 +11,31 @@ interface HeroProps {
 
 export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
   const features = [
-    { icon: Edit3, label: 'Éditer' },
-    { icon: Merge, label: 'Fusionner' },
-    { icon: Scissors, label: 'Découper' },
-    { icon: BarChart3, label: 'Analyser' },
-    { icon: Search, label: 'Identifier' },
+    {
+      icon: Edit3,
+      label: 'Éditer',
+      description: 'Modifiez vos traces GPS point par point'
+    },
+    {
+      icon: Merge,
+      label: 'Fusionner',
+      description: 'Combinez plusieurs traces en une seule'
+    },
+    {
+      icon: Scissors,
+      label: 'Découper',
+      description: 'Isolez une section de votre parcours'
+    },
+    {
+      icon: BarChart3,
+      label: 'Analyser',
+      description: 'Stats détaillées, profil d\'altitude, ravitaillements'
+    },
+    {
+      icon: Search,
+      label: 'Identifier',
+      description: 'Trouvez les détails de n\'importe quel point'
+    },
   ];
 
   return (
@@ -43,20 +63,77 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
         </div>
 
         {/* Feature Icons - Black & White */}
-        <div className="flex justify-center items-center gap-8 flex-wrap">
+        <div className="flex justify-center items-start gap-6 flex-wrap max-w-5xl mx-auto">
           {features.map((feature, index) => (
             <div
               key={index}
-              className="group relative flex flex-col items-center gap-3 transition-transform hover:scale-110"
+              className="group relative flex flex-col items-center gap-2 transition-transform hover:scale-105 w-40"
             >
               <div className="w-16 h-16 rounded-2xl bg-white p-4 shadow-lg group-hover:shadow-2xl group-hover:bg-gray-200 transition-all">
                 <feature.icon className="w-full h-full text-black" strokeWidth={2.5} />
               </div>
-              <span className="text-sm font-semibold text-gray-400 group-hover:text-white transition-colors">
+              <span className="text-sm font-bold text-white transition-colors">
                 {feature.label}
               </span>
+              <p className="text-xs text-gray-400 text-center leading-tight group-hover:text-gray-300 transition-colors">
+                {feature.description}
+              </p>
             </div>
           ))}
+        </div>
+
+        {/* Use Cases Section */}
+        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-2xl p-8">
+          <h3 className="text-xl font-bold text-white mb-6 text-center">Cas d'usage</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-black/50 p-4 rounded-lg border border-gray-800">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">🏃</div>
+                <div>
+                  <h4 className="font-semibold text-white text-sm mb-1">Ultra-trail & Course</h4>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Générez un tableau de ravitaillement avec temps estimés par segment, D+/D-, et distances
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-black/50 p-4 rounded-lg border border-gray-800">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">🔋</div>
+                <div>
+                  <h4 className="font-semibold text-white text-sm mb-1">Batterie vide</h4>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Reconstituez votre trace complète quand votre montre s'est éteinte en pleine course
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-black/50 p-4 rounded-lg border border-gray-800">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">✂️</div>
+                <div>
+                  <h4 className="font-semibold text-white text-sm mb-1">Multi-jours</h4>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Fusionnez plusieurs étapes en une seule trace ou découpez pour isoler une journée
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-black/50 p-4 rounded-lg border border-gray-800">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">📊</div>
+                <div>
+                  <h4 className="font-semibold text-white text-sm mb-1">Analyse détaillée</h4>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Visualisez stats, profil d'altitude, carte interactive et identifiez n'importe quel point
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Upload Section */}

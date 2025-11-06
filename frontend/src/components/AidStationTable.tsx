@@ -128,7 +128,7 @@ export function AidStationTable({
   };
 
   const formatTime = (minutes?: number) => {
-    if (!minutes) return '-';
+    if (minutes === undefined || minutes === null) return '-';
     const hours = Math.floor(minutes / 60);
     const mins = Math.round(minutes % 60);
     return `${hours}h${mins.toString().padStart(2, '0')}`;
