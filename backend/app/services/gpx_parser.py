@@ -21,6 +21,11 @@ from app.models.gpx import (
     AidStationTableRequest,
     AidStationTableResponse,
 )
+from app.services.distance_calculator import DistanceCalculator
+from app.services.elevation_service import ElevationService
+from app.services.climb_detector import ClimbDetector
+from app.services.statistics_calculator import StatisticsCalculator
+from app.services.time_calculator import TimeCalculator
 
 
 class GPXParser:
@@ -100,55 +105,15 @@ class GPXParser:
     def _calculate_statistics(
         track: gpxpy.gpx.GPXTrack, track_points: List[TrackPoint]
     ) -> TrackStatistics:
-        """Calculate track statistics"""
-
-        # Use gpxpy built-in methods
-        uphill, downhill = track.get_uphill_downhill()
-        moving_data = track.get_moving_data()
-        elevation_extremes = track.get_elevation_extremes()
-
-        # Total distance
-        total_distance = track.length_3d() or 0.0
-
-        # Duration
-        duration = None
-        start_time = None
-        end_time = None
-
-        if moving_data and moving_data.moving_time:
-            duration = moving_data.moving_time
-
-        time_bounds = track.get_time_bounds()
-        if time_bounds.start_time:
-            start_time = time_bounds.start_time.isoformat()
-        if time_bounds.end_time:
-            end_time = time_bounds.end_time.isoformat()
-
-        # Average elevation
-        avg_elevation = None
-        if track_points:
-            elevations = [p.elevation for p in track_points if p.elevation is not None]
-            if elevations:
-                avg_elevation = sum(elevations) / len(elevations)
-
-        return TrackStatistics(
-            total_distance=total_distance,
-            total_elevation_gain=uphill or 0.0,
-            total_elevation_loss=downhill or 0.0,
-            max_elevation=elevation_extremes.maximum if elevation_extremes else None,
-            min_elevation=elevation_extremes.minimum if elevation_extremes else None,
-            avg_elevation=avg_elevation,
-            duration=duration,
-            start_time=start_time,
-            end_time=end_time,
-        )
+        """Calculate track statistics using StatisticsCalculator service"""
+        return StatisticsCalculator.calculate_track_statistics(track, track_points)
 
     @staticmethod
     def analyze_segment(
         track_points: List[TrackPoint], start_km: float, end_km: float
     ) -> dict:
         """
-        Analyze a specific segment of the track (Phase 3)
+        Analyze a specific segment of the track using StatisticsCalculator
 
         Args:
             track_points: List of track points
@@ -158,48 +123,7 @@ class GPXParser:
         Returns:
             Dictionary with segment analysis
         """
-        # Convert km to meters
-        start_m = start_km * 1000
-        end_m = end_km * 1000
-
-        # Filter points in segment
-        segment_points = [
-            p for p in track_points if start_m <= p.distance <= end_m
-        ]
-
-        if len(segment_points) < 2:
-            return {
-                "error": "Segment too short or no points found",
-                "distance": 0,
-                "elevation_gain": 0,
-                "elevation_loss": 0,
-            }
-
-        # Calculate segment statistics
-        elevation_gain = 0.0
-        elevation_loss = 0.0
-
-        for i in range(1, len(segment_points)):
-            prev = segment_points[i - 1]
-            curr = segment_points[i]
-
-            if prev.elevation is not None and curr.elevation is not None:
-                ele_diff = curr.elevation - prev.elevation
-                if ele_diff > 0:
-                    elevation_gain += ele_diff
-                else:
-                    elevation_loss += abs(ele_diff)
-
-        distance = segment_points[-1].distance - segment_points[0].distance
-
-        return {
-            "start_km": start_km,
-            "end_km": end_km,
-            "distance": distance,
-            "elevation_gain": elevation_gain,
-            "elevation_loss": elevation_loss,
-            "num_points": len(segment_points),
-        }
+        return StatisticsCalculator.analyze_segment(track_points, start_km, end_km)
 
     @staticmethod
     def generate_gpx_from_segment(
@@ -264,142 +188,6 @@ class GPXParser:
         # Convert to XML string
         return gpx.to_xml()
 
-    @staticmethod
-    def _smooth_elevation(points: List[TrackPoint], window_size: int = 5) -> List[float]:
-        """
-        Smooth elevation data using moving average to reduce GPS noise
-
-        Args:
-            points: List of track points
-            window_size: Size of the moving average window
-
-        Returns:
-            List of smoothed elevation values
-        """
-        if not points:
-            return []
-
-        smoothed = []
-        half_window = window_size // 2
-
-        for i in range(len(points)):
-            # Define window bounds
-            start = max(0, i - half_window)
-            end = min(len(points), i + half_window + 1)
-
-            # Calculate average elevation in window
-            elevations = [p.elevation for p in points[start:end] if p.elevation is not None]
-            if elevations:
-                avg_elev = sum(elevations) / len(elevations)
-            else:
-                avg_elev = points[i].elevation or 0
-
-            smoothed.append(avg_elev)
-
-        return smoothed
-
-    @staticmethod
-    def _find_local_minimum(
-        points: List[TrackPoint],
-        smoothed_elevations: List[float],
-        start_idx: int,
-        search_distance: int = 10
-    ) -> int:
-        """
-        Find local minimum by looking backward from start_idx
-
-        Args:
-            points: List of track points
-            smoothed_elevations: Smoothed elevation data
-            start_idx: Starting index
-            search_distance: How many points to look back
-
-        Returns:
-            Index of local minimum
-        """
-        min_idx = start_idx
-        min_elev = smoothed_elevations[start_idx]
-
-        # Look backward
-        for i in range(max(0, start_idx - search_distance), start_idx):
-            if smoothed_elevations[i] < min_elev:
-                min_elev = smoothed_elevations[i]
-                min_idx = i
-
-        return min_idx
-
-    @staticmethod
-    def _find_local_maximum(
-        points: List[TrackPoint],
-        smoothed_elevations: List[float],
-        end_idx: int,
-        search_distance: int = 10
-    ) -> int:
-        """
-        Find local maximum by looking forward from end_idx
-
-        Args:
-            points: List of track points
-            smoothed_elevations: Smoothed elevation data
-            end_idx: Starting index
-            search_distance: How many points to look forward
-
-        Returns:
-            Index of local maximum
-        """
-        max_idx = end_idx
-        max_elev = smoothed_elevations[end_idx]
-
-        # Look forward
-        for i in range(end_idx, min(len(points), end_idx + search_distance)):
-            if smoothed_elevations[i] > max_elev:
-                max_elev = smoothed_elevations[i]
-                max_idx = i
-
-        return max_idx
-
-    @staticmethod
-    def _calculate_climb_stats(
-        points: List[TrackPoint],
-        smoothed_elevations: List[float],
-        start_idx: int,
-        end_idx: int
-    ) -> dict:
-        """
-        Calculate D+, D-, distance, and gradient for a segment
-
-        Args:
-            points: List of track points
-            smoothed_elevations: Smoothed elevation data
-            start_idx: Start index
-            end_idx: End index
-
-        Returns:
-            Dictionary with elevation_gain, elevation_loss, distance, avg_gradient
-        """
-        d_plus = 0.0
-        d_minus = 0.0
-
-        # Calculate D+ and D- using smoothed elevations
-        for i in range(start_idx + 1, end_idx + 1):
-            elev_diff = smoothed_elevations[i] - smoothed_elevations[i - 1]
-            if elev_diff > 0:
-                d_plus += elev_diff
-            else:
-                d_minus += abs(elev_diff)
-
-        # Calculate distance
-        distance = points[end_idx].distance - points[start_idx].distance
-
-        # Calculate average gradient
-        avg_gradient = (d_plus / distance * 100) if distance > 0 else 0
-
-        return {
-            "d_plus": d_plus,
-            "d_minus": d_minus,
-            "distance": distance,
-            "avg_gradient": avg_gradient
-        }
 
     @staticmethod
     def detect_climbs(
@@ -410,20 +198,7 @@ class GPXParser:
         smoothing_window: int = 5,        # smoothing window size
     ) -> List[ClimbSegment]:
         """
-        Detect climb segments based on improved criteria
-
-        New criteria:
-        - D+ >= 300m (minimum absolute gain)
-        - D+ > 4 × D- (ratio criterion - clean climbs)
-        - Average gradient >= 4% (real climbs, not gentle slopes)
-
-        Algorithm:
-        1. Smooth elevations to reduce GPS noise
-        2. For each point, try to find a climb
-        3. Continue while D+/D- ratio > min_ratio
-        4. Refine bounds to find true local min/max
-        5. Keep climbs with highest D+ when overlapping
-        6. Merge consecutive climbs separated by small gaps (< 1000m, < 100m D-)
+        Detect climb segments using ClimbDetector service
 
         Args:
             points: List of track points with elevation data
@@ -435,327 +210,13 @@ class GPXParser:
         Returns:
             List of detected climb segments
         """
-        if len(points) < 2:
-            return []
-
-        # Step 1: Smooth elevations
-        smoothed_elevations = GPXParser._smooth_elevation(points, smoothing_window)
-
-        # Step 2: Find all candidate climbs
-        candidates = []
-        i = 0
-
-        while i < len(points) - 1:
-            # Try to find a climb starting from point i
-            candidate = GPXParser._find_climb_candidate(
-                points,
-                smoothed_elevations,
-                i,
-                min_elevation_gain,
-                min_ratio,
-                min_gradient
-            )
-
-            if candidate:
-                candidates.append(candidate)
-                # Skip past this climb
-                i = candidate["end_idx"] + 1
-            else:
-                i += 1
-
-        # Step 3: Remove overlapping climbs (keep highest D+)
-        final_climbs = GPXParser._remove_overlaps(candidates)
-
-        # Step 4: Merge consecutive climbs separated by small gaps (faux-plats)
-        merged_climbs = GPXParser._merge_consecutive_climbs(
-            final_climbs,
+        return ClimbDetector.detect_climbs(
             points,
-            smoothed_elevations,
-            max_gap_distance=1000,  # 1000m max gap
-            max_gap_descent=100,    # 100m max D- in gap
-            min_elevation_gain=min_elevation_gain,
-            min_ratio=min_ratio,
-            min_gradient=min_gradient
+            min_elevation_gain,
+            min_ratio,
+            min_gradient,
+            smoothing_window
         )
-
-        return merged_climbs
-
-    @staticmethod
-    def _find_climb_candidate(
-        points: List[TrackPoint],
-        smoothed_elevations: List[float],
-        start_idx: int,
-        min_elevation_gain: float,
-        min_ratio: float,
-        min_gradient: float
-    ) -> Optional[dict]:
-        """
-        Try to find a valid climb starting from start_idx
-
-        NEW APPROACH: Continue climbing as long as ratio stays good,
-        then check at the end if it meets minimum criteria.
-
-        IMPROVED: Stop early if we detect a significant descent after reaching summit.
-
-        Returns dictionary with climb info if found, None otherwise
-        """
-        prev_elevation = smoothed_elevations[start_idx]
-        current_d_plus = 0.0
-        current_d_minus = 0.0
-        best_end_idx = None
-        peak_elevation = smoothed_elevations[start_idx]
-        descent_from_peak = 0.0
-        max_descent_from_peak = 50  # Stop if we descend more than 50m from highest point
-
-        # Scan forward accumulating D+ and D-, continuing as long as ratio is good
-        for end_idx in range(start_idx + 1, len(points)):
-            current_elevation = smoothed_elevations[end_idx]
-            elev_diff = current_elevation - prev_elevation
-
-            if elev_diff > 0:
-                current_d_plus += elev_diff
-                # Update peak if we reached a new high
-                if current_elevation > peak_elevation:
-                    peak_elevation = current_elevation
-                    descent_from_peak = 0
-            else:
-                current_d_minus += abs(elev_diff)
-                # Track descent from peak
-                descent_from_peak = peak_elevation - current_elevation
-
-            prev_elevation = current_elevation
-
-            # Track the last point where we still have a good climb
-            if current_d_plus >= min_elevation_gain:
-                if current_d_minus == 0 or current_d_plus / current_d_minus > min_ratio:
-                    best_end_idx = end_idx
-
-            # STOP CONDITIONS:
-            # 1. Descended too much from peak (we're past the summit)
-            if descent_from_peak > max_descent_from_peak:
-                break
-
-            # 2. Ratio becomes bad (too much D- overall)
-            if current_d_minus > 0 and current_d_plus / current_d_minus < min_ratio:
-                break
-
-        # Check if we found a valid climb
-        if best_end_idx is not None:
-            # Refine bounds to find true local min/max
-            refined_start = GPXParser._find_local_minimum(
-                points, smoothed_elevations, start_idx, search_distance=10
-            )
-            refined_end = GPXParser._find_local_maximum(
-                points, smoothed_elevations, best_end_idx, search_distance=10
-            )
-
-            # Recalculate stats with refined bounds
-            stats = GPXParser._calculate_climb_stats(
-                points, smoothed_elevations, refined_start, refined_end
-            )
-
-            # Verify final criteria
-            if (stats["d_plus"] >= min_elevation_gain and
-                (stats["d_minus"] == 0 or stats["d_plus"] > min_ratio * stats["d_minus"]) and
-                stats["avg_gradient"] >= min_gradient):
-
-                # Create climb segment
-                start_km = points[refined_start].distance / 1000
-                end_km = points[refined_end].distance / 1000
-                distance_km = stats["distance"] / 1000
-
-                climb_segment = ClimbSegment(
-                    start_km=start_km,
-                    end_km=end_km,
-                    distance_km=distance_km,
-                    elevation_gain=stats["d_plus"],
-                    elevation_loss=stats["d_minus"],
-                    avg_gradient=stats["avg_gradient"]
-                )
-
-                return {
-                    "climb": climb_segment,
-                    "start_idx": refined_start,
-                    "end_idx": refined_end,
-                    "d_plus": stats["d_plus"]
-                }
-
-        return None
-
-    @staticmethod
-    def _remove_overlaps(candidates: List[dict]) -> List[ClimbSegment]:
-        """
-        Remove overlapping climbs, keeping the one with highest D+
-
-        Args:
-            candidates: List of climb candidates with start_idx, end_idx, d_plus
-
-        Returns:
-            List of non-overlapping ClimbSegments
-        """
-        if not candidates:
-            return []
-
-        # Sort by D+ descending (highest first)
-        sorted_candidates = sorted(candidates, key=lambda x: x["d_plus"], reverse=True)
-
-        final_climbs = []
-        used_ranges = []
-
-        for candidate in sorted_candidates:
-            start = candidate["start_idx"]
-            end = candidate["end_idx"]
-
-            # Check if this range overlaps with any already selected
-            overlaps = False
-            for used_start, used_end in used_ranges:
-                if not (end < used_start or start > used_end):
-                    # Ranges overlap
-                    overlaps = True
-                    break
-
-            if not overlaps:
-                final_climbs.append(candidate["climb"])
-                used_ranges.append((start, end))
-
-        # Sort by start position for display
-        final_climbs.sort(key=lambda x: x.start_km)
-
-        return final_climbs
-
-    @staticmethod
-    def _merge_consecutive_climbs(
-        climbs: List[ClimbSegment],
-        points: List[TrackPoint],
-        smoothed_elevations: List[float],
-        max_gap_distance: float = 500,  # meters
-        max_gap_descent: float = 50,    # meters
-        min_elevation_gain: float = 300,
-        min_ratio: float = 4.0,
-        min_gradient: float = 4.0,
-    ) -> List[ClimbSegment]:
-        """
-        Merge consecutive climbs that are separated by small gaps (faux-plats)
-
-        Args:
-            climbs: List of detected climbs (sorted by start position)
-            points: Original track points
-            smoothed_elevations: Smoothed elevation data
-            max_gap_distance: Maximum distance between climbs to consider merging (meters)
-            max_gap_descent: Maximum D- in gap to allow merging (meters)
-            min_elevation_gain: Minimum D+ for merged climb
-            min_ratio: Minimum D+/D- ratio for merged climb
-            min_gradient: Minimum gradient for merged climb
-
-        Returns:
-            List of climbs with consecutive ones merged
-        """
-        if len(climbs) <= 1:
-            return climbs
-
-        merged = []
-        i = 0
-
-        while i < len(climbs):
-            current_climb = climbs[i]
-
-            # Find current climb indices
-            current_start_idx = None
-            current_end_idx = None
-            for idx, point in enumerate(points):
-                if abs(point.distance / 1000 - current_climb.start_km) < 0.01:
-                    current_start_idx = idx
-                if abs(point.distance / 1000 - current_climb.end_km) < 0.01:
-                    current_end_idx = idx
-                    break
-
-            if current_start_idx is None or current_end_idx is None:
-                merged.append(current_climb)
-                i += 1
-                continue
-
-            # Try to merge with next climb(s)
-            merged_end_idx = current_end_idx
-            j = i + 1
-
-            while j < len(climbs):
-                next_climb = climbs[j]
-
-                # Find next climb start index
-                next_start_idx = None
-                for idx, point in enumerate(points):
-                    if abs(point.distance / 1000 - next_climb.start_km) < 0.01:
-                        next_start_idx = idx
-                        break
-
-                if next_start_idx is None:
-                    break
-
-                # Check gap distance
-                gap_distance = points[next_start_idx].distance - points[merged_end_idx].distance
-                if gap_distance > max_gap_distance:
-                    break  # Gap too large
-
-                # Check D- in gap
-                gap_d_minus = 0.0
-                for idx in range(merged_end_idx + 1, next_start_idx + 1):
-                    elev_diff = smoothed_elevations[idx] - smoothed_elevations[idx - 1]
-                    if elev_diff < 0:
-                        gap_d_minus += abs(elev_diff)
-
-                if gap_d_minus > max_gap_descent:
-                    break  # Too much descent in gap
-
-                # Find next climb end index
-                next_end_idx = None
-                for idx, point in enumerate(points):
-                    if abs(point.distance / 1000 - next_climb.end_km) < 0.01:
-                        next_end_idx = idx
-                        break
-
-                if next_end_idx is None:
-                    break
-
-                # Try merging: check if merged climb meets criteria
-                merged_stats = GPXParser._calculate_climb_stats(
-                    points, smoothed_elevations, current_start_idx, next_end_idx
-                )
-
-                # Check if merged climb is valid
-                if (merged_stats["d_plus"] >= min_elevation_gain and
-                    (merged_stats["d_minus"] == 0 or merged_stats["d_plus"] > min_ratio * merged_stats["d_minus"]) and
-                    merged_stats["avg_gradient"] >= min_gradient):
-
-                    # Valid merge, continue to next climb
-                    merged_end_idx = next_end_idx
-                    j += 1
-                else:
-                    # Merged climb doesn't meet criteria, stop here
-                    break
-
-            # Create final merged climb
-            if merged_end_idx != current_end_idx:
-                # We merged climbs
-                final_stats = GPXParser._calculate_climb_stats(
-                    points, smoothed_elevations, current_start_idx, merged_end_idx
-                )
-
-                merged_climb = ClimbSegment(
-                    start_km=points[current_start_idx].distance / 1000,
-                    end_km=points[merged_end_idx].distance / 1000,
-                    distance_km=final_stats["distance"] / 1000,
-                    elevation_gain=final_stats["d_plus"],
-                    elevation_loss=final_stats["d_minus"],
-                    avg_gradient=final_stats["avg_gradient"]
-                )
-                merged.append(merged_climb)
-                i = j  # Skip all merged climbs
-            else:
-                # No merge, keep original
-                merged.append(current_climb)
-                i += 1
-
-        return merged
 
     @staticmethod
     def merge_gpx_files(
@@ -972,26 +433,15 @@ class GPXParser:
                 total_elev_change_signed = (segment_points[-1].elevation or 0) - (segment_points[0].elevation or 0)
                 avg_gradient = (total_elev_change_signed / (segment_distance * 1000)) * 100
 
-            # Estimate time
-            estimated_time_minutes = None
-            if use_naismith:
-                # Naismith's rule (modified)
-                # Base time: distance at 12 km/h
-                base_time_hours = segment_distance / 12.0
-                base_time_minutes = base_time_hours * 60
-
-                # Add time for climbing: 5 min per 100m D+
-                climb_time_minutes = (d_plus / 100) * 5
-
-                # Subtract time for steep descents: 5 min per 100m D- if gradient > 12%
-                descent_time_minutes = 0.0
-                if avg_gradient < -12:
-                    descent_time_minutes = (d_minus / 100) * 5
-
-                estimated_time_minutes = base_time_minutes + climb_time_minutes - descent_time_minutes
-            elif custom_pace_kmh:
-                # Simple pace-based calculation
-                estimated_time_minutes = (segment_distance / custom_pace_kmh) * 60
+            # Estimate time using TimeCalculator
+            estimated_time_minutes = TimeCalculator.estimate_segment_time(
+                distance_km=segment_distance,
+                elevation_gain=d_plus,
+                elevation_loss=d_minus,
+                avg_gradient=avg_gradient,
+                use_naismith=use_naismith,
+                custom_pace_kmh=custom_pace_kmh
+            )
 
             # Create segment
             segment = AidStationSegment(
