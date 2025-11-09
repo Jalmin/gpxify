@@ -1,9 +1,10 @@
 /**
- * Custom hook for handling GPX file uploads
+ * Custom hook for handling GPX file uploads with client-side validation
  */
 import { useState } from 'react';
 import { gpxApi } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
+import { validateGPXFile, formatValidationError } from '../utils/gpxValidator';
 import type { GPXData } from '../types/gpx';
 
 interface GPXFileData extends GPXData {
@@ -14,14 +15,31 @@ interface GPXFileData extends GPXData {
 export const useGPXUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   const addFile = useAppStore((state) => state.addFile);
 
   const handleFileSelect = async (file: File) => {
     setIsUploading(true);
     setError(null);
+    setWarning(null);
 
     try {
+      // Client-side validation BEFORE uploading
+      const validationResult = await validateGPXFile(file);
+
+      if (!validationResult.valid) {
+        setError(formatValidationError(validationResult));
+        setIsUploading(false);
+        return;
+      }
+
+      // Show warnings if any
+      if (validationResult.warnings && validationResult.warnings.length > 0) {
+        setWarning(validationResult.warnings.join('\n'));
+      }
+
+      // Proceed with upload
       const response = await gpxApi.uploadGPX(file);
 
       if (response.success && response.data) {
@@ -62,6 +80,8 @@ export const useGPXUpload = () => {
     handleFileSelect,
     isUploading,
     error,
+    warning,
     clearError: () => setError(null),
+    clearWarning: () => setWarning(null),
   };
 };
