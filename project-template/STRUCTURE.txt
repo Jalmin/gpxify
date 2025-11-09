@@ -1,0 +1,109 @@
+PROJECT TEMPLATE - File Structure
+==================================
+
+project-template/
+│
+├── 📚 DOCUMENTATION (4 files, 1215 lines)
+│   ├── QUICKSTART.md                    # 5-minute quick start
+│   ├── README.md                        # Complete documentation
+│   ├── TEMPLATE.md                      # What's included/excluded
+│   ├── README-FROM-SOURCE.md            # Using from GPX Ninja repo
+│   └── .claude/
+│       └── starter-prompt.md            # Claude Code development guide
+│
+├── ⚙️ CONFIGURATION (3 files)
+│   ├── .env.example                     # Environment template
+│   ├── .gitignore                       # Git ignore rules
+│   └── docker-compose.yml               # 3-service orchestration
+│
+├── 🎨 FRONTEND (React + TypeScript + Vite)
+│   ├── package.json                     # Dependencies (minimal)
+│   ├── tsconfig.json                    # TypeScript strict config
+│   ├── vite.config.ts                   # Dev server + build
+│   ├── vitest.config.ts                 # Test configuration
+│   ├── tailwind.config.js               # CSS variable theming
+│   ├── postcss.config.js                # PostCSS setup
+│   ├── .eslintrc.cjs                    # ESLint rules
+│   ├── index.html                       # Entry HTML
+│   ├── Dockerfile                       # Multi-stage build
+│   ├── nginx.conf                       # Production server
+│   │
+│   └── src/
+│       ├── main.tsx                     # React entry point
+│       ├── App.tsx                      # Main component (example)
+│       ├── index.css                    # Global styles + CSS vars
+│       ├── vite-env.d.ts                # Vite types
+│       │
+│       ├── components/
+│       │   └── ui/
+│       │       └── Button.tsx           # Reusable button (variants)
+│       │
+│       ├── lib/
+│       │   └── utils.ts                 # cn() + formatters
+│       │
+│       ├── services/
+│       │   └── api.ts                   # Axios client + interceptors
+│       │
+│       ├── types/
+│       │   └── index.ts                 # TypeScript interfaces
+│       │
+│       └── test/
+│           └── setup.ts                 # Vitest setup
+│
+└── 🚀 BACKEND (FastAPI + PostgreSQL)
+    ├── requirements.txt                 # Production deps
+    ├── requirements-dev.txt             # Test deps
+    ├── Dockerfile                       # Python 3.11 slim
+    │
+    └── app/
+        ├── main.py                      # FastAPI app entry
+        │
+        ├── api/
+        │   └── example.py               # Example routes (GET/POST)
+        │
+        ├── core/
+        │   └── config.py                # Pydantic Settings
+        │
+        ├── db/
+        │   ├── database.py              # SQLAlchemy setup
+        │   └── models.py                # ORM models
+        │
+        ├── models/
+        │   └── __init__.py              # Pydantic schemas
+        │
+        ├── services/                    # Business logic (empty)
+        │   └── __init__.py
+        │
+        ├── utils/                       # Helpers (empty)
+        │   └── __init__.py
+        │
+        └── middleware/
+            └── rate_limit.py            # SlowAPI setup
+
+
+STATISTICS
+==========
+Total files:        43
+Documentation:      1,215 lines
+Frontend code:      ~500 lines
+Backend code:       ~400 lines
+Configuration:      ~300 lines
+Template size:      196 KB
+
+
+QUICK START
+===========
+1. cp -r project-template my-app
+2. cd my-app && cp .env.example .env
+3. # Edit .env (generate secrets)
+4. docker-compose up --build
+5. Open http://localhost
+
+
+NEXT STEPS
+==========
+→ Read QUICKSTART.md (5 min)
+→ Read README.md (15 min)
+→ Follow .claude/starter-prompt.md (guided development)
+→ Reference ../GPX Ninja/.claude/reusable-patterns.md (patterns)
+

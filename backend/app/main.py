@@ -1,13 +1,38 @@
 """
 FastAPI main application entry point
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
-from app.api import gpx, share, race_recovery
+from app.api import gpx, share, race_recovery, contact
 from app.db.database import init_db
 from app.middleware.rate_limit import limiter, rate_limit_exceeded_handler
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    FastAPI lifespan context manager for startup/shutdown events
+    Replaces deprecated @app.on_event("startup") / @app.on_event("shutdown")
+    """
+    # Startup
+    logger.info("Application starting up...")
+    logger.info("Initializing database...")
+    # Note: With Alembic, init_db() should be replaced with migrations
+    # For now, we keep it for backward compatibility
+    init_db()
+    logger.info("Database initialized")
+
+    yield
+
+    # Shutdown
+    logger.info("Application shutting down...")
+
 
 # Create FastAPI application
 app = FastAPI(
@@ -16,6 +41,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,  # New lifespan pattern (FastAPI 0.115+)
 )
 
 # Add rate limiter to app state
@@ -32,12 +58,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize database on startup
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database tables on application startup"""
-    init_db()
 
 # Include routers
 app.include_router(
@@ -56,6 +76,12 @@ app.include_router(
     race_recovery.router,
     prefix=f"{settings.API_V1_STR}/race",
     tags=["race"],
+)
+
+app.include_router(
+    contact.router,
+    prefix=f"{settings.API_V1_STR}/contact",
+    tags=["contact"],
 )
 
 

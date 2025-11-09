@@ -34,3 +34,6 @@ numpy==2.1.2
 
 # Rate Limiting
 slowapi==0.1.9
+
+# Email
+email-validator==2.3.0
