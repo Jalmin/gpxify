@@ -155,6 +155,8 @@ async def recover_race(
         recorded_time = (last_time - first_time).total_seconds()
 
         # Calculate remaining distance
+        # Start from cutoff_index (not cutoff_index + 1) because we need the distance
+        # from the last recorded point to the next point
         remaining_distance = sum(
             haversine_distance(
                 complete_points[i].latitude, complete_points[i].longitude,
@@ -186,9 +188,10 @@ async def recover_race(
             reconstructed_segment.points.append(point)
 
         # Add missing points with calculated timestamps
+        # Start from cutoff_index + 1 to avoid duplicating the last recorded point
         current_time = last_time
 
-        for i in range(cutoff_index, len(complete_points)):
+        for i in range(cutoff_index + 1, len(complete_points)):
             point = complete_points[i]
 
             # Create new point with calculated timestamp
@@ -235,9 +238,18 @@ async def recover_race(
             }
         )
 
+    except HTTPException:
+        # Re-raise HTTP exceptions (400 errors from validation)
+        raise
     except gpxpy.gpx.GPXException as e:
         raise HTTPException(status_code=400, detail=f"Erreur de parsing GPX: {str(e)}")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Erreur de format: {str(e)}")
+    except (AttributeError, TypeError) as e:
+        # Errors accessing point attributes (missing time, lat, lon, etc.)
+        raise HTTPException(status_code=400, detail=f"Données GPX invalides: {str(e)}")
     except Exception as e:
+        # Only truly unexpected errors should return 500
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erreur interne: {str(e)}")
