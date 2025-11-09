@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Upload, Download, AlertCircle, Check } from 'lucide-react';
+import { Upload, Download, AlertCircle, Check, ArrowLeft, BarChart3, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { API_BASE_URL } from '@/services/api';
@@ -231,6 +232,43 @@ export function RaceRecovery() {
             </li>
           </ul>
         </Card>
+
+        {/* Smart Navigation */}
+        {success ? (
+          <Card className="p-6 border-2 border-primary/20">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Zap className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold">Et maintenant ?</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Ton GPX a été reconstitué avec succès ! Tu peux maintenant :
+              </p>
+              <div className="grid gap-3">
+                <Link to="/">
+                  <Button variant="outline" className="w-full justify-start gap-3">
+                    <BarChart3 className="w-4 h-4" />
+                    <div className="text-left">
+                      <div className="font-medium">Analyser ton parcours</div>
+                      <div className="text-xs text-muted-foreground">
+                        Visualise tes stats, profil d'élévation et performance
+                      </div>
+                    </div>
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <div className="flex justify-center">
+            <Link to="/">
+              <Button variant="ghost" className="gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Retour aux outils d'analyse
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
