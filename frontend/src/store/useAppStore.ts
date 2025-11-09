@@ -25,7 +25,7 @@ interface AppState {
   aidStations: AidStation[];
 
   // UI State
-  activeTab: 'analyze' | 'aid-stations' | 'race-recovery';
+  activeTab: 'analyze' | 'merge' | 'aid-stations' | 'race-recovery';
 
   // Actions
   addFile: (file: GPXFileData) => void;
@@ -39,7 +39,7 @@ interface AppState {
   updateAidStation: (index: number, station: AidStation) => void;
   clearAidStations: () => void;
 
-  setActiveTab: (tab: 'analyze' | 'aid-stations' | 'race-recovery') => void;
+  setActiveTab: (tab: 'analyze' | 'merge' | 'aid-stations' | 'race-recovery') => void;
 }
 
 export const useAppStore = create<AppState>()(
