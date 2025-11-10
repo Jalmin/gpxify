@@ -31,6 +31,8 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
 def find_closest_point_index(target_lat: float, target_lon: float,
                               points: List[gpxpy.gpx.GPXTrackPoint],
+                              approx_distance_km: float = None,
+                              distance_tolerance_km: float = 5.0,
                               max_search_ratio: float = 0.75) -> int:
     """
     Find the index of the closest point in a GPX track to a target coordinate
@@ -39,8 +41,9 @@ def find_closest_point_index(target_lat: float, target_lon: float,
         target_lat: Target latitude
         target_lon: Target longitude
         points: List of GPX track points
-        max_search_ratio: Only search in the first X% of the track (default 0.75 = 75%)
-                         This prevents matching with loops or return paths later in the track
+        approx_distance_km: Approximate distance covered in km (if known)
+        distance_tolerance_km: Search within ± this many km around approx_distance (default 5 km)
+        max_search_ratio: If approx_distance not provided, search in first X% (default 0.75)
 
     Returns:
         Index of the closest point
@@ -48,16 +51,40 @@ def find_closest_point_index(target_lat: float, target_lon: float,
     min_distance = float('inf')
     closest_index = 0
 
-    # Only search in the first portion of the track to avoid false matches
-    # with loops or sections where the track crosses itself
-    max_search_index = int(len(points) * max_search_ratio)
+    # If approximate distance is provided, calculate cumulative distances and search in that range
+    if approx_distance_km is not None:
+        # Calculate cumulative distance for all points
+        cumulative_distances = [0.0]
+        for i in range(1, len(points)):
+            prev_point = points[i - 1]
+            curr_point = points[i]
+            segment_dist = haversine_distance(
+                prev_point.latitude, prev_point.longitude,
+                curr_point.latitude, curr_point.longitude
+            )
+            cumulative_distances.append(cumulative_distances[-1] + segment_dist / 1000.0)  # km
 
-    for i in range(max_search_index):
-        point = points[i]
-        distance = haversine_distance(target_lat, target_lon, point.latitude, point.longitude)
-        if distance < min_distance:
-            min_distance = distance
-            closest_index = i
+        # Define search range
+        min_km = max(0, approx_distance_km - distance_tolerance_km)
+        max_km = approx_distance_km + distance_tolerance_km
+
+        # Search only in points within the distance range
+        for i, cum_dist in enumerate(cumulative_distances):
+            if min_km <= cum_dist <= max_km:
+                point = points[i]
+                distance = haversine_distance(target_lat, target_lon, point.latitude, point.longitude)
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_index = i
+    else:
+        # Fallback: search in the first portion of the track
+        max_search_index = int(len(points) * max_search_ratio)
+        for i in range(max_search_index):
+            point = points[i]
+            distance = haversine_distance(target_lat, target_lon, point.latitude, point.longitude)
+            if distance < min_distance:
+                min_distance = distance
+                closest_index = i
 
     return closest_index
 
@@ -106,13 +133,15 @@ def parse_time_duration(time_str: str) -> timedelta:
 async def recover_race(
     incomplete_gpx: UploadFile = File(..., description="GPX partiel avec timestamps (de la montre)"),
     complete_gpx: UploadFile = File(..., description="GPX complet sans timestamps (tracé officiel)"),
-    official_time: str = Form(..., description="Temps officiel total (format: HH:MM:SS)")
+    official_time: str = Form(..., description="Temps officiel total (format: HH:MM:SS)"),
+    approx_distance_km: str = Form(None, description="Distance approximative parcourue en km (optionnel, aide à trouver le point d'arrêt)")
 ):
     """
     Reconstruct a complete GPX file from:
     - Partial GPX recording (with timestamps) from watch
     - Complete GPX track (without timestamps) from race course
     - Official finish time
+    - Optional: Approximate distance covered (helps find accurate cutoff point)
 
     Calculates missing timestamps based on slope-adjusted speed.
     """
@@ -142,12 +171,21 @@ async def recover_race(
         if not incomplete_points or not complete_points:
             raise HTTPException(status_code=400, detail="GPX files must contain valid tracks")
 
+        # Parse approximate distance if provided
+        approx_km = None
+        if approx_distance_km:
+            try:
+                approx_km = float(approx_distance_km.strip())
+            except (ValueError, AttributeError):
+                pass  # Ignore invalid input, will use fallback method
+
         # Find where incomplete GPX ends on complete track
         last_incomplete_point = incomplete_points[-1]
         cutoff_index = find_closest_point_index(
             last_incomplete_point.latitude,
             last_incomplete_point.longitude,
-            complete_points
+            complete_points,
+            approx_distance_km=approx_km
         )
 
         # Calculate recorded distance and time
