@@ -11,6 +11,7 @@ export function RaceRecovery() {
   const [incompleteFile, setIncompleteFile] = useState<File | null>(null);
   const [completeFile, setCompleteFile] = useState<File | null>(null);
   const [officialTime, setOfficialTime] = useState('');
+  const [approxDistance, setApproxDistance] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -69,6 +70,9 @@ export function RaceRecovery() {
       formData.append('incomplete_gpx', incompleteFile);
       formData.append('complete_gpx', completeFile);
       formData.append('official_time', officialTime);
+      if (approxDistance) {
+        formData.append('approx_distance_km', approxDistance);
+      }
 
       const response = await fetch(`${API_BASE_URL}/api/v1/race/recover`, {
         method: 'POST',
@@ -201,6 +205,27 @@ export function RaceRecovery() {
                 placeholder="3:45:30"
                 className="w-full px-4 py-2 bg-background border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
+            </div>
+
+            {/* Distance approximative (optionnel) */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">
+                Distance parcourue approximative
+                <span className="text-muted-foreground ml-2">
+                  (Optionnel, en km - aide à trouver précisément le point d'arrêt)
+                </span>
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                value={approxDistance}
+                onChange={(e) => setApproxDistance(e.target.value)}
+                placeholder="48.5"
+                className="w-full px-4 py-2 bg-background border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <p className="text-xs text-muted-foreground">
+                Si tu sais environ combien de km tu avais parcouru, indique-le ici (ex: 48). L'algorithme cherchera uniquement autour de cette distance (±5km).
+              </p>
             </div>
 
             {/* Error Message */}
