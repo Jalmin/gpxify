@@ -3,7 +3,7 @@
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Track } from '../types/gpx';
+import type { Track, AidStationTableResponse } from '../types/gpx';
 
 export interface GPXFileData {
   id: string;
@@ -16,6 +16,13 @@ export interface AidStation {
   distance_km: number;
 }
 
+export interface AidStationTableState {
+  aidStations: AidStation[];
+  useNaismith: boolean;
+  customPace: string;
+  tableResult: AidStationTableResponse | null;
+}
+
 interface AppState {
   // GPX Files
   files: GPXFileData[];
@@ -23,6 +30,9 @@ interface AppState {
 
   // Aid Stations
   aidStations: AidStation[];
+
+  // Aid Station Table State
+  aidStationTable: AidStationTableState;
 
   // UI State
   activeTab: 'analyze' | 'merge' | 'aid-stations' | 'race-recovery';
@@ -39,6 +49,8 @@ interface AppState {
   updateAidStation: (index: number, station: AidStation) => void;
   clearAidStations: () => void;
 
+  setAidStationTable: (state: Partial<AidStationTableState>) => void;
+
   setActiveTab: (tab: 'analyze' | 'merge' | 'aid-stations' | 'race-recovery') => void;
 }
 
@@ -49,6 +61,12 @@ export const useAppStore = create<AppState>()(
       files: [],
       selectedFileId: null,
       aidStations: [],
+      aidStationTable: {
+        aidStations: [],
+        useNaismith: true,
+        customPace: '12',
+        tableResult: null,
+      },
       activeTab: 'analyze',
 
       // File actions
@@ -106,6 +124,15 @@ export const useAppStore = create<AppState>()(
           aidStations: [],
         })),
 
+      // Aid station table actions
+      setAidStationTable: (newState) =>
+        set((state) => ({
+          aidStationTable: {
+            ...state.aidStationTable,
+            ...newState,
+          },
+        })),
+
       // UI actions
       setActiveTab: (tab) =>
         set(() => ({
@@ -119,6 +146,7 @@ export const useAppStore = create<AppState>()(
         files: state.files,
         selectedFileId: state.selectedFileId,
         aidStations: state.aidStations,
+        aidStationTable: state.aidStationTable,
       }),
     }
   )
