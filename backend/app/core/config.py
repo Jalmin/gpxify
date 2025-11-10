@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://gpxify:gpxify_dev_password_123@db:5432/gpxify"
 
     # Upload
-    MAX_UPLOAD_SIZE: int = 10485760  # 10MB
+    MAX_UPLOAD_SIZE: int = 26214400  # 25MB
     UPLOAD_DIR: str = "./uploads"
 
     class Config:

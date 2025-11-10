@@ -24,7 +24,7 @@ export function FAQ() {
     },
     {
       question: 'Quels formats de fichiers sont supportés ?',
-      answer: 'GPX Ninja supporte uniquement les fichiers au format GPX (GPS Exchange Format), qui est le standard universel pour les traces GPS. La taille maximale par fichier est de 10 MB. Les fichiers GPX peuvent provenir de n\'importe quelle montre GPS, application ou plateforme (Garmin, Suunto, Strava, Komoot, etc.).',
+      answer: 'GPX Ninja supporte uniquement les fichiers au format GPX (GPS Exchange Format), qui est le standard universel pour les traces GPS. La taille maximale par fichier est de 25 MB. Les fichiers GPX peuvent provenir de n\'importe quelle montre GPS, application ou plateforme (Garmin, Suunto, Strava, Komoot, etc.).',
     },
     {
       question: 'Mes données sont-elles sauvegardées sur vos serveurs ?',

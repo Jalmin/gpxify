@@ -8,7 +8,7 @@ export interface ValidationResult {
   warnings?: string[];
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
 const ALLOWED_EXTENSIONS = ['.gpx'];
 const GPX_MIME_TYPES = [
   'application/gpx+xml',
@@ -24,7 +24,7 @@ export const validateFileSize = (file: File): ValidationResult => {
   if (file.size > MAX_FILE_SIZE) {
     return {
       valid: false,
-      error: `Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(1)} MB). Taille maximale : 10 MB.`,
+      error: `Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(1)} MB). Taille maximale : 25 MB.`,
     };
   }
   return { valid: true };

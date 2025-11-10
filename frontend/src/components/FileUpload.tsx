@@ -126,7 +126,7 @@ export function FileUpload({ onFileSelect, isUploading = false }: FileUploadProp
               </button>
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              Taille maximale : 10 MB
+              Taille maximale : 25 MB
             </p>
           </div>
 

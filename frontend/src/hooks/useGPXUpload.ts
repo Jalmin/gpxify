@@ -57,7 +57,7 @@ export const useGPXUpload = () => {
       let errorMessage = 'Erreur lors du téléchargement du fichier';
 
       if (err.response?.status === 413) {
-        errorMessage = 'Fichier trop volumineux. La taille maximale est de 10 MB.';
+        errorMessage = 'Fichier trop volumineux. La taille maximale est de 25 MB.';
       } else if (err.response?.status === 415) {
         errorMessage = 'Format de fichier non supporté. Veuillez uploader un fichier GPX valide.';
       } else if (err.response?.status === 400) {

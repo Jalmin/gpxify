@@ -112,7 +112,7 @@ export function Hero({ onFileSelect, isUploading, error }: HeroProps) {
 
         {/* Footer Info */}
         <div className="text-center text-sm text-muted-foreground">
-          <p>Formats supportés : GPX • Taille max : 10 MB</p>
+          <p>Formats supportés : GPX • Taille max : 25 MB</p>
         </div>
 
         {/* Footer */}
