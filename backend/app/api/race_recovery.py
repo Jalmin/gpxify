@@ -8,8 +8,11 @@ import gpxpy.gpx
 from datetime import datetime, timedelta
 from typing import List, Tuple
 import math
+import logging
+from app.utils.elevation_quality import assess_elevation_quality, smooth_elevation_data, interpolate_elevation_linear
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -171,6 +174,20 @@ async def recover_race(
         if not incomplete_points or not complete_points:
             raise HTTPException(status_code=400, detail="GPX files must contain valid tracks")
 
+        # Assess elevation data quality for both files
+        incomplete_quality = assess_elevation_quality(incomplete_points)
+        complete_quality = assess_elevation_quality(complete_points)
+
+        logger.info(f"Incomplete GPX elevation quality: {incomplete_quality['quality_score']:.1f}/100 ({incomplete_quality['source']})")
+        logger.info(f"Complete GPX elevation quality: {complete_quality['quality_score']:.1f}/100 ({complete_quality['source']})")
+
+        # Process complete track elevation if quality is poor
+        if complete_quality['recommended_action'] == 'smooth':
+            logger.info("Smoothing complete GPX elevation data")
+            complete_points = smooth_elevation_data(complete_points, window_size=7)
+        elif complete_quality['quality_score'] < 50:
+            logger.warning(f"Complete GPX has poor elevation quality. Issues: {complete_quality['issues']}")
+
         # Parse approximate distance if provided
         approx_km = None
         if approx_distance_km:
@@ -301,7 +318,14 @@ async def recover_race(
             reconstructed_segment.points.append(clean_point)
 
         # Add missing points with calculated timestamps using optimal base speed
+        # Use interpolated elevation if complete track has poor quality
         current_time = last_time
+        current_elevation = incomplete_points[-1].elevation if incomplete_points[-1].elevation is not None else 0
+
+        use_interpolated_elevation = (incomplete_quality['quality_score'] > complete_quality['quality_score'] + 20)
+
+        if use_interpolated_elevation:
+            logger.info("Using interpolated elevation based on incomplete GPX (better quality)")
 
         for seg in segments:
             # Calculate adjusted speed with slope
@@ -314,11 +338,21 @@ async def recover_race(
             time_delta_seconds = seg['distance'] / adjusted_speed
             current_time += timedelta(seconds=time_delta_seconds)
 
-            # Create point with calculated timestamp
+            # Determine elevation to use
+            if use_interpolated_elevation:
+                # Interpolate elevation based on slope and distance
+                elevation_change = seg['distance'] * seg['slope']
+                current_elevation += elevation_change
+                point_elevation = current_elevation
+            else:
+                # Use elevation from complete track (already smoothed if needed)
+                point_elevation = seg['point'].elevation
+
+            # Create point with calculated timestamp and elevation
             new_point = gpxpy.gpx.GPXTrackPoint(
                 latitude=seg['point'].latitude,
                 longitude=seg['point'].longitude,
-                elevation=seg['point'].elevation,
+                elevation=point_elevation,
                 time=current_time
             )
 
