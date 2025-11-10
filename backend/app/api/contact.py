@@ -6,7 +6,8 @@ from pydantic import BaseModel, EmailStr, Field
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import os
+
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -30,12 +31,12 @@ async def send_contact_email(request: ContactRequest):
         Success message
     """
     try:
-        # Get SMTP configuration from environment
-        smtp_host = os.getenv('SMTP_HOST', 'smtp.gmail.com')
-        smtp_port = int(os.getenv('SMTP_PORT', '587'))
-        smtp_user = os.getenv('SMTP_USER', '')
-        smtp_password = os.getenv('SMTP_PASSWORD', '')
-        recipient_email = os.getenv('CONTACT_EMAIL', 'loic@carapacebleue.com')
+        # Get SMTP configuration from settings
+        smtp_host = settings.SMTP_HOST
+        smtp_port = settings.SMTP_PORT
+        smtp_user = settings.SMTP_USER
+        smtp_password = settings.SMTP_PASSWORD
+        recipient_email = settings.CONTACT_EMAIL
 
         if not smtp_user or not smtp_password:
             # In development, just log the message
