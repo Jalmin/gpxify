@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.datastructures import UploadFile as StarletteUploadFile
 from app.core.config import settings
 from app.api import gpx, share, race_recovery, contact
 from app.db.database import init_db
@@ -13,6 +14,11 @@ from app.middleware.rate_limit import limiter, rate_limit_exceeded_handler
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Monkey patch Starlette's max upload size
+# This is needed because Starlette has a hardcoded 1MB limit for request bodies
+import starlette.formparsers
+starlette.formparsers.UploadFile.spool_max_size = settings.MAX_UPLOAD_SIZE
 
 
 @asynccontextmanager

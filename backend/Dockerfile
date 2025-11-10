@@ -32,6 +32,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Run migrations then start the application
 # Note: Migrations skipped temporarily due to existing production schema
 # CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
-# Increase request body size limit to 30MB (slightly above 25MB to allow headers)
-ENV UVICORN_LIMIT_MAX_REQUEST_SIZE=31457280
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use gunicorn with uvicorn workers for better production performance and control
+CMD ["sh", "-c", "pip install gunicorn && gunicorn app.main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 120 --graceful-timeout 30"]
