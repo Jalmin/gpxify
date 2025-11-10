@@ -152,12 +152,13 @@ class GPXParser:
         if not segment_points:
             raise ValueError("No points found in the specified segment range")
 
-        # Create new GPX object
+        # Create new GPX object - clean and professional
         gpx = gpxpy.gpx.GPX()
+        gpx.creator = "GPX Ninja - Extract Segment"
 
         # Add metadata
         gpx.name = f"{track_name} - Segment {start_km:.1f}km to {end_km:.1f}km"
-        gpx.description = f"Exported segment from GPXIFY"
+        gpx.description = f"Segment extracted from {track_name} ({start_km:.1f}km - {end_km:.1f}km)"
 
         # Create track and segment
         gpx_track = gpxpy.gpx.GPXTrack()
@@ -285,8 +286,12 @@ class GPXParser:
             else:
                 warnings.append("No segments have timestamps. Using original order.")
 
-        # Create merged GPX
+        # Create merged GPX - clean and professional
         merged_gpx = gpxpy.gpx.GPX()
+        merged_gpx.creator = "GPX Ninja - Merge"
+        merged_gpx.name = merged_track_name
+        merged_gpx.description = f"Merged from {len(files_content)} GPX files"
+
         merged_track = gpxpy.gpx.GPXTrack()
         merged_track.name = merged_track_name
         merged_gpx.tracks.append(merged_track)
