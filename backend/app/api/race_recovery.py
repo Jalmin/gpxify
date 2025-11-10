@@ -228,7 +228,58 @@ async def recover_race(
                 detail="Le temps officiel doit être supérieur au temps enregistré"
             )
 
-        avg_speed_missing = remaining_distance / remaining_time_seconds  # m/s
+        # Pre-calculate all segments (distance + slope) for accurate time distribution
+        segments = []
+        prev_point = incomplete_points[-1]  # Last recorded point
+
+        for i in range(cutoff_index + 1, len(complete_points)):
+            point = complete_points[i]
+
+            distance = haversine_distance(
+                prev_point.latitude, prev_point.longitude,
+                point.latitude, point.longitude
+            )
+            slope = calculate_slope(prev_point, point)
+
+            segments.append({
+                'distance': distance,
+                'slope': slope,
+                'point': point
+            })
+
+            prev_point = point
+
+        # Use binary search to find optimal base speed that gives exact target time
+        # This ensures: Σ(distance_i / (v_base * (1 - 2 * slope_i))) = remaining_time_seconds
+        def calculate_total_time_with_base_speed(v_base: float) -> float:
+            """Calculate total time using given base speed with slope adjustments"""
+            total = 0.0
+            for seg in segments:
+                adjusted_speed = v_base * (1 - 2 * seg['slope'])
+                # Apply realistic bounds
+                adjusted_speed = max(adjusted_speed, v_base * 0.3)  # Min 30% of base
+                adjusted_speed = min(adjusted_speed, v_base * 2.0)  # Max 200% of base
+                total += seg['distance'] / adjusted_speed
+            return total
+
+        # Binary search for optimal base speed (50 iterations gives precision < 1 second)
+        v_min = 0.1  # 0.1 m/s minimum (very slow)
+        v_max = 10.0  # 10 m/s maximum (36 km/h, very fast for trail)
+        optimal_base_speed = (v_min + v_max) / 2
+
+        for _ in range(50):
+            optimal_base_speed = (v_min + v_max) / 2
+            calculated_time = calculate_total_time_with_base_speed(optimal_base_speed)
+
+            if abs(calculated_time - remaining_time_seconds) < 1.0:  # Precision: 1 second
+                break
+
+            if calculated_time > remaining_time_seconds:
+                # Too slow, increase speed
+                v_min = optimal_base_speed
+            else:
+                # Too fast, decrease speed
+                v_max = optimal_base_speed
 
         # Create reconstructed GPX - clean and professional
         reconstructed_gpx = gpxpy.gpx.GPX()
@@ -249,45 +300,29 @@ async def recover_race(
             )
             reconstructed_segment.points.append(clean_point)
 
-        # Add missing points with calculated timestamps
-        # Start from cutoff_index + 1 to avoid duplicating the last recorded point
+        # Add missing points with calculated timestamps using optimal base speed
         current_time = last_time
-        prev_point = incomplete_points[-1]  # Last recorded point
 
-        for i in range(cutoff_index + 1, len(complete_points)):
-            point = complete_points[i]
+        for seg in segments:
+            # Calculate adjusted speed with slope
+            adjusted_speed = optimal_base_speed * (1 - 2 * seg['slope'])
+            # Apply realistic bounds
+            adjusted_speed = max(adjusted_speed, optimal_base_speed * 0.3)
+            adjusted_speed = min(adjusted_speed, optimal_base_speed * 2.0)
 
-            # Calculate time from previous point to current point BEFORE creating the point
-            slope = calculate_slope(prev_point, point)
-            # vitesse = vitesse_moyenne * (1 - 2 * pente)
-            adjusted_speed = avg_speed_missing * (1 - 2 * slope)
+            # Calculate time for this segment
+            time_delta_seconds = seg['distance'] / adjusted_speed
+            current_time += timedelta(seconds=time_delta_seconds)
 
-            # Ensure speed is positive
-            if adjusted_speed <= 0:
-                adjusted_speed = avg_speed_missing * 0.1  # Minimum 10% of average
-
-            # Calculate distance from previous point
-            distance_from_prev = haversine_distance(
-                prev_point.latitude, prev_point.longitude,
-                point.latitude, point.longitude
-            )
-
-            # Calculate time needed and increment current_time
-            time_from_prev_seconds = distance_from_prev / adjusted_speed
-            current_time += timedelta(seconds=time_from_prev_seconds)
-
-            # NOW create the point with the incremented timestamp
+            # Create point with calculated timestamp
             new_point = gpxpy.gpx.GPXTrackPoint(
-                latitude=point.latitude,
-                longitude=point.longitude,
-                elevation=point.elevation,
+                latitude=seg['point'].latitude,
+                longitude=seg['point'].longitude,
+                elevation=seg['point'].elevation,
                 time=current_time
             )
 
             reconstructed_segment.points.append(new_point)
-
-            # Update prev_point for next iteration
-            prev_point = point
 
         # Generate GPX XML
         gpx_xml = reconstructed_gpx.to_xml()
