@@ -52,9 +52,9 @@ export function AnalyzeTab({
 }: AnalyzeTabProps) {
   return (
     <>
-      {/* Main Layout: Stats (1/3) + Map (2/3) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left Column: Stats and Files (1/3) */}
+      {/* Main Layout: Stats (1/4) + Map & Profile (3/4) */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Left Column: Stats and Files (1/4) */}
         <StatsColumn
           gpxFiles={gpxFiles}
           gpxColors={gpxColors}
@@ -68,35 +68,36 @@ export function AnalyzeTab({
           draggedIndex={draggedIndex}
         />
 
-        {/* Right Column: Map (2/3) */}
-        <div className="lg:col-span-2">
-          <Card>
+        {/* Right Column: Map & Profile (3/4) */}
+        <div className="lg:col-span-3 space-y-0">
+          {/* Map Card */}
+          <Card className="rounded-b-none border-b-0">
             <CardHeader className="py-3">
               <CardTitle className="text-lg">Carte</CardTitle>
             </CardHeader>
             <CardContent className="p-3">
-              <div className="h-[600px]">
+              <div className="h-[400px]">
                 <GPXMap tracks={gpxFiles.flatMap((f) => f.tracks)} onMapReady={onMapReady} />
               </div>
             </CardContent>
           </Card>
+
+          {/* Elevation Profile - Directly Below Map */}
+          {gpxFiles.length > 0 && gpxFiles[0].tracks.length > 0 && map && (
+            <Card className="rounded-t-none">
+              <CardHeader className="py-3">
+                <CardTitle className="text-lg">Profil d'altitude - {gpxFiles[0].filename}</CardTitle>
+                <CardDescription className="text-sm">
+                  Cliquez sur le graphique pour voir la position sur la carte
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3">
+                <ElevationProfile track={gpxFiles[0].tracks[0]} map={map} />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
-
-      {/* Elevation Profile - Full Width Below */}
-      {gpxFiles.length > 0 && gpxFiles[0].tracks.length > 0 && map && (
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-lg">Profil d'altitude - {gpxFiles[0].filename}</CardTitle>
-            <CardDescription className="text-sm">
-              Cliquez sur le graphique pour voir la position sur la carte
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-3">
-            <ElevationProfile track={gpxFiles[0].tracks[0]} map={map} />
-          </CardContent>
-        </Card>
-      )}
 
       {/* Climbs Details - Full Width Below */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

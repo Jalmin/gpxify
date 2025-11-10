@@ -44,6 +44,7 @@ interface SegmentStats {
 
 export function ElevationProfile({ track, map }: ElevationProfileProps) {
   const markerRef = useRef<L.Marker | null>(null);
+  const hoverMarkerRef = useRef<L.Marker | null>(null);
   const [segmentStart, setSegmentStart] = useState<number>(0);
   const [segmentEnd, setSegmentEnd] = useState<number>(track.statistics.total_distance / 1000);
   const [climbs, setClimbs] = useState<ClimbSegment[]>([]);
@@ -145,6 +146,36 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
         },
       },
     },
+    onHover: (_event: any, elements: any) => {
+      if (elements.length > 0 && map) {
+        const index = elements[0].index;
+        const point = track.points[index];
+
+        // Remove previous hover marker
+        if (hoverMarkerRef.current) {
+          map.removeLayer(hoverMarkerRef.current);
+        }
+
+        // Add hover marker at hovered point (different color - blue)
+        const hoverMarker = L.marker([point.lat, point.lon], {
+          icon: L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+            iconSize: [20, 33],
+            iconAnchor: [10, 33],
+            popupAnchor: [0, -28],
+            shadowSize: [33, 33],
+          }),
+        });
+
+        hoverMarker.addTo(map);
+        hoverMarkerRef.current = hoverMarker;
+      } else if (hoverMarkerRef.current && map) {
+        // Remove hover marker when not hovering
+        map.removeLayer(hoverMarkerRef.current);
+        hoverMarkerRef.current = null;
+      }
+    },
     scales: {
       x: {
         display: true,
@@ -198,11 +229,14 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
     },
   };
 
-  // Cleanup marker on unmount
+  // Cleanup markers on unmount
   useEffect(() => {
     return () => {
       if (markerRef.current && map) {
         map.removeLayer(markerRef.current);
+      }
+      if (hoverMarkerRef.current && map) {
+        map.removeLayer(hoverMarkerRef.current);
       }
     };
   }, [map]);
