@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { API_BASE_URL } from '@/services/api';
 import { Footer } from '@/components/Footer';
+import { validateGPXFile, formatValidationError } from '@/utils/gpxValidator';
 
 export function RaceRecovery() {
   const [incompleteFile, setIncompleteFile] = useState<File | null>(null);
@@ -43,6 +44,19 @@ export function RaceRecovery() {
     const timeRegex = /^(\d{1,2}):(\d{2}):(\d{2})$|^(\d{1,2}):(\d{2})$/;
     if (!timeRegex.test(officialTime)) {
       setError('Format de temps invalide. Utilisez HH:MM:SS ou MM:SS');
+      return;
+    }
+
+    // Validate GPX files client-side
+    const incompleteValidation = await validateGPXFile(incompleteFile);
+    if (!incompleteValidation.valid) {
+      setError(`GPX incomplet: ${formatValidationError(incompleteValidation)}`);
+      return;
+    }
+
+    const completeValidation = await validateGPXFile(completeFile);
+    if (!completeValidation.valid) {
+      setError(`GPX complet: ${formatValidationError(completeValidation)}`);
       return;
     }
 
