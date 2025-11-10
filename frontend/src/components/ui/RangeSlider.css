@@ -1,0 +1,99 @@
+/* Range Slider Container */
+.range-slider-container {
+  width: 100%;
+  padding: 8px 0;
+}
+
+/* Horizontal Slider */
+.horizontal-slider {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+/* Slider Track (background) */
+.slider-track {
+  position: absolute;
+  height: 8px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+/* Track between thumbs (active selection) */
+.slider-track-1 {
+  background: linear-gradient(90deg, rgb(37, 99, 235), rgb(59, 130, 246));
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.3);
+}
+
+/* Tracks outside selection */
+.slider-track-0,
+.slider-track-2 {
+  background: hsl(var(--muted));
+}
+
+/* Slider Thumb (draggable handle) */
+.slider-thumb {
+  height: 24px;
+  width: 24px;
+  background: white;
+  border: 3px solid rgb(37, 99, 235);
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease;
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.slider-thumb:hover {
+  transform: translateY(-50%) scale(1.15);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.slider-thumb:active {
+  cursor: grabbing;
+  transform: translateY(-50%) scale(1.25);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.5);
+}
+
+.slider-thumb:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+}
+
+/* Dark mode support */
+.dark .slider-thumb {
+  background: hsl(var(--background));
+  border-color: rgb(59, 130, 246);
+}
+
+.dark .slider-track-1 {
+  background: linear-gradient(90deg, rgb(59, 130, 246), rgb(96, 165, 250));
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+/* Animation for smooth dragging */
+@media (prefers-reduced-motion: no-preference) {
+  .slider-track {
+    transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .slider-thumb {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Better touch targets for mobile */
+@media (max-width: 768px) {
+  .slider-thumb {
+    height: 28px;
+    width: 28px;
+  }
+
+  .horizontal-slider {
+    height: 48px;
+  }
+}

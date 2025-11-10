@@ -16,6 +16,7 @@ import { Track, ClimbSegment } from '@/types/gpx';
 import { gpxApi } from '@/services/api';
 import { ClimbsList } from '@/components/ClimbsList';
 import { Download, TrendingUp as TrendingUpIcon } from 'lucide-react';
+import { RangeSlider } from '@/components/ui/RangeSlider';
 
 // Register ChartJS components
 ChartJS.register(
@@ -38,8 +39,8 @@ interface SegmentStats {
   distance: number;
   elevationGain: number;
   elevationLoss: number;
-  startElevation: number;
-  endElevation: number;
+  minElevation: number;
+  maxElevation: number;
 }
 
 export function ElevationProfile({ track, map }: ElevationProfileProps) {
@@ -66,16 +67,26 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
 
     let elevationGain = 0;
     let elevationLoss = 0;
+    let minElevation = Infinity;
+    let maxElevation = -Infinity;
 
-    for (let i = startPoint; i < endPoint; i++) {
+    for (let i = startPoint; i <= endPoint; i++) {
       const currentElevation = track.points[i].elevation || 0;
-      const nextElevation = track.points[i + 1].elevation || 0;
-      const diff = nextElevation - currentElevation;
 
-      if (diff > 0) {
-        elevationGain += diff;
-      } else {
-        elevationLoss += Math.abs(diff);
+      // Track min and max elevations
+      minElevation = Math.min(minElevation, currentElevation);
+      maxElevation = Math.max(maxElevation, currentElevation);
+
+      // Calculate elevation gain/loss
+      if (i < endPoint) {
+        const nextElevation = track.points[i + 1].elevation || 0;
+        const diff = nextElevation - currentElevation;
+
+        if (diff > 0) {
+          elevationGain += diff;
+        } else {
+          elevationLoss += Math.abs(diff);
+        }
       }
     }
 
@@ -83,8 +94,8 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
       distance: (track.points[endPoint].distance - track.points[startPoint].distance) / 1000,
       elevationGain,
       elevationLoss,
-      startElevation: track.points[startPoint].elevation || 0,
-      endElevation: track.points[endPoint].elevation || 0,
+      minElevation: minElevation === Infinity ? 0 : minElevation,
+      maxElevation: maxElevation === -Infinity ? 0 : maxElevation,
     };
   }, [track.points, segmentStart, segmentEnd]);
 
@@ -350,75 +361,18 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
           </button>
         </div>
 
-        {/* Range Selectors */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Début du segment (km)
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={maxDistance}
-              step={0.1}
-              value={segmentStart.toFixed(1)}
-              onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                if (value < segmentEnd) {
-                  setSegmentStart(value);
-                }
-              }}
-              className="w-full px-3 py-2 bg-card border border-border text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <input
-              type="range"
-              min={0}
-              max={maxDistance}
-              step={0.1}
-              value={segmentStart}
-              onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                if (value < segmentEnd) {
-                  setSegmentStart(value);
-                }
-              }}
-              className="w-full mt-2 accent-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Fin du segment (km)
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={maxDistance}
-              step={0.1}
-              value={segmentEnd.toFixed(1)}
-              onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                if (value > segmentStart && value <= maxDistance) {
-                  setSegmentEnd(value);
-                }
-              }}
-              className="w-full px-3 py-2 bg-card border border-border text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <input
-              type="range"
-              min={0}
-              max={maxDistance}
-              step={0.1}
-              value={segmentEnd}
-              onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                if (value > segmentStart) {
-                  setSegmentEnd(value);
-                }
-              }}
-              className="w-full mt-2 accent-blue-500"
-            />
-          </div>
+        {/* Range Slider - Modern & Smooth */}
+        <div className="space-y-4">
+          <RangeSlider
+            min={0}
+            max={maxDistance}
+            values={[segmentStart, segmentEnd]}
+            onChange={([start, end]) => {
+              setSegmentStart(start);
+              setSegmentEnd(end);
+            }}
+            step={0.1}
+          />
         </div>
 
         {/* Segment Statistics */}
@@ -445,9 +399,9 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
           </div>
 
           <div className="bg-card border border-border rounded-lg p-4">
-            <div className="text-sm text-muted-foreground">Altitude</div>
+            <div className="text-sm text-muted-foreground">Altitude (min → max)</div>
             <div className="text-lg font-semibold text-foreground">
-              {Math.round(segmentStats.startElevation)} → {Math.round(segmentStats.endElevation)} m
+              {Math.round(segmentStats.minElevation)} → {Math.round(segmentStats.maxElevation)} m
             </div>
           </div>
         </div>
