@@ -23,7 +23,7 @@ class ClimbDetector:
 
         New criteria (V2):
         - Distance >= 500m (minimum climb length)
-        - D+ >= 5% of total elevation range (dynamic threshold, min 50m, max 500m)
+        - D+ >= 5% of total elevation range (dynamic threshold, min 200m, max 500m)
         - D+ > 4 × D- (ratio criterion - clean climbs)
         - Average gradient >= 4% (real climbs, not gentle slopes)
 
@@ -59,13 +59,14 @@ class ClimbDetector:
         # Calculate elevation range (max - min)
         elevation_range = max(elevations) - min(elevations)
 
-        # Dynamic threshold = 5% of elevation range, clamped between 50m and 500m
+        # Dynamic threshold = 5% of elevation range, clamped between 200m and 500m
         # Examples:
-        # - Flat course (100m range): 5% = 5m → 50m (min)
-        # - Medium course (1000m range): 5% = 50m
-        # - Mountainous (3000m range): 5% = 150m
+        # - Flat course (100m range): 5% = 5m → 200m (min)
+        # - Medium course (1000m range): 5% = 50m → 200m (min)
+        # - Mountainous (3000m range): 5% = 150m → 200m (min still applies)
+        # - Very mountainous (5000m+ range): 5% = 250m+
         # - Extreme (10000m range): 5% = 500m → 500m (max)
-        dynamic_min_elevation = max(50.0, min(500.0, elevation_range * 0.05))
+        dynamic_min_elevation = max(200.0, min(500.0, elevation_range * 0.05))
 
         # Step 1: Smooth elevations
         smoothed_elevations = ElevationService.smooth_elevation(points, smoothing_window)
