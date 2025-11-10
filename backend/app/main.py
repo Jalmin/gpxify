@@ -29,6 +29,8 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     logger.info("Application starting up...")
+    logger.info(f"Environment: {settings.ENVIRONMENT}")
+    logger.info(f"MAX_UPLOAD_SIZE: {settings.MAX_UPLOAD_SIZE} bytes ({settings.MAX_UPLOAD_SIZE / 1024 / 1024}MB)")
     logger.info("Initializing database...")
     # Note: With Alembic, init_db() should be replaced with migrations
     # For now, we keep it for backward compatibility
