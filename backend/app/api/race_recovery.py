@@ -176,16 +176,24 @@ async def recover_race(
 
         avg_speed_missing = remaining_distance / remaining_time_seconds  # m/s
 
-        # Create reconstructed GPX
+        # Create reconstructed GPX - clean and professional
         reconstructed_gpx = gpxpy.gpx.GPX()
+        reconstructed_gpx.creator = "GPX Ninja - Race Recovery"
+
         reconstructed_track = gpxpy.gpx.GPXTrack()
         reconstructed_gpx.tracks.append(reconstructed_track)
         reconstructed_segment = gpxpy.gpx.GPXTrackSegment()
         reconstructed_track.segments.append(reconstructed_segment)
 
-        # Add recorded points with original timestamps
+        # Add recorded points with original timestamps (clean, no extensions)
         for point in incomplete_points:
-            reconstructed_segment.points.append(point)
+            clean_point = gpxpy.gpx.GPXTrackPoint(
+                latitude=point.latitude,
+                longitude=point.longitude,
+                elevation=point.elevation,
+                time=point.time
+            )
+            reconstructed_segment.points.append(clean_point)
 
         # Add missing points with calculated timestamps
         # Start from cutoff_index + 1 to avoid duplicating the last recorded point
