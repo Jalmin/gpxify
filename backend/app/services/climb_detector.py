@@ -12,39 +12,60 @@ class ClimbDetector:
     @staticmethod
     def detect_climbs(
         points: List[TrackPoint],
-        min_elevation_gain: float = 300,  # meters minimum D+
+        min_elevation_gain: float = 300,  # meters minimum D+ (will be replaced by dynamic calculation)
         min_ratio: float = 4.0,           # D+ must be > min_ratio * D-
         min_gradient: float = 4.0,        # minimum average gradient %
         smoothing_window: int = 5,        # smoothing window size
+        min_distance_km: float = 0.5,     # minimum climb distance in km (V2: 500m)
     ) -> List[ClimbSegment]:
         """
-        Detect climb segments based on improved criteria
+        Detect climb segments based on improved criteria (V2)
 
-        New criteria:
-        - D+ >= 300m (minimum absolute gain)
+        New criteria (V2):
+        - Distance >= 500m (minimum climb length)
+        - D+ >= 5% of total elevation range (dynamic threshold, min 50m, max 500m)
         - D+ > 4 × D- (ratio criterion - clean climbs)
         - Average gradient >= 4% (real climbs, not gentle slopes)
 
         Algorithm:
-        1. Smooth elevations to reduce GPS noise
-        2. For each point, try to find a climb
-        3. Continue while D+/D- ratio > min_ratio
-        4. Refine bounds to find true local min/max
-        5. Keep climbs with highest D+ when overlapping
-        6. Merge consecutive climbs separated by small gaps (< 1000m, < 100m D-)
+        1. Calculate dynamic elevation threshold based on track elevation range
+        2. Smooth elevations to reduce GPS noise
+        3. For each point, try to find a climb
+        4. Continue while D+/D- ratio > min_ratio
+        5. Refine bounds to find true local min/max
+        6. Keep climbs with highest D+ when overlapping
+        7. Merge consecutive climbs separated by small gaps (< 1000m, < 100m D-)
 
         Args:
             points: List of track points with elevation data
-            min_elevation_gain: Minimum D+ in meters (default 300)
+            min_elevation_gain: Minimum D+ in meters (overridden by dynamic calculation)
             min_ratio: Minimum ratio D+/D- (default 4.0)
             min_gradient: Minimum average gradient % (default 4.0)
             smoothing_window: Window size for elevation smoothing (default 5)
+            min_distance_km: Minimum climb distance in km (default 0.5 = 500m)
 
         Returns:
             List of detected climb segments
         """
         if len(points) < 2:
             return []
+
+        # Step 0: Calculate dynamic elevation threshold (V2)
+        # Get all elevations from track
+        elevations = [p.elevation for p in points if p.elevation is not None]
+        if not elevations:
+            return []
+
+        # Calculate elevation range (max - min)
+        elevation_range = max(elevations) - min(elevations)
+
+        # Dynamic threshold = 5% of elevation range, clamped between 50m and 500m
+        # Examples:
+        # - Flat course (100m range): 5% = 5m → 50m (min)
+        # - Medium course (1000m range): 5% = 50m
+        # - Mountainous (3000m range): 5% = 150m
+        # - Extreme (10000m range): 5% = 500m → 500m (max)
+        dynamic_min_elevation = max(50.0, min(500.0, elevation_range * 0.05))
 
         # Step 1: Smooth elevations
         smoothed_elevations = ElevationService.smooth_elevation(points, smoothing_window)
@@ -59,9 +80,10 @@ class ClimbDetector:
                 points,
                 smoothed_elevations,
                 i,
-                min_elevation_gain,
+                dynamic_min_elevation,  # Use dynamic threshold instead of fixed
                 min_ratio,
-                min_gradient
+                min_gradient,
+                min_distance_km  # Add distance criterion
             )
 
             if candidate:
@@ -81,9 +103,10 @@ class ClimbDetector:
             smoothed_elevations,
             max_gap_distance=1000,  # 1000m max gap
             max_gap_descent=100,    # 100m max D- in gap
-            min_elevation_gain=min_elevation_gain,
+            min_elevation_gain=dynamic_min_elevation,  # Use dynamic threshold
             min_ratio=min_ratio,
-            min_gradient=min_gradient
+            min_gradient=min_gradient,
+            min_distance_km=min_distance_km  # Add distance criterion
         )
 
         return merged_climbs
@@ -95,7 +118,8 @@ class ClimbDetector:
         start_idx: int,
         min_elevation_gain: float,
         min_ratio: float,
-        min_gradient: float
+        min_gradient: float,
+        min_distance_km: float = 0.5
     ) -> Optional[dict]:
         """
         Try to find a valid climb starting from start_idx
@@ -162,15 +186,16 @@ class ClimbDetector:
                 points, smoothed_elevations, refined_start, refined_end
             )
 
-            # Verify final criteria
-            if (stats["d_plus"] >= min_elevation_gain and
+            # Create climb segment data
+            start_km = points[refined_start].distance / 1000
+            end_km = points[refined_end].distance / 1000
+            distance_km = stats["distance"] / 1000
+
+            # Verify final criteria (V2: added distance check)
+            if (distance_km >= min_distance_km and
+                stats["d_plus"] >= min_elevation_gain and
                 (stats["d_minus"] == 0 or stats["d_plus"] > min_ratio * stats["d_minus"]) and
                 stats["avg_gradient"] >= min_gradient):
-
-                # Create climb segment
-                start_km = points[refined_start].distance / 1000
-                end_km = points[refined_end].distance / 1000
-                distance_km = stats["distance"] / 1000
 
                 climb_segment = ClimbSegment(
                     start_km=start_km,
@@ -241,6 +266,7 @@ class ClimbDetector:
         min_elevation_gain: float = 300,
         min_ratio: float = 4.0,
         min_gradient: float = 4.0,
+        min_distance_km: float = 0.5,
     ) -> List[ClimbSegment]:
         """
         Merge consecutive climbs that are separated by small gaps (faux-plats)
@@ -329,8 +355,10 @@ class ClimbDetector:
                     points, smoothed_elevations, current_start_idx, next_end_idx
                 )
 
-                # Check if merged climb is valid
-                if (merged_stats["d_plus"] >= min_elevation_gain and
+                # Check if merged climb is valid (V2: added distance check)
+                merged_distance_km = merged_stats["distance"] / 1000
+                if (merged_distance_km >= min_distance_km and
+                    merged_stats["d_plus"] >= min_elevation_gain and
                     (merged_stats["d_minus"] == 0 or merged_stats["d_plus"] > min_ratio * merged_stats["d_minus"]) and
                     merged_stats["avg_gradient"] >= min_gradient):
 
