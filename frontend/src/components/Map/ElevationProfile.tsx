@@ -320,6 +320,11 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
 
   return (
     <div className="w-full space-y-6">
+      {/* Chart */}
+      <div className="w-full h-64">
+        <Line data={data} options={options} />
+      </div>
+
       {/* Detect Climbs Button */}
       <div className="flex justify-end">
         <button
@@ -338,11 +343,6 @@ export function ElevationProfile({ track, map }: ElevationProfileProps) {
           <ClimbsList climbs={climbs} onSelectClimb={handleSelectClimb} />
         </div>
       )}
-
-      {/* Chart */}
-      <div className="w-full h-64">
-        <Line data={data} options={options} />
-      </div>
 
       {/* Segment Explorer */}
       <div
