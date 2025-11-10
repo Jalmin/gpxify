@@ -1,39 +1,37 @@
 """
 GPX file parsing and analysis service using gpxpy
+
+This module provides a unified interface to GPX processing services.
+All actual implementations have been moved to specialized service modules.
 """
 import gpxpy
 import gpxpy.gpx
 from typing import List, Optional, Tuple
-from datetime import datetime
-import logging
+
 from app.models.gpx import (
     GPXData,
-    Track,
     TrackPoint,
-    TrackStatistics,
-    Coordinate,
-    ClimbSegment,
-    MergeOptions,
-    MergeGPXRequest,
-    MergeGPXResponse,
-    GPXFileInput,
     AidStation,
-    AidStationSegment,
-    AidStationTableRequest,
     AidStationTableResponse,
 )
-from app.services.distance_calculator import DistanceCalculator
-from app.services.elevation_service import ElevationService
-from app.services.climb_detector import ClimbDetector
+from app.services.gpx_parse_service import GPXParseService
+from app.services.gpx_export_service import GPXExportService
+from app.services.gpx_merge_service import GPXMergeService
+from app.services.aid_station_service import AidStationService
 from app.services.statistics_calculator import StatisticsCalculator
-from app.services.time_calculator import TimeCalculator
-from app.utils.elevation_quality import assess_elevation_quality, process_elevation_data
-
-logger = logging.getLogger(__name__)
+from app.services.climb_detector import ClimbDetector
 
 
 class GPXParser:
-    """Service for parsing and analyzing GPX files"""
+    """
+    Unified interface for GPX file processing
+
+    This class delegates to specialized services:
+    - GPXParseService: Parse GPX files
+    - GPXExportService: Generate GPX from segments
+    - GPXMergeService: Merge multiple GPX files
+    - AidStationService: Generate aid station tables
+    """
 
     @staticmethod
     def parse_gpx_file(file_content: str, filename: str) -> GPXData:
@@ -47,94 +45,25 @@ class GPXParser:
         Returns:
             GPXData object with tracks and statistics
         """
-        gpx = gpxpy.parse(file_content)
-
-        tracks = []
-        waypoints = []
-
-        # Parse waypoints
-        for waypoint in gpx.waypoints:
-            waypoints.append(
-                Coordinate(
-                    lat=waypoint.latitude,
-                    lon=waypoint.longitude,
-                    elevation=waypoint.elevation,
-                )
-            )
-
-        # Parse tracks
-        for track in gpx.tracks:
-            track_points = []
-            cumulative_distance = 0.0
-
-            for segment in track.segments:
-                # Assess and process elevation quality for this segment
-                segment_points = segment.points
-                if segment_points:
-                    processed_points, quality_report = process_elevation_data(segment_points)
-                    logger.info(f"Track '{track.name or 'Unnamed'}': Elevation quality {quality_report['quality_score']:.1f}/100 ({quality_report['source']}), action: {quality_report['processing_applied']}")
-                    segment_points = processed_points
-
-                previous_point = None
-
-                for point in segment_points:
-                    # Calculate distance from previous point
-                    if previous_point:
-                        distance_delta = point.distance_3d(previous_point) or 0
-                        cumulative_distance += distance_delta
-
-                    track_points.append(
-                        TrackPoint(
-                            lat=point.latitude,
-                            lon=point.longitude,
-                            elevation=point.elevation,
-                            distance=cumulative_distance,
-                            time=point.time.isoformat() if point.time else None,
-                        )
-                    )
-
-                    previous_point = point
-
-            # Calculate statistics
-            statistics = GPXParser._calculate_statistics(track, track_points)
-
-            tracks.append(
-                Track(
-                    name=track.name,
-                    points=track_points,
-                    statistics=statistics,
-                )
-            )
-
-        return GPXData(
-            filename=filename,
-            tracks=tracks,
-            waypoints=waypoints,
-        )
+        return GPXParseService.parse_gpx_file(file_content, filename)
 
     @staticmethod
-    def _calculate_statistics(
-        track: gpxpy.gpx.GPXTrack, track_points: List[TrackPoint]
-    ) -> TrackStatistics:
-        """Calculate track statistics using StatisticsCalculator service"""
-        return StatisticsCalculator.calculate_track_statistics(track, track_points)
+    def _calculate_statistics(points: List[TrackPoint]):
+        """
+        Calculate track statistics (delegated to StatisticsCalculator)
+
+        DEPRECATED: Use StatisticsCalculator.calculate_statistics() directly
+        """
+        return StatisticsCalculator.calculate_statistics(points)
 
     @staticmethod
-    def analyze_segment(
-        track_points: List[TrackPoint], start_km: float, end_km: float
-    ) -> dict:
+    def analyze_segment(points: List[TrackPoint], start_km: float, end_km: float):
         """
-        Analyze a specific segment of the track using StatisticsCalculator
+        Analyze a segment of the track (delegated to StatisticsCalculator)
 
-        Args:
-            track_points: List of track points
-            start_km: Start distance in kilometers
-            end_km: End distance in kilometers
-
-        Returns:
-            Dictionary with segment analysis
+        DEPRECATED: Use StatisticsCalculator.analyze_segment() directly
         """
-        return StatisticsCalculator.analyze_segment(track_points, start_km, end_km)
+        return StatisticsCalculator.analyze_segment(points, start_km, end_km)
 
     @staticmethod
     def generate_gpx_from_segment(
@@ -155,92 +84,36 @@ class GPXParser:
         Returns:
             GPX XML string
         """
-        # Filter points within segment range
-        start_m = start_km * 1000
-        end_m = end_km * 1000
-        segment_points = [p for p in points if start_m <= p.distance <= end_m]
-
-        if not segment_points:
-            raise ValueError("No points found in the specified segment range")
-
-        # Convert TrackPoint objects to gpxpy points for elevation quality assessment
-        gpx_points_for_assessment = []
-        for point in segment_points:
-            point_time = None
-            if point.time:
-                try:
-                    point_time = datetime.fromisoformat(point.time.replace('Z', '+00:00'))
-                except:
-                    pass
-
-            gpx_point = gpxpy.gpx.GPXTrackPoint(
-                latitude=point.lat,
-                longitude=point.lon,
-                elevation=point.elevation,
-                time=point_time
-            )
-            gpx_points_for_assessment.append(gpx_point)
-
-        # Assess and process elevation quality for extracted segment
-        processed_gpx_points, quality_report = process_elevation_data(gpx_points_for_assessment)
-        logger.info(f"Extract segment {start_km:.1f}-{end_km:.1f}km from '{track_name}': Elevation quality {quality_report['quality_score']:.1f}/100 ({quality_report['source']}), action: {quality_report['processing_applied']}")
-
-        # Create new GPX object - clean and professional
-        gpx = gpxpy.gpx.GPX()
-        gpx.creator = "GPX Ninja - Extract Segment"
-
-        # Add metadata
-        gpx.name = f"{track_name} - Segment {start_km:.1f}km to {end_km:.1f}km"
-        gpx.description = f"Segment extracted from {track_name} ({start_km:.1f}km - {end_km:.1f}km)"
-
-        # Create track and segment
-        gpx_track = gpxpy.gpx.GPXTrack()
-        gpx_track.name = gpx.name
-        gpx.tracks.append(gpx_track)
-
-        gpx_segment = gpxpy.gpx.GPXTrackSegment()
-        gpx_track.segments.append(gpx_segment)
-
-        # Add processed points to segment (with improved elevation quality)
-        for gpx_point in processed_gpx_points:
-            gpx_segment.points.append(gpx_point)
-
-        # Convert to XML string
-        return gpx.to_xml()
-
+        return GPXExportService.generate_gpx_from_segment(
+            points, start_km, end_km, track_name
+        )
 
     @staticmethod
     def detect_climbs(
         points: List[TrackPoint],
-        min_elevation_gain: float = 300,  # meters minimum D+
-        min_ratio: float = 4.0,           # D+ must be > min_ratio * D-
-        min_gradient: float = 4.0,        # minimum average gradient %
-        smoothing_window: int = 5,        # smoothing window size
-    ) -> List[ClimbSegment]:
+        min_elevation_gain: float = 300,
+        min_ratio: float = 4.0,
+        min_gradient: float = 4.0,
+        smoothing_window: int = 5,
+        min_distance: float = 0.5
+    ):
         """
-        Detect climb segments using ClimbDetector service
+        Detect significant climbs in the track (delegated to ClimbDetector)
 
-        Args:
-            points: List of track points with elevation data
-            min_elevation_gain: Minimum D+ in meters (default 300)
-            min_ratio: Minimum ratio D+/D- (default 4.0)
-            min_gradient: Minimum average gradient % (default 4.0)
-            smoothing_window: Window size for elevation smoothing (default 5)
-
-        Returns:
-            List of detected climb segments
+        DEPRECATED: Use ClimbDetector.detect_climbs() directly
         """
         return ClimbDetector.detect_climbs(
             points,
             min_elevation_gain,
             min_ratio,
             min_gradient,
-            smoothing_window
+            smoothing_window,
+            min_distance
         )
 
     @staticmethod
     def merge_gpx_files(
-        files_content: List[Tuple[str, str]],  # List of (filename, content)
+        files_content: List[Tuple[str, str]],
         gap_threshold_seconds: int = 300,
         interpolate_gaps: bool = False,
         sort_by_time: bool = True,
@@ -259,125 +132,13 @@ class GPXParser:
         Returns:
             Tuple of (merged GPX object, list of warnings)
         """
-        warnings = []
-        all_segments = []
-
-        # Parse all GPX files and extract segments with metadata
-        for filename, content in files_content:
-            try:
-                gpx = gpxpy.parse(content)
-                for track in gpx.tracks:
-                    for segment in track.segments:
-                        if segment.points:
-                            # Process elevation quality for this segment
-                            processed_points, quality_report = process_elevation_data(segment.points)
-                            logger.info(f"Merge - {filename}: Elevation quality {quality_report['quality_score']:.1f}/100, action: {quality_report['processing_applied']}")
-
-                            # Get start time for sorting
-                            start_time = None
-                            for point in processed_points:
-                                if point.time:
-                                    start_time = point.time
-                                    break
-
-                            all_segments.append({
-                                'filename': filename,
-                                'segment': segment,
-                                'start_time': start_time,
-                                'points': processed_points  # Use processed points with improved elevation
-                            })
-            except Exception as e:
-                warnings.append(f"Error parsing {filename}: {str(e)}")
-
-        if not all_segments:
-            raise ValueError("No valid GPS tracks found in the provided files")
-
-        # Sort segments by time if requested and if timestamps exist
-        if sort_by_time:
-            # Check if all segments have timestamps
-            segments_with_time = [s for s in all_segments if s['start_time'] is not None]
-            if segments_with_time:
-                if len(segments_with_time) < len(all_segments):
-                    warnings.append(
-                        f"Only {len(segments_with_time)}/{len(all_segments)} segments have timestamps. "
-                        "Segments without time will be placed at the end."
-                    )
-                # Sort: segments with time first (by time), then segments without time
-                all_segments.sort(
-                    key=lambda x: (x['start_time'] is None, x['start_time'] or datetime.max)
-                )
-            else:
-                warnings.append("No segments have timestamps. Using original order.")
-
-        # Create merged GPX - clean and professional
-        merged_gpx = gpxpy.gpx.GPX()
-        merged_gpx.creator = "GPX Ninja - Merge"
-        merged_gpx.name = merged_track_name
-        merged_gpx.description = f"Merged from {len(files_content)} GPX files"
-
-        merged_track = gpxpy.gpx.GPXTrack()
-        merged_track.name = merged_track_name
-        merged_gpx.tracks.append(merged_track)
-
-        # Merge segments
-        current_segment = gpxpy.gpx.GPXTrackSegment()
-        merged_track.segments.append(current_segment)
-
-        last_point = None
-        last_time = None
-
-        for seg_info in all_segments:
-            segment = seg_info['segment']
-            filename = seg_info['filename']
-
-            # Check for gaps and overlaps with previous segment
-            if last_point and last_time and segment.points:
-                first_point = segment.points[0]
-                first_time = first_point.time
-
-                if first_time and last_time:
-                    time_gap = (first_time - last_time).total_seconds()
-
-                    if time_gap < 0:
-                        # Overlap detected
-                        warnings.append(
-                            f"Overlap detected: {filename} starts {abs(time_gap):.0f}s before previous segment ended. "
-                            "Keeping chronological order."
-                        )
-                    elif time_gap > gap_threshold_seconds:
-                        # Gap detected
-                        gap_minutes = time_gap / 60
-                        warnings.append(
-                            f"Gap detected: {gap_minutes:.1f} minutes between segments (from {last_point.latitude:.5f},{last_point.longitude:.5f} to {first_point.latitude:.5f},{first_point.longitude:.5f})"
-                        )
-
-                        if not interpolate_gaps:
-                            # Create new segment for visual gap on map
-                            current_segment = gpxpy.gpx.GPXTrackSegment()
-                            merged_track.segments.append(current_segment)
-
-            # Add all points from this segment
-            for point in segment.points:
-                new_point = gpxpy.gpx.GPXTrackPoint(
-                    latitude=point.latitude,
-                    longitude=point.longitude,
-                    elevation=point.elevation,
-                    time=point.time
-                )
-                current_segment.points.append(new_point)
-
-                if point.time:
-                    last_time = point.time
-                last_point = point
-
-        # Final validation
-        total_points = sum(len(seg.points) for seg in merged_track.segments)
-        if total_points == 0:
-            raise ValueError("Merged GPX has no points")
-
-        warnings.insert(0, f"Successfully merged {len(all_segments)} segment(s) from {len(files_content)} file(s) into {len(merged_track.segments)} segment(s) with {total_points} total points")
-
-        return merged_gpx, warnings
+        return GPXMergeService.merge_gpx_files(
+            files_content,
+            gap_threshold_seconds,
+            interpolate_gaps,
+            sort_by_time,
+            merged_track_name
+        )
 
     @staticmethod
     def generate_aid_station_table(
@@ -389,116 +150,15 @@ class GPXParser:
         """
         Generate aid station table with segment statistics and time estimates
 
-        Uses Naismith's rule (modified) for time estimation:
-        - Base: 12 km/h on flat terrain
-        - Add 5 min per 100m D+ (climbing)
-        - Subtract 5 min per 100m D- for steep descents (>12% grade)
-
         Args:
             points: Track points with distance and elevation
-            aid_stations: List of aid stations with km markers (must be sorted by distance)
+            aid_stations: List of aid stations with km markers
             use_naismith: Use Naismith formula (True) or custom pace (False)
             custom_pace_kmh: Custom pace in km/h if not using Naismith
 
         Returns:
             AidStationTableResponse with segments and statistics
         """
-        if len(aid_stations) < 2:
-            raise ValueError("At least 2 aid stations are required")
-
-        if not points:
-            raise ValueError("No track points provided")
-
-        # Sort aid stations by distance to be safe
-        sorted_stations = sorted(aid_stations, key=lambda s: s.distance_km)
-
-        segments = []
-        total_distance = 0.0
-        total_d_plus = 0.0
-        total_d_minus = 0.0
-        total_time_minutes = 0.0
-
-        # Process each segment between consecutive aid stations
-        for i in range(len(sorted_stations) - 1):
-            from_station = sorted_stations[i]
-            to_station = sorted_stations[i + 1]
-
-            # Find points in this segment
-            start_km = from_station.distance_km
-            end_km = to_station.distance_km
-
-            # Convert to meters for comparison with point.distance
-            start_m = start_km * 1000
-            end_m = end_km * 1000
-
-            # Find closest points to start and end
-            segment_points = [p for p in points if start_m <= p.distance <= end_m]
-
-            if not segment_points:
-                raise ValueError(f"No points found between {from_station.name} and {to_station.name}")
-
-            # Calculate statistics for this segment
-            segment_distance = end_km - start_km
-            d_plus = 0.0
-            d_minus = 0.0
-            total_elevation_change = 0.0
-
-            for j in range(1, len(segment_points)):
-                prev = segment_points[j - 1]
-                curr = segment_points[j]
-
-                if prev.elevation is not None and curr.elevation is not None:
-                    elev_diff = curr.elevation - prev.elevation
-                    total_elevation_change += abs(elev_diff)
-                    if elev_diff > 0:
-                        d_plus += elev_diff
-                    else:
-                        d_minus += abs(elev_diff)
-
-            # Calculate average gradient
-            avg_gradient = 0.0
-            if segment_distance > 0:
-                total_elev_change_signed = (segment_points[-1].elevation or 0) - (segment_points[0].elevation or 0)
-                avg_gradient = (total_elev_change_signed / (segment_distance * 1000)) * 100
-
-            # Estimate time using TimeCalculator
-            estimated_time_minutes = TimeCalculator.estimate_segment_time(
-                distance_km=segment_distance,
-                elevation_gain=d_plus,
-                elevation_loss=d_minus,
-                avg_gradient=avg_gradient,
-                use_naismith=use_naismith,
-                custom_pace_kmh=custom_pace_kmh
-            )
-
-            # Create segment
-            segment = AidStationSegment(
-                from_station=from_station.name,
-                to_station=to_station.name,
-                start_km=start_km,
-                end_km=end_km,
-                distance_km=segment_distance,
-                elevation_gain=d_plus,
-                elevation_loss=d_minus,
-                estimated_time_minutes=estimated_time_minutes,
-                avg_gradient=avg_gradient
-            )
-
-            segments.append(segment)
-
-            # Accumulate totals
-            total_distance += segment_distance
-            total_d_plus += d_plus
-            total_d_minus += d_minus
-            if estimated_time_minutes:
-                total_time_minutes += estimated_time_minutes
-
-        return AidStationTableResponse(
-            success=True,
-            message=f"Generated aid station table with {len(segments)} segments",
-            segments=segments,
-            total_distance_km=total_distance,
-            total_elevation_gain=total_d_plus,
-            total_elevation_loss=total_d_minus,
-            total_time_minutes=total_time_minutes if use_naismith or custom_pace_kmh else None
+        return AidStationService.generate_aid_station_table(
+            points, aid_stations, use_naismith, custom_pace_kmh
         )
