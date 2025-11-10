@@ -26,6 +26,7 @@
     "react-router-dom": "^7.9.5",
     "react-slider": "^2.0.6",
     "tailwind-merge": "^2.5.3",
+    "zod": "^4.1.12",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

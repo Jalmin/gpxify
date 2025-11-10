@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { gpxApi } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
 import { validateGPXFile, formatValidationError } from '../utils/gpxValidator';
+import { GPXFileSchema } from '../schemas/validation';
 import type { GPXData } from '../types/gpx';
 
 interface GPXFileData extends GPXData {
@@ -25,7 +26,15 @@ export const useGPXUpload = () => {
     setWarning(null);
 
     try {
-      // Client-side validation BEFORE uploading
+      // Zod schema validation (file size, extension)
+      const schemaResult = GPXFileSchema.safeParse({ file });
+      if (!schemaResult.success) {
+        setError(schemaResult.error.issues[0]?.message || 'Fichier invalide');
+        setIsUploading(false);
+        return;
+      }
+
+      // Client-side validation BEFORE uploading (GPX structure)
       const validationResult = await validateGPXFile(file);
 
       if (!validationResult.valid) {
