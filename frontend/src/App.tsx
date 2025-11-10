@@ -16,6 +16,7 @@ import { SharedView } from './pages/SharedView';
 import { FAQ } from './pages/FAQ';
 import { Legal } from './pages/Legal';
 import { RaceRecovery } from './pages/RaceRecovery';
+import { Marketing } from './pages/Marketing';
 import { GPXMerge } from './components/GPXMerge';
 import { AidStationTableResponse } from './types/gpx';
 import { useAppStore } from './store/useAppStore';
@@ -189,7 +190,8 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={renderMainApp()} />
+      <Route path="/" element={<Marketing />} />
+      <Route path="/analyze" element={renderMainApp()} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/legal" element={<Legal />} />
       <Route path="/race-recovery" element={<RaceRecovery />} />
