@@ -30,14 +30,30 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
 
 def find_closest_point_index(target_lat: float, target_lon: float,
-                              points: List[gpxpy.gpx.GPXTrackPoint]) -> int:
+                              points: List[gpxpy.gpx.GPXTrackPoint],
+                              max_search_ratio: float = 0.75) -> int:
     """
     Find the index of the closest point in a GPX track to a target coordinate
+
+    Args:
+        target_lat: Target latitude
+        target_lon: Target longitude
+        points: List of GPX track points
+        max_search_ratio: Only search in the first X% of the track (default 0.75 = 75%)
+                         This prevents matching with loops or return paths later in the track
+
+    Returns:
+        Index of the closest point
     """
     min_distance = float('inf')
     closest_index = 0
 
-    for i, point in enumerate(points):
+    # Only search in the first portion of the track to avoid false matches
+    # with loops or sections where the track crosses itself
+    max_search_index = int(len(points) * max_search_ratio)
+
+    for i in range(max_search_index):
+        point = points[i]
         distance = haversine_distance(target_lat, target_lon, point.latitude, point.longitude)
         if distance < min_distance:
             min_distance = distance
