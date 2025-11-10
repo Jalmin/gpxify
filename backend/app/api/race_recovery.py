@@ -198,11 +198,31 @@ async def recover_race(
         # Add missing points with calculated timestamps
         # Start from cutoff_index + 1 to avoid duplicating the last recorded point
         current_time = last_time
+        prev_point = incomplete_points[-1]  # Last recorded point
 
         for i in range(cutoff_index + 1, len(complete_points)):
             point = complete_points[i]
 
-            # Create new point with calculated timestamp
+            # Calculate time from previous point to current point BEFORE creating the point
+            slope = calculate_slope(prev_point, point)
+            # vitesse = vitesse_moyenne * (1 - 2 * pente)
+            adjusted_speed = avg_speed_missing * (1 - 2 * slope)
+
+            # Ensure speed is positive
+            if adjusted_speed <= 0:
+                adjusted_speed = avg_speed_missing * 0.1  # Minimum 10% of average
+
+            # Calculate distance from previous point
+            distance_from_prev = haversine_distance(
+                prev_point.latitude, prev_point.longitude,
+                point.latitude, point.longitude
+            )
+
+            # Calculate time needed and increment current_time
+            time_from_prev_seconds = distance_from_prev / adjusted_speed
+            current_time += timedelta(seconds=time_from_prev_seconds)
+
+            # NOW create the point with the incremented timestamp
             new_point = gpxpy.gpx.GPXTrackPoint(
                 latitude=point.latitude,
                 longitude=point.longitude,
@@ -212,28 +232,8 @@ async def recover_race(
 
             reconstructed_segment.points.append(new_point)
 
-            # Calculate time to next point
-            if i < len(complete_points) - 1:
-                next_point = complete_points[i + 1]
-
-                # Calculate slope-adjusted speed
-                slope = calculate_slope(point, next_point)
-                # vitesse = vitesse_moyenne * (1 - 2 * pente)
-                adjusted_speed = avg_speed_missing * (1 - 2 * slope)
-
-                # Ensure speed is positive
-                if adjusted_speed <= 0:
-                    adjusted_speed = avg_speed_missing * 0.1  # Minimum 10% of average
-
-                # Calculate distance to next point
-                distance_to_next = haversine_distance(
-                    point.latitude, point.longitude,
-                    next_point.latitude, next_point.longitude
-                )
-
-                # Calculate time needed
-                time_to_next_seconds = distance_to_next / adjusted_speed
-                current_time += timedelta(seconds=time_to_next_seconds)
+            # Update prev_point for next iteration
+            prev_point = point
 
         # Generate GPX XML
         gpx_xml = reconstructed_gpx.to_xml()
