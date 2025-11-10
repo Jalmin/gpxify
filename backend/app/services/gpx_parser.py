@@ -5,6 +5,7 @@ import gpxpy
 import gpxpy.gpx
 from typing import List, Optional, Tuple
 from datetime import datetime
+import logging
 from app.models.gpx import (
     GPXData,
     Track,
@@ -26,6 +27,9 @@ from app.services.elevation_service import ElevationService
 from app.services.climb_detector import ClimbDetector
 from app.services.statistics_calculator import StatisticsCalculator
 from app.services.time_calculator import TimeCalculator
+from app.utils.elevation_quality import assess_elevation_quality, process_elevation_data
+
+logger = logging.getLogger(__name__)
 
 
 class GPXParser:
@@ -64,9 +68,16 @@ class GPXParser:
             cumulative_distance = 0.0
 
             for segment in track.segments:
+                # Assess and process elevation quality for this segment
+                segment_points = segment.points
+                if segment_points:
+                    processed_points, quality_report = process_elevation_data(segment_points)
+                    logger.info(f"Track '{track.name or 'Unnamed'}': Elevation quality {quality_report['quality_score']:.1f}/100 ({quality_report['source']}), action: {quality_report['processing_applied']}")
+                    segment_points = processed_points
+
                 previous_point = None
 
-                for point in segment.points:
+                for point in segment_points:
                     # Calculate distance from previous point
                     if previous_point:
                         distance_delta = point.distance_3d(previous_point) or 0
@@ -152,6 +163,28 @@ class GPXParser:
         if not segment_points:
             raise ValueError("No points found in the specified segment range")
 
+        # Convert TrackPoint objects to gpxpy points for elevation quality assessment
+        gpx_points_for_assessment = []
+        for point in segment_points:
+            point_time = None
+            if point.time:
+                try:
+                    point_time = datetime.fromisoformat(point.time.replace('Z', '+00:00'))
+                except:
+                    pass
+
+            gpx_point = gpxpy.gpx.GPXTrackPoint(
+                latitude=point.lat,
+                longitude=point.lon,
+                elevation=point.elevation,
+                time=point_time
+            )
+            gpx_points_for_assessment.append(gpx_point)
+
+        # Assess and process elevation quality for extracted segment
+        processed_gpx_points, quality_report = process_elevation_data(gpx_points_for_assessment)
+        logger.info(f"Extract segment {start_km:.1f}-{end_km:.1f}km from '{track_name}': Elevation quality {quality_report['quality_score']:.1f}/100 ({quality_report['source']}), action: {quality_report['processing_applied']}")
+
         # Create new GPX object - clean and professional
         gpx = gpxpy.gpx.GPX()
         gpx.creator = "GPX Ninja - Extract Segment"
@@ -168,22 +201,8 @@ class GPXParser:
         gpx_segment = gpxpy.gpx.GPXTrackSegment()
         gpx_track.segments.append(gpx_segment)
 
-        # Add points to segment
-        for point in segment_points:
-            # Parse time string to datetime if available
-            point_time = None
-            if point.time:
-                try:
-                    point_time = datetime.fromisoformat(point.time.replace('Z', '+00:00'))
-                except:
-                    pass  # Skip if time parsing fails
-
-            gpx_point = gpxpy.gpx.GPXTrackPoint(
-                latitude=point.lat,
-                longitude=point.lon,
-                elevation=point.elevation,
-                time=point_time
-            )
+        # Add processed points to segment (with improved elevation quality)
+        for gpx_point in processed_gpx_points:
             gpx_segment.points.append(gpx_point)
 
         # Convert to XML string
@@ -250,9 +269,13 @@ class GPXParser:
                 for track in gpx.tracks:
                     for segment in track.segments:
                         if segment.points:
+                            # Process elevation quality for this segment
+                            processed_points, quality_report = process_elevation_data(segment.points)
+                            logger.info(f"Merge - {filename}: Elevation quality {quality_report['quality_score']:.1f}/100, action: {quality_report['processing_applied']}")
+
                             # Get start time for sorting
                             start_time = None
-                            for point in segment.points:
+                            for point in processed_points:
                                 if point.time:
                                     start_time = point.time
                                     break
@@ -261,7 +284,7 @@ class GPXParser:
                                 'filename': filename,
                                 'segment': segment,
                                 'start_time': start_time,
-                                'points': segment.points
+                                'points': processed_points  # Use processed points with improved elevation
                             })
             except Exception as e:
                 warnings.append(f"Error parsing {filename}: {str(e)}")
