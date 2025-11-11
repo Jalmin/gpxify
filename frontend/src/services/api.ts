@@ -29,8 +29,12 @@ export const gpxApi = {
     const formData = new FormData();
     formData.append('file', file);
 
-    // Don't set Content-Type manually - let browser set it with boundary
-    const response = await apiClient.post<GPXUploadResponse>('/gpx/upload', formData);
+    // Remove default Content-Type header to let browser set multipart/form-data with boundary
+    const response = await apiClient.post<GPXUploadResponse>('/gpx/upload', formData, {
+      headers: {
+        'Content-Type': undefined, // Remove apiClient's default application/json
+      },
+    });
 
     return response.data;
   },
