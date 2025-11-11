@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { SharedView } from './pages/SharedView';
 import { FAQ } from './pages/FAQ';
@@ -9,6 +9,7 @@ import { WorkspaceLayout } from './layouts/WorkspaceLayout';
 import { useAppStore } from './store/useAppStore';
 
 function App() {
+  const location = useLocation();
   const gpxFiles = useAppStore((state) => state.files);
   const setAidStations = useAppStore((state) => state.setAidStations);
   const selectFile = useAppStore((state) => state.selectFile);
@@ -47,9 +48,12 @@ function App() {
     return <WorkspaceLayout />;
   };
 
+  // Don't show Header on /analyze (WorkspaceLayout has its own Navbar)
+  const shouldShowHeader = !location.pathname.startsWith('/analyze');
+
   return (
     <>
-      <Header />
+      {shouldShowHeader && <Header />}
       <Routes>
         <Route path="/" element={<Marketing />} />
         <Route path="/analyze" element={<AnalyzePage />} />
