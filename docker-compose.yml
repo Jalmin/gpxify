@@ -39,8 +39,8 @@ services:
     labels:
       - coolify.managed=true
       - caddy_0=https://www.gpx.ninja
-      - caddy_0.handle_path=/api/*
-      - caddy_0.handle_path.0_reverse_proxy={{upstreams 8000}}
+      - caddy_0.handle=/api/*
+      - caddy_0.handle.0_reverse_proxy={{upstreams 8000}}
     networks:
       - coolify
 
@@ -61,8 +61,8 @@ services:
     labels:
       - coolify.managed=true
       - caddy_1=https://www.gpx.ninja
-      - caddy_1.handle_path=/*
-      - caddy_1.handle_path.0_reverse_proxy={{upstreams 80}}
+      - caddy_1.handle=/*
+      - caddy_1.handle.0_reverse_proxy={{upstreams 80}}
     networks:
       - coolify
 
