@@ -75,7 +75,7 @@ class GPXParseService:
                 continue
 
             # Calculate statistics using StatisticsCalculator
-            statistics = StatisticsCalculator.calculate_statistics(track_points)
+            statistics = StatisticsCalculator.calculate_track_statistics(track, track_points)
 
             # Get bounds
             bounds = gpx.get_bounds()
