@@ -66,7 +66,7 @@ class GPXParseService:
                         lat=point.latitude,
                         lon=point.longitude,
                         elevation=point.elevation if point.elevation is not None else 0.0,
-                        time=point.time,
+                        time=point.time.isoformat() if point.time else None,
                         distance=accumulated_distance,
                     )
                     track_points.append(track_point)
