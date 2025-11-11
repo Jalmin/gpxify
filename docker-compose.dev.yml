@@ -6,6 +6,9 @@ services:
       dockerfile: Dockerfile
     container_name: gpxify-backend
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       # Application
       APP_NAME: ${APP_NAME:-GPX Ninja}
@@ -26,11 +29,11 @@ services:
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
 
-      # Database - Use Coolify-managed DATABASE_URL
-      DATABASE_URL: ${DATABASE_URL}
+      # Database - Use DATABASE_URL from environment if provided, otherwise fallback to local db
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-gpxify}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-gpxify}}
 
       # Upload
-      MAX_UPLOAD_SIZE: ${MAX_UPLOAD_SIZE:-10485760}
+      MAX_UPLOAD_SIZE: 10485760
       UPLOAD_DIR: /app/uploads
     volumes:
       - gpx_uploads:/app/uploads
@@ -44,7 +47,29 @@ services:
       - caddy_2.handle=/api*
       - caddy_2.handle.0_reverse_proxy={{upstreams 8000}}
     networks:
+      - gpxify-network
       - coolify
+
+  # PostgreSQL Database (development)
+  db:
+    image: postgres:16-alpine
+    container_name: gpxify-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gpxify}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gpxify_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-gpxify}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"  # Expose for local dev access
+    networks:
+      - gpxify-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gpxify}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # React Frontend
   frontend:
@@ -53,7 +78,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-https://www.gpx.ninja}
-        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-646813821201-le0dqlhd1qr7r3v93rn4ni101ce9ltku.apps.googleusercontent.com}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-381330006153-l2o78vsaf54tnof4ikass4ig1a8p9n94.apps.googleusercontent.com}
     container_name: gpxify-frontend
     restart: unless-stopped
     depends_on:
@@ -66,12 +91,17 @@ services:
       - caddy_3=gpx.ninja
       - caddy_3.reverse_proxy={{upstreams 80}}
     networks:
+      - gpxify-network
       - coolify
 
 volumes:
   gpx_uploads:
     driver: local
+  postgres_data:
+    driver: local
 
 networks:
+  gpxify-network:
+    driver: bridge
   coolify:
     external: true
