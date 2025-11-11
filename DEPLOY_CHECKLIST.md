@@ -2,7 +2,7 @@
 
 ## 📋 Vue d'ensemble
 
-- **Domaine** : https://gpxify.carapacebleue.com
+- **Domaine** : https://www.gpx.ninja
 - **Serveur** : Hetzner avec Coolify
 - **Stack** : FastAPI + React + PostgreSQL
 - **OAuth** : Google (credentials du projet PennylaneProject)
@@ -21,13 +21,13 @@
   Value: [IP_PUBLIQUE_SERVEUR_HETZNER]
   TTL: 3600
   ```
-- [ ] Attendre la propagation DNS (vérifier avec `dig gpxify.carapacebleue.com`)
+- [ ] Attendre la propagation DNS (vérifier avec `dig www.gpx.ninja`)
 
 ### Vérification
 
 ```bash
 # Depuis votre machine
-dig gpxify.carapacebleue.com
+dig www.gpx.ninja
 
 # Doit retourner l'IP de votre serveur Hetzner
 ```
@@ -48,11 +48,11 @@ dig gpxify.carapacebleue.com
 ### Ajouter les URIs
 
 #### JavaScript origins
-- [ ] Ajouter : `https://gpxify.carapacebleue.com`
+- [ ] Ajouter : `https://www.gpx.ninja`
 
 #### Redirect URIs
-- [ ] Ajouter : `https://gpxify.carapacebleue.com/api/v1/auth/google/callback`
-- [ ] Ajouter : `https://gpxify.carapacebleue.com/auth/callback`
+- [ ] Ajouter : `https://www.gpx.ninja/api/v1/auth/google/callback`
+- [ ] Ajouter : `https://www.gpx.ninja/auth/callback`
 
 ### Activer les APIs
 
@@ -142,7 +142,7 @@ git push -u origin main
 ### 5.3 Configuration du Domaine
 
 - [ ] Onglet **Domains**
-- [ ] Ajouter: `gpxify.carapacebleue.com`
+- [ ] Ajouter: `www.gpx.ninja`
 - [ ] Activer **SSL/TLS** (Let's Encrypt automatique)
 
 ### 5.4 Variables d'Environnement
@@ -158,20 +158,20 @@ DEBUG=False
 
 #### Domain
 ```
-DOMAIN=gpxify.carapacebleue.com
-VITE_API_URL=https://gpxify.carapacebleue.com
+DOMAIN=www.gpx.ninja
+VITE_API_URL=https://www.gpx.ninja
 ```
 
 #### CORS
 ```
-BACKEND_CORS_ORIGINS=https://gpxify.carapacebleue.com
+BACKEND_CORS_ORIGINS=https://www.gpx.ninja
 ```
 
 #### Google OAuth
 ```
 GOOGLE_CLIENT_ID=646813821201-le0dqlhd1qr7r3v93rn4ni101ce9ltku.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=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
-GOOGLE_REDIRECT_URI=https://gpxify.carapacebleue.com/api/v1/auth/google/callback
+GOOGLE_REDIRECT_URI=https://www.gpx.ninja/api/v1/auth/google/callback
 ```
 
 #### Security
@@ -214,12 +214,12 @@ Dans Coolify :
 
 ```bash
 # Health check
-curl https://gpxify.carapacebleue.com/health
+curl https://www.gpx.ninja/health
 
 # Devrait retourner: {"status":"healthy","app":"GPXIFY"}
 
 # API GPX test
-curl https://gpxify.carapacebleue.com/api/v1/gpx/test
+curl https://www.gpx.ninja/api/v1/gpx/test
 
 # Devrait retourner: {"message":"GPX API is running","version":"1.0.0"}
 ```
@@ -229,7 +229,7 @@ curl https://gpxify.carapacebleue.com/api/v1/gpx/test
 
 ### 6.3 Tester dans le Navigateur
 
-- [ ] Ouvrir https://gpxify.carapacebleue.com
+- [ ] Ouvrir https://www.gpx.ninja
 - [ ] Vérifier le cadenas SSL (vert)
 - [ ] L'interface s'affiche correctement
 - [ ] Uploader le fichier `example.gpx`
@@ -270,7 +270,7 @@ Dans Coolify :
 ### 7.2 Monitoring
 
 - [ ] Créer compte sur UptimeRobot (gratuit)
-- [ ] Ajouter monitor pour `https://gpxify.carapacebleue.com/health`
+- [ ] Ajouter monitor pour `https://www.gpx.ninja/health`
 - [ ] Interval: 5 minutes
 - [ ] Email alert si down
 
@@ -320,9 +320,9 @@ Voir [NEXT_STEPS.md](./NEXT_STEPS.md) pour :
 
 ### URLs Importantes
 
-- **Production** : https://gpxify.carapacebleue.com
-- **API Docs** : https://gpxify.carapacebleue.com/docs
-- **Health Check** : https://gpxify.carapacebleue.com/health
+- **Production** : https://www.gpx.ninja
+- **API Docs** : https://www.gpx.ninja/docs
+- **Health Check** : https://www.gpx.ninja/health
 - **Google Console** : https://console.cloud.google.com/apis/credentials?project=pennylanneanalytics
 
 ### Credentials
@@ -337,7 +337,7 @@ Voir [CREDENTIALS.md](./CREDENTIALS.md) (fichier local uniquement, non commité)
 → Backend pas prêt, attendre 30-60 secondes puis rafraîchir
 
 ### SSL ne fonctionne pas
-→ Vérifier que DNS est propagé : `dig gpxify.carapacebleue.com`
+→ Vérifier que DNS est propagé : `dig www.gpx.ninja`
 
 ### OAuth Google erreur redirect_uri_mismatch
 → Vérifier les URIs dans Google Cloud Console

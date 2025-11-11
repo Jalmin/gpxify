@@ -66,7 +66,7 @@ Au premier déploiement, les tables seront créées automatiquement grâce au co
 
 Pour vérifier que tout fonctionne :
 
-1. Accédez à votre application : `https://gpxify.carapacebleue.com`
+1. Accédez à votre application : `https://www.gpx.ninja`
 2. Uploadez un fichier GPX
 3. Cliquez sur le bouton **Partager**
 4. Si un lien court apparaît (format `/share/abc12345`), c'est bon ! ✅
@@ -87,11 +87,11 @@ ENVIRONMENT=production
 DEBUG=False
 
 # Domain
-DOMAIN=gpxify.carapacebleue.com
-VITE_API_URL=https://gpxify.carapacebleue.com
+DOMAIN=www.gpx.ninja
+VITE_API_URL=https://www.gpx.ninja
 
 # CORS
-BACKEND_CORS_ORIGINS=https://gpxify.carapacebleue.com
+BACKEND_CORS_ORIGINS=https://www.gpx.ninja
 
 # Security
 SECRET_KEY=<générer avec: openssl rand -hex 32>
@@ -105,7 +105,7 @@ DATABASE_URL=postgresql://gpxify:<mot_de_passe>@gpxify-db:5432/gpxify
 # Google OAuth (optionnel pour l'authentification future)
 GOOGLE_CLIENT_ID=<votre_client_id>
 GOOGLE_CLIENT_SECRET=<votre_client_secret>
-GOOGLE_REDIRECT_URI=https://gpxify.carapacebleue.com/api/v1/auth/google/callback
+GOOGLE_REDIRECT_URI=https://www.gpx.ninja/api/v1/auth/google/callback
 ```
 
 ## Commandes utiles

@@ -96,19 +96,19 @@ Ces informations sont visibles dans **Dashboard** > **Project Info**
    - Cliquer **+ Add URI**
    - Ajouter :
    ```
-   https://gpxify.carapacebleue.com
+   https://www.gpx.ninja
    ```
 
 5. **Authorized redirect URIs** :
    - Cliquer **+ Add URI**
    - Ajouter :
    ```
-   https://gpxify.carapacebleue.com/api/v1/auth/google/callback
+   https://www.gpx.ninja/api/v1/auth/google/callback
    ```
    - Cliquer **+ Add URI** à nouveau
    - Ajouter :
    ```
-   https://gpxify.carapacebleue.com/auth/callback
+   https://www.gpx.ninja/auth/callback
    ```
 
 6. Cliquer **Create**
@@ -161,7 +161,7 @@ GOOGLE_CLIENT_SECRET=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
 ```env
 GOOGLE_CLIENT_ID=[VOTRE_NOUVEAU_CLIENT_ID]
 GOOGLE_CLIENT_SECRET=[VOTRE_NOUVEAU_CLIENT_SECRET]
-GOOGLE_REDIRECT_URI=https://gpxify.carapacebleue.com/api/v1/auth/google/callback
+GOOGLE_REDIRECT_URI=https://www.gpx.ninja/api/v1/auth/google/callback
 ```
 
 ### 4.2 Mettre à jour CREDENTIALS.md (local)
@@ -213,7 +213,7 @@ Tester : http://localhost:8000/docs
 
 ### 5.2 En production (après déploiement Coolify)
 
-1. Aller sur https://gpxify.carapacebleue.com
+1. Aller sur https://www.gpx.ninja
 2. Cliquer sur "Se connecter avec Google"
 3. Popup Google s'ouvre
 4. Sélectionner votre compte
@@ -247,7 +247,7 @@ Si vous dépassez :
    - Pour développement local
 
 2. **GPXIFY Production** (celui créé ci-dessus)
-   - Redirect URI : `https://gpxify.carapacebleue.com/api/v1/auth/google/callback`
+   - Redirect URI : `https://www.gpx.ninja/api/v1/auth/google/callback`
    - Pour production
 
 ### Surveillance
@@ -269,7 +269,7 @@ Dans Google Cloud Console :
 **Solution** :
 1. Vérifier que l'URI dans Google Cloud Console est exactement :
    ```
-   https://gpxify.carapacebleue.com/api/v1/auth/google/callback
+   https://www.gpx.ninja/api/v1/auth/google/callback
    ```
 2. Vérifier que `GOOGLE_REDIRECT_URI` dans Coolify est identique
 3. Pas d'espace, pas de slash final
@@ -330,7 +330,7 @@ Avant de passer au déploiement Coolify :
 - [ ] Projet Google Cloud "GPXIFY" créé
 - [ ] OAuth consent screen configuré
 - [ ] Client ID OAuth créé
-- [ ] Redirect URIs ajoutés (https://gpxify.carapacebleue.com/...)
+- [ ] Redirect URIs ajoutés (https://www.gpx.ninja/...)
 - [ ] Google Drive API activée
 - [ ] Client ID et Secret copiés dans CREDENTIALS.md
 - [ ] Variables d'env mises à jour dans Coolify

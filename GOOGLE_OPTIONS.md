@@ -53,8 +53,8 @@ Vous avez 2 options pour configurer Google OAuth pour GPXIFY.
 4. Cliquer sur le client OAuth existant
 5. Ajouter les URIs de redirection GPXIFY :
    ```
-   https://gpxify.carapacebleue.com/api/v1/auth/google/callback
-   https://gpxify.carapacebleue.com/auth/callback
+   https://www.gpx.ninja/api/v1/auth/google/callback
+   https://www.gpx.ninja/auth/callback
    ```
 6. Activer Google Drive API si pas déjà fait
 

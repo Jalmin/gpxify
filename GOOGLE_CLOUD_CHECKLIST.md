@@ -117,17 +117,17 @@ Project Number: _______________________________
 ### 3.4 Authorized JavaScript origins
 
 - [ ] Cliquer sur **"+ Add URI"** sous "Authorized JavaScript origins"
-- [ ] Entrer exactement : `https://gpxify.carapacebleue.com`
+- [ ] Entrer exactement : `https://www.gpx.ninja`
 - [ ] Vérifier qu'il n'y a pas de slash à la fin
 - [ ] Vérifier que c'est bien HTTPS (pas HTTP)
 
 ### 3.5 Authorized redirect URIs
 
 - [ ] Cliquer sur **"+ Add URI"** sous "Authorized redirect URIs"
-- [ ] Entrer exactement : `https://gpxify.carapacebleue.com/api/v1/auth/google/callback`
+- [ ] Entrer exactement : `https://www.gpx.ninja/api/v1/auth/google/callback`
 - [ ] Vérifier l'URI (pas de faute de frappe, pas d'espace)
 - [ ] Cliquer sur **"+ Add URI"** à nouveau
-- [ ] Entrer exactement : `https://gpxify.carapacebleue.com/auth/callback`
+- [ ] Entrer exactement : `https://www.gpx.ninja/auth/callback`
 - [ ] Vérifier l'URI
 
 ### 3.6 Créer et sauvegarder
@@ -209,7 +209,7 @@ Project Number: [COLLER_VOTRE_PROJECT_NUMBER]
 
 GOOGLE_CLIENT_ID=[COLLER_VOTRE_CLIENT_ID]
 GOOGLE_CLIENT_SECRET=[COLLER_VOTRE_CLIENT_SECRET]
-GOOGLE_REDIRECT_URI=https://gpxify.carapacebleue.com/api/v1/auth/google/callback
+GOOGLE_REDIRECT_URI=https://www.gpx.ninja/api/v1/auth/google/callback
 ```
 
 - [ ] Sauvegarder le fichier
@@ -222,7 +222,7 @@ GOOGLE_REDIRECT_URI=https://gpxify.carapacebleue.com/api/v1/auth/google/callback
 ```env
 GOOGLE_CLIENT_ID=[VOTRE_CLIENT_ID]
 GOOGLE_CLIENT_SECRET=[VOTRE_CLIENT_SECRET]
-GOOGLE_REDIRECT_URI=https://gpxify.carapacebleue.com/api/v1/auth/google/callback
+GOOGLE_REDIRECT_URI=https://www.gpx.ninja/api/v1/auth/google/callback
 ```
 
 - [ ] Garder ce fichier ouvert pour le copier dans Coolify plus tard
@@ -271,7 +271,7 @@ Ces variables seront à copier dans Coolify lors du déploiement.
 # Google OAuth
 GOOGLE_CLIENT_ID=[VOTRE_CLIENT_ID_DU_PROJET_GPXIFY]
 GOOGLE_CLIENT_SECRET=[VOTRE_CLIENT_SECRET_DU_PROJET_GPXIFY]
-GOOGLE_REDIRECT_URI=https://gpxify.carapacebleue.com/api/v1/auth/google/callback
+GOOGLE_REDIRECT_URI=https://www.gpx.ninja/api/v1/auth/google/callback
 ```
 
 - [ ] Ces variables sont prêtes à être copiées dans Coolify
@@ -290,10 +290,10 @@ GOOGLE_REDIRECT_URI=https://gpxify.carapacebleue.com/api/v1/auth/google/callback
 - [ ] ✅ 4 scopes configurés (email, profile, openid, drive.file)
 - [ ] ✅ Test user ajouté (votre email)
 - [ ] ✅ OAuth client ID créé (GPXIFY Production)
-- [ ] ✅ Authorized JavaScript origins: `https://gpxify.carapacebleue.com`
+- [ ] ✅ Authorized JavaScript origins: `https://www.gpx.ninja`
 - [ ] ✅ Authorized redirect URIs:
-  - `https://gpxify.carapacebleue.com/api/v1/auth/google/callback`
-  - `https://gpxify.carapacebleue.com/auth/callback`
+  - `https://www.gpx.ninja/api/v1/auth/google/callback`
+  - `https://www.gpx.ninja/auth/callback`
 - [ ] ✅ Client ID et Secret copiés et sauvegardés
 - [ ] ✅ Google Drive API activée
 - [ ] ✅ CREDENTIALS.md mis à jour (local)
@@ -310,9 +310,9 @@ GOOGLE_REDIRECT_URI=https://gpxify.carapacebleue.com/api/v1/auth/google/callback
 - Client Secret: `________________________`
 
 **URIs Configurées :**
-- ✅ https://gpxify.carapacebleue.com
-- ✅ https://gpxify.carapacebleue.com/api/v1/auth/google/callback
-- ✅ https://gpxify.carapacebleue.com/auth/callback
+- ✅ https://www.gpx.ninja
+- ✅ https://www.gpx.ninja/api/v1/auth/google/callback
+- ✅ https://www.gpx.ninja/auth/callback
 
 **APIs Activées :**
 - ✅ Google Drive API

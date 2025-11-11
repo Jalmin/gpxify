@@ -68,7 +68,7 @@
 
 ### Option 1 : Utilisation en ligne
 
-Visitez [gpxify.carapacebleue.com](https://gpxify.carapacebleue.com) - aucune installation nécessaire !
+Visitez [www.gpx.ninja](https://www.gpx.ninja) - aucune installation nécessaire !
 
 ### Option 2 : Installation locale avec Docker
 
@@ -116,7 +116,7 @@ POST /api/v1/share/save
 GET /api/v1/share/{share_id}
 ```
 
-Documentation complète : [API Documentation](https://gpxify.carapacebleue.com/api/docs)
+Documentation complète : [API Documentation](https://www.gpx.ninja/api/docs)
 
 ---
 
@@ -160,7 +160,7 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 ## 💬 Support & Contact
 
 - 🐛 **Issues** : [GitHub Issues](https://github.com/Jalmin/gpxify/issues)
-- ❓ **FAQ** : [gpxify.carapacebleue.com/faq](https://gpxify.carapacebleue.com/faq)
+- ❓ **FAQ** : [www.gpx.ninja/faq](https://www.gpx.ninja/faq)
 - 📧 **Email** : Via GitHub
 
 ---

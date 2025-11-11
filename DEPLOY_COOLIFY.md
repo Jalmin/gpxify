@@ -5,7 +5,7 @@ Ce guide vous aide à déployer GPXIFY sur votre serveur Hetzner avec Coolify.
 ## 📋 Prérequis
 
 - ✅ Serveur Hetzner avec Coolify installé
-- ✅ Domaine: `gpxify.carapacebleue.com`
+- ✅ Domaine: `www.gpx.ninja`
 - ✅ Accès Git au projet
 - ✅ Credentials Google OAuth (trouvés dans PennylaneProject)
 
@@ -24,16 +24,16 @@ Value: [IP_PUBLIQUE_DE_VOTRE_SERVEUR_HETZNER]
 TTL: Auto ou 3600
 ```
 
-**Résultat** : `gpxify.carapacebleue.com` → IP de votre serveur Hetzner
+**Résultat** : `www.gpx.ninja` → IP de votre serveur Hetzner
 
 ### Vérifier la propagation DNS
 
 ```bash
 # Depuis votre machine locale
-dig gpxify.carapacebleue.com
+dig www.gpx.ninja
 
 # Ou
-nslookup gpxify.carapacebleue.com
+nslookup www.gpx.ninja
 ```
 
 ⏰ La propagation DNS peut prendre quelques minutes à quelques heures.
@@ -51,15 +51,15 @@ nslookup gpxify.carapacebleue.com
 
 Dans **Authorized JavaScript origins**, ajouter :
 ```
-https://gpxify.carapacebleue.com
+https://www.gpx.ninja
 ```
 
 ### Étape 3 : Ajouter les URIs de redirection
 
 Dans **Authorized redirect URIs**, ajouter :
 ```
-https://gpxify.carapacebleue.com/api/v1/auth/google/callback
-https://gpxify.carapacebleue.com/auth/callback
+https://www.gpx.ninja/api/v1/auth/google/callback
+https://www.gpx.ninja/auth/callback
 ```
 
 ### Étape 4 : Activer Google Drive API
@@ -113,7 +113,7 @@ git push -u origin main
 
 5. **Domaine**
    - Dans l'onglet "Domains"
-   - Ajouter: `gpxify.carapacebleue.com`
+   - Ajouter: `www.gpx.ninja`
    - Coolify générera automatiquement le certificat SSL Let's Encrypt
 
 ### Option 2 : Upload manuel (Alternative)
@@ -134,16 +134,16 @@ Dans Coolify, aller dans votre projet → **Environment Variables** :
 APP_NAME=GPXIFY
 ENVIRONMENT=production
 DEBUG=False
-DOMAIN=gpxify.carapacebleue.com
-VITE_API_URL=https://gpxify.carapacebleue.com
+DOMAIN=www.gpx.ninja
+VITE_API_URL=https://www.gpx.ninja
 
 # CORS
-BACKEND_CORS_ORIGINS=https://gpxify.carapacebleue.com
+BACKEND_CORS_ORIGINS=https://www.gpx.ninja
 
 # Google OAuth
 GOOGLE_CLIENT_ID=646813821201-le0dqlhd1qr7r3v93rn4ni101ce9ltku.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=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
-GOOGLE_REDIRECT_URI=https://gpxify.carapacebleue.com/api/v1/auth/google/callback
+GOOGLE_REDIRECT_URI=https://www.gpx.ninja/api/v1/auth/google/callback
 
 # Database
 POSTGRES_DB=gpxify
@@ -205,18 +205,18 @@ Dans Coolify, tous les services doivent être **✓ Running** (verts)
 
 ```bash
 # Health check backend
-curl https://gpxify.carapacebleue.com/api/v1/gpx/test
+curl https://www.gpx.ninja/api/v1/gpx/test
 
 # Devrait retourner:
 # {"message":"GPX API is running","version":"1.0.0"}
 
 # Health check global
-curl https://gpxify.carapacebleue.com/health
+curl https://www.gpx.ninja/health
 ```
 
 ### 3. Tester dans le navigateur
 
-1. Ouvrir https://gpxify.carapacebleue.com
+1. Ouvrir https://www.gpx.ninja
 2. Vérifier le SSL (cadenas vert)
 3. Uploader un fichier GPX
 4. Tester l'authentification Google (bouton "Se connecter")
@@ -248,7 +248,7 @@ Dans Coolify :
 ### SSL ne fonctionne pas
 
 **Vérifier** :
-1. DNS bien configuré (ping gpxify.carapacebleue.com)
+1. DNS bien configuré (ping www.gpx.ninja)
 2. Port 80 et 443 ouverts sur le serveur
 3. Coolify peut accéder à Let's Encrypt
 
@@ -373,8 +373,8 @@ Avant de considérer le déploiement réussi :
 - [ ] Secrets générés (SECRET_KEY, POSTGRES_PASSWORD)
 - [ ] Déploiement terminé (tous les services verts)
 - [ ] SSL actif (HTTPS fonctionne)
-- [ ] Backend répond : https://gpxify.carapacebleue.com/health
-- [ ] Frontend s'affiche : https://gpxify.carapacebleue.com
+- [ ] Backend répond : https://www.gpx.ninja/health
+- [ ] Frontend s'affiche : https://www.gpx.ninja
 - [ ] Upload GPX fonctionne
 - [ ] OAuth Google fonctionne
 - [ ] Backups configurés
@@ -383,4 +383,4 @@ Avant de considérer le déploiement réussi :
 
 **Félicitations ! GPXIFY est en production ! 🎉**
 
-URL: https://gpxify.carapacebleue.com
+URL: https://www.gpx.ninja

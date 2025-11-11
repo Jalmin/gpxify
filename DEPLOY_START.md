@@ -1,6 +1,6 @@
 # 🚀 Déploiement GPXIFY - Démarrage Rapide
 
-## Pour Hetzner + Coolify + gpxify.carapacebleue.com
+## Pour Hetzner + Coolify + www.gpx.ninja
 
 ---
 
@@ -43,8 +43,8 @@ Value: [IP_PUBLIQUE_VOTRE_SERVEUR_HETZNER]
 3. Créer OAuth client ID
 4. Ajouter redirect URIs :
    ```
-   https://gpxify.carapacebleue.com/api/v1/auth/google/callback
-   https://gpxify.carapacebleue.com/auth/callback
+   https://www.gpx.ninja/api/v1/auth/google/callback
+   https://www.gpx.ninja/auth/callback
    ```
 5. Activer Google Drive API
 6. Copier Client ID et Client Secret
@@ -70,7 +70,7 @@ git push -u origin main
 1. **New Project** → "GPXIFY"
 2. **Add Resource** → Docker Compose
 3. **Git Repository** → Votre URL Git
-4. **Domaine** → `gpxify.carapacebleue.com`
+4. **Domaine** → `www.gpx.ninja`
 5. **Variables d'environnement** → Voir ci-dessous
 6. **Deploy** → Cliquer et attendre 5-10 min
 
@@ -85,16 +85,16 @@ git push -u origin main
 APP_NAME=GPXIFY
 ENVIRONMENT=production
 DEBUG=False
-DOMAIN=gpxify.carapacebleue.com
-VITE_API_URL=https://gpxify.carapacebleue.com
+DOMAIN=www.gpx.ninja
+VITE_API_URL=https://www.gpx.ninja
 
 # CORS
-BACKEND_CORS_ORIGINS=https://gpxify.carapacebleue.com
+BACKEND_CORS_ORIGINS=https://www.gpx.ninja
 
 # Google OAuth (⚠️ UTILISER VOS PROPRES CREDENTIALS - voir GOOGLE_CLOUD_SETUP.md)
 GOOGLE_CLIENT_ID=[VOTRE_CLIENT_ID_DU_NOUVEAU_PROJET_GPXIFY]
 GOOGLE_CLIENT_SECRET=[VOTRE_CLIENT_SECRET_DU_NOUVEAU_PROJET_GPXIFY]
-GOOGLE_REDIRECT_URI=https://gpxify.carapacebleue.com/api/v1/auth/google/callback
+GOOGLE_REDIRECT_URI=https://www.gpx.ninja/api/v1/auth/google/callback
 
 # ℹ️ Alternative : Credentials PennylaneProject (moins recommandé)
 # GOOGLE_CLIENT_ID=646813821201-le0dqlhd1qr7r3v93rn4ni101ce9ltku.apps.googleusercontent.com
@@ -128,16 +128,16 @@ Après le déploiement, tester :
 
 ```bash
 # 1. API Health Check
-curl https://gpxify.carapacebleue.com/health
+curl https://www.gpx.ninja/health
 # Devrait retourner: {"status":"healthy","app":"GPXIFY"}
 
 # 2. API GPX Test
-curl https://gpxify.carapacebleue.com/api/v1/gpx/test
+curl https://www.gpx.ninja/api/v1/gpx/test
 # Devrait retourner: {"message":"GPX API is running","version":"1.0.0"}
 ```
 
 Puis dans le navigateur :
-1. https://gpxify.carapacebleue.com → Interface s'affiche
+1. https://www.gpx.ninja → Interface s'affiche
 2. Uploader `example.gpx` → Carte et profil s'affichent
 3. Tester Google OAuth → Connexion fonctionne
 
@@ -159,7 +159,7 @@ Si vous avez besoin de plus de détails :
 ## 🆘 Problème ?
 
 ### DNS ne se propage pas
-→ Attendre 5-30 min, vérifier avec `dig gpxify.carapacebleue.com`
+→ Attendre 5-30 min, vérifier avec `dig www.gpx.ninja`
 
 ### Coolify erreur 502
 → Attendre 30-60 secondes que le backend démarre
@@ -176,7 +176,7 @@ Si vous avez besoin de plus de détails :
 
 Après ces 3 étapes, vous aurez :
 
-- ✅ https://gpxify.carapacebleue.com en ligne
+- ✅ https://www.gpx.ninja en ligne
 - ✅ SSL automatique (HTTPS)
 - ✅ Upload de fichiers GPX
 - ✅ Carte interactive
