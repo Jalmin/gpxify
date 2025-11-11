@@ -34,15 +34,8 @@ services:
       UPLOAD_DIR: /app/uploads
     volumes:
       - gpx_uploads:/app/uploads
-    expose:
-      - "8000"
-    labels:
-      - caddy_1=www.gpx.ninja
-      - caddy_1.handle_path=/api/*
-      - caddy_1.handle_path.0_reverse_proxy={{upstreams 8000}}
-      - caddy_3=gpx.ninja
-      - caddy_3.handle_path=/api/*
-      - caddy_3.handle_path.0_reverse_proxy={{upstreams 8000}}
+    ports:
+      - "8000:8000"
     networks:
       - coolify
 
@@ -58,13 +51,8 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    expose:
-      - "80"
-    labels:
-      - caddy_0=www.gpx.ninja
-      - caddy_0.reverse_proxy={{upstreams 80}}
-      - caddy_2=gpx.ninja
-      - caddy_2.reverse_proxy={{upstreams 80}}
+    ports:
+      - "80:80"
     networks:
       - coolify
 
