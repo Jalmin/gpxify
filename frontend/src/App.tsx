@@ -1,5 +1,5 @@
-import { Routes, Route } from 'react-router-dom';
-import { Hero } from './components/Hero';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { Header } from './components/Header';
 import { SharedView } from './pages/SharedView';
 import { FAQ } from './pages/FAQ';
 import { Legal } from './pages/Legal';
@@ -7,15 +7,12 @@ import { RaceRecovery } from './pages/RaceRecovery';
 import { Marketing } from './pages/Marketing';
 import { WorkspaceLayout } from './layouts/WorkspaceLayout';
 import { useAppStore } from './store/useAppStore';
-import { useGPXUpload } from './hooks/useGPXUpload';
 
 function App() {
   const gpxFiles = useAppStore((state) => state.files);
   const setAidStations = useAppStore((state) => state.setAidStations);
   const selectFile = useAppStore((state) => state.selectFile);
   const setAidStationTable = useAppStore((state) => state.setAidStationTable);
-
-  const { handleFileSelect, isUploading, error } = useGPXUpload();
 
   /**
    * Handle state loaded from shared link
@@ -41,27 +38,27 @@ function App() {
   };
 
   /**
-   * Render main app:
-   * - Show Hero if no files loaded
-   * - Show WorkspaceLayout if files are loaded
+   * Analyze page: redirect to home if no GPX, otherwise show workspace
    */
-  const renderMainApp = () => {
+  const AnalyzePage = () => {
     if (gpxFiles.length === 0) {
-      return <Hero onFileSelect={handleFileSelect} isUploading={isUploading} error={error} />;
+      return <Navigate to="/" replace />;
     }
-
     return <WorkspaceLayout />;
   };
 
   return (
-    <Routes>
-      <Route path="/" element={<Marketing />} />
-      <Route path="/analyze" element={renderMainApp()} />
-      <Route path="/faq" element={<FAQ />} />
-      <Route path="/legal" element={<Legal />} />
-      <Route path="/race-recovery" element={<RaceRecovery />} />
-      <Route path="/share/:shareId" element={<SharedView onStateLoaded={handleStateLoaded} />} />
-    </Routes>
+    <>
+      <Header />
+      <Routes>
+        <Route path="/" element={<Marketing />} />
+        <Route path="/analyze" element={<AnalyzePage />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/legal" element={<Legal />} />
+        <Route path="/race-recovery" element={<RaceRecovery />} />
+        <Route path="/share/:shareId" element={<SharedView onStateLoaded={handleStateLoaded} />} />
+      </Routes>
+    </>
   );
 }
 

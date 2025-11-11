@@ -14,7 +14,7 @@ export function Marketing() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-black pt-16">
       {/* Hero Section - Simple et Direct */}
       <section className="container mx-auto px-6 py-12 md:py-20 max-w-4xl min-h-screen flex flex-col justify-center">
         <div className="space-y-12">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload, Download, AlertCircle, Check, ArrowLeft, BarChart3, Zap, Home } from 'lucide-react';
+import { Upload, Download, AlertCircle, Check, Zap, BarChart3, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -109,34 +109,7 @@ export function RaceRecovery() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur">
-        <div className="container flex h-16 items-center px-6">
-          <Link to="/" className="flex items-center gap-0 hover:opacity-80 transition-opacity">
-            <img
-              src="/logoGPXgauche.png"
-              alt="GPX Logo Left"
-              className="h-8 w-auto pixelated"
-              style={{ imageRendering: 'pixelated' }}
-            />
-            <img
-              src="/logoGPXdroite.png"
-              alt="GPX Logo Right"
-              className="h-8 w-auto pixelated"
-              style={{ imageRendering: 'pixelated' }}
-            />
-          </Link>
-          <div className="flex-1" />
-          <Link to="/">
-            <Button variant="ghost" className="gap-2">
-              <Home className="w-4 h-4" />
-              Retour
-            </Button>
-          </Link>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-background flex flex-col pt-16">
       <div className="flex-1 p-6">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="text-center space-y-2">
