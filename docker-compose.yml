@@ -51,8 +51,13 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - "80:80"
+    expose:
+      - "80"
+    labels:
+      - coolify.managed=true
+      - caddy_0=https://www.gpx.ninja
+      - caddy_0.handle_path=/*
+      - caddy_0.handle_path.0_reverse_proxy={{upstreams 80}}
     networks:
       - coolify
 
