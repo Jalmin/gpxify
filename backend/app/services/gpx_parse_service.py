@@ -63,8 +63,8 @@ class GPXParseService:
                         accumulated_distance += distance
 
                     track_point = TrackPoint(
-                        latitude=point.latitude,
-                        longitude=point.longitude,
+                        lat=point.latitude,
+                        lon=point.longitude,
                         elevation=point.elevation if point.elevation is not None else 0.0,
                         time=point.time,
                         distance=accumulated_distance,
