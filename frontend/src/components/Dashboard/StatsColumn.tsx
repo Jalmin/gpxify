@@ -44,9 +44,9 @@ export function StatsColumn({
   draggedIndex,
 }: StatsColumnProps) {
   return (
-    <div className="lg:col-span-1 space-y-4">
+    <div className="lg:col-span-1 space-y-3 sm:space-y-4">
       {/* Aggregate Statistics */}
-      <div className="grid grid-cols-3 lg:grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3">
         <StatCard
           title="Distance totale"
           value={`${(totalStats.distance / 1000).toFixed(2)} km`}
