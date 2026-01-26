@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Mountain,
   Clock,
@@ -10,6 +10,7 @@ import {
   Sun,
   Sunset,
   MapPin,
+  Download,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +18,7 @@ import { ptpApi } from '@/services/api';
 import { Race, RunnerConfig, SunTimes } from '@/types/ptp';
 import { Footer } from '@/components/Footer';
 import { PTPElevationProfile } from '@/components/PTPElevationProfile';
+import { exportToPDF, ExportMode } from '@/utils/pdfExport';
 
 export function RoadbookPage() {
   // Race selection
@@ -35,6 +37,10 @@ export function RoadbookPage() {
   // Sun times
   const [sunTimes, setSunTimes] = useState<SunTimes | null>(null);
   const [isLoadingSunTimes, setIsLoadingSunTimes] = useState(false);
+
+  // PDF export
+  const [isExporting, setIsExporting] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   // Load published races on mount
   useEffect(() => {
@@ -136,6 +142,24 @@ export function RoadbookPage() {
         return '👥';
       default:
         return '📍';
+    }
+  };
+
+  const handleExportPDF = async (mode: ExportMode) => {
+    if (!exportRef.current || !selectedRace) return;
+
+    setIsExporting(true);
+    try {
+      await exportToPDF({
+        raceName: selectedRace.name,
+        mode,
+        element: exportRef.current,
+      });
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('Erreur lors de l\'export PDF');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -293,6 +317,8 @@ export function RoadbookPage() {
             </Card>
           )}
 
+          {/* Export content wrapper */}
+          <div ref={exportRef}>
           {/* Elevation Profile */}
           {selectedRace && config.departure_time && passageTimes.length > 0 && (
             <Card>
@@ -399,17 +425,41 @@ export function RoadbookPage() {
                   </div>
                 </div>
 
-                {/* Export buttons - placeholder for Phase 7 */}
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Button disabled className="gap-2">
-                    Export PDF Coureur (bientôt)
-                  </Button>
-                  <Button variant="outline" disabled className="gap-2">
-                    Export PDF Assistance (bientôt)
-                  </Button>
-                </div>
-              </CardContent>
+                </CardContent>
             </Card>
+          )}
+          </div>
+          {/* End export content wrapper */}
+
+          {/* Export buttons */}
+          {selectedRace && config.departure_time && (
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Button
+                onClick={() => handleExportPDF('runner')}
+                disabled={isExporting}
+                className="gap-2"
+              >
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Export PDF Coureur
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleExportPDF('assistance')}
+                disabled={isExporting}
+                className="gap-2"
+              >
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Export PDF Assistance
+              </Button>
+            </div>
           )}
 
           {/* Empty state */}
