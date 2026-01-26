@@ -3,7 +3,7 @@ import { Upload, Download, AlertCircle, Check, Zap, BarChart3, ArrowLeft } from 
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { API_BASE_URL } from '@/services/api';
+import { raceApi } from '@/services/api';
 import { Footer } from '@/components/Footer';
 import { validateGPXFile, formatValidationError } from '@/utils/gpxValidator';
 
@@ -66,26 +66,12 @@ export function RaceRecovery() {
     setSuccess(false);
 
     try {
-      const formData = new FormData();
-      formData.append('incomplete_gpx', incompleteFile);
-      formData.append('complete_gpx', completeFile);
-      formData.append('official_time', officialTime);
-      if (approxDistance) {
-        formData.append('approx_distance_km', approxDistance);
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/v1/race/recover`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Erreur lors de la reconstitution');
-      }
-
-      // Get GPX file as blob
-      const blob = await response.blob();
+      const blob = await raceApi.recover(
+        incompleteFile,
+        completeFile,
+        officialTime,
+        approxDistance || undefined
+      );
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
       setSuccess(true);

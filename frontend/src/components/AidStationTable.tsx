@@ -5,6 +5,7 @@ import { Card } from './ui/Card';
 import { Tooltip } from './ui/Tooltip';
 import { GPXMap } from './Map/GPXMap';
 import { Track, AidStation, AidStationTableRequest, AidStationTableResponse } from '@/types/gpx';
+import { gpxApi } from '@/services/api';
 
 interface AidStationTableProps {
   track: Track | null;
@@ -96,28 +97,7 @@ export function AidStationTable({
         custom_pace_kmh: useNaismith ? undefined : parseFloat(customPace),
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/gpx/aid-station-table`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        let errorMessage = 'Erreur lors de la génération';
-        try {
-          const error = await response.json();
-          errorMessage = error.detail || errorMessage;
-        } catch {
-          // If JSON parsing fails, try to get text
-          const text = await response.text();
-          errorMessage = `Erreur ${response.status}: ${text.substring(0, 100)}`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const result: AidStationTableResponse = await response.json();
+      const result = await gpxApi.generateAidStationTable(request);
       setTableResult(result);
     } catch (error) {
       console.error('Generate error:', error);

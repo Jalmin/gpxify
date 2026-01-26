@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Github, Heart, Send, Check, AlertCircle, MessageSquare, X } from 'lucide-react';
 import { Button } from './ui/Button';
-import { API_BASE_URL } from '@/services/api';
+import { contactApi } from '@/services/api';
 
 export function Footer() {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
@@ -16,14 +16,7 @@ export function Footer() {
     setSubmitStatus('idle');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/contact/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) throw new Error('Erreur envoi');
-
+      await contactApi.send(formData);
       setSubmitStatus('success');
       setFormData({ name: '', email: '', message: '' });
       setTimeout(() => {

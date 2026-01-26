@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { GPXFileInput, MergeGPXRequest, MergeGPXResponse } from '@/types/gpx';
 import { GPXMap } from './Map/GPXMap';
 import { TrackStats } from './TrackStats';
+import { gpxApi } from '@/services/api';
 
 interface UploadedFile {
   file: File;
@@ -127,20 +128,7 @@ export function GPXMerge() {
         merged_track_name: mergedTrackName,
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/gpx/merge`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Erreur lors de la fusion');
-      }
-
-      const result: MergeGPXResponse = await response.json();
+      const result = await gpxApi.mergeFiles(request);
       setMergedResult(result);
     } catch (error) {
       console.error('Merge error:', error);
