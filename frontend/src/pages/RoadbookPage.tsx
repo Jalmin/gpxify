@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { ptpApi } from '@/services/api';
 import { Race, RunnerConfig, SunTimes } from '@/types/ptp';
 import { Footer } from '@/components/Footer';
+import { PTPElevationProfile } from '@/components/PTPElevationProfile';
 
 export function RoadbookPage() {
   // Race selection
@@ -288,6 +289,27 @@ export function RoadbookPage() {
                     )}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Elevation Profile */}
+          {selectedRace && config.departure_time && passageTimes.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Mountain className="w-5 h-5" />
+                  Profil altimétrique
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PTPElevationProfile
+                  gpxContent={selectedRace.gpx_content}
+                  passageTimes={passageTimes}
+                  departureTime={new Date(config.departure_time)}
+                  sunTimes={sunTimes}
+                  totalDistanceKm={selectedRace.total_distance_km || 0}
+                />
               </CardContent>
             </Card>
           )}
