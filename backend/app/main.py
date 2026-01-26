@@ -11,7 +11,7 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 # Import logging first to ensure it's configured before other imports
 from app.core.logging import get_logger
 from app.core.config import settings
-from app.api import gpx, share, race_recovery, contact
+from app.api import gpx, share, race_recovery, contact, admin, races, ptp
 from app.db.database import init_db
 from app.middleware.rate_limit import limiter, rate_limit_exceeded_handler
 
@@ -93,6 +93,25 @@ app.include_router(
     contact.router,
     prefix=f"{settings.API_V1_STR}/contact",
     tags=["contact"],
+)
+
+# PTP (Profile to Print) routes
+app.include_router(
+    admin.router,
+    prefix=f"{settings.API_V1_STR}/admin",
+    tags=["admin"],
+)
+
+app.include_router(
+    races.router,
+    prefix=f"{settings.API_V1_STR}/races",
+    tags=["races"],
+)
+
+app.include_router(
+    ptp.router,
+    prefix=f"{settings.API_V1_STR}/ptp",
+    tags=["ptp"],
 )
 
 

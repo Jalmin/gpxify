@@ -63,6 +63,11 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     CONTACT_EMAIL: str = "contact@gpx.ninja"
 
+    # PTP (Profile to Print) - Admin settings
+    ANTHROPIC_API_KEY: str = ""  # For Claude API (ravito table parsing)
+    ADMIN_SECRET_URL: str = "ptp-admin-secret"  # Secret URL segment for admin access
+    ADMIN_PASSWORD_HASH: str = ""  # bcrypt hash of admin password
+
     @field_validator("SECRET_KEY")
     @classmethod
     def validate_secret_key(cls, v, info):
@@ -104,6 +109,9 @@ def load_settings() -> Settings:
 
         if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
             logger.info("ℹ Google OAuth not configured - OAuth features disabled")
+
+        if not settings.ANTHROPIC_API_KEY:
+            logger.warning("⚠ ANTHROPIC_API_KEY not configured - ravito table parsing disabled")
 
         return settings
     except ValidationError as e:

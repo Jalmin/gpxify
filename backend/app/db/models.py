@@ -1,9 +1,11 @@
 """
 SQLAlchemy database models
 """
-from sqlalchemy import Column, String, DateTime, Integer, Text, Index, JSON
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, String, DateTime, Integer, Text, Index, JSON, Float, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import JSONB, UUID, ARRAY
+from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta, timezone
+import uuid
 from app.db.database import Base
 
 
@@ -53,3 +55,66 @@ class SharedState(Base):
             # SQLite: store as naive datetime
             now = now.replace(tzinfo=None)
         self.last_accessed_at = now
+
+
+class Race(Base):
+    """
+    Model for storing race information (UTMB, CCC, TDS, etc.)
+    """
+    __tablename__ = "races"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False)  # "UTMB 2024"
+    slug = Column(String(100), unique=True, nullable=False, index=True)  # "utmb-2024"
+    gpx_content = Column(Text, nullable=False)  # Raw GPX content
+    total_distance_km = Column(Float, nullable=True)
+    total_elevation_gain = Column(Integer, nullable=True)
+    total_elevation_loss = Column(Integer, nullable=True)
+    start_location_lat = Column(Float, nullable=True)
+    start_location_lon = Column(Float, nullable=True)
+    is_published = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationship to aid stations
+    aid_stations = relationship("RaceAidStation", back_populates="race", cascade="all, delete-orphan", order_by="RaceAidStation.position_order")
+
+    def __repr__(self):
+        return f"<Race(name={self.name}, slug={self.slug})>"
+
+
+class RaceAidStation(Base):
+    """
+    Model for storing aid stations (ravitaillements) for a race
+    """
+    __tablename__ = "race_aid_stations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    race_id = Column(UUID(as_uuid=True), ForeignKey("races.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    distance_km = Column(Float, nullable=False)
+    elevation = Column(Integer, nullable=True)  # Altitude of the aid station
+    type = Column(String(20), nullable=False)  # 'eau', 'bouffe', 'assistance'
+    services = Column(ARRAY(String), nullable=True)  # ['eau', 'boissons', 'solide', 'douche']
+    cutoff_time = Column(String(10), nullable=True)  # "14:30" barrier time
+    position_order = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationship to race
+    race = relationship("Race", back_populates="aid_stations")
+
+    def __repr__(self):
+        return f"<RaceAidStation(name={self.name}, distance_km={self.distance_km})>"
+
+
+class AdminSettings(Base):
+    """
+    Key-value store for admin settings (password hash, secret URL, etc.)
+    """
+    __tablename__ = "admin_settings"
+
+    key = Column(String(100), primary_key=True)
+    value = Column(Text, nullable=False)
+
+    def __repr__(self):
+        return f"<AdminSettings(key={self.key})>"
