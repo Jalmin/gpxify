@@ -7,6 +7,61 @@
 
 ## 2026
 
+### [2026-01-26] Implementation Backend PTP (Profile to Print)
+
+**Categorie** : Feature / Architecture
+
+**Decouverte** :
+Implementation complete du backend pour la feature "Roadbook imprimable" permettant aux coureurs de trail de preparer leur course avec profil altimetrique enrichi et export PDF.
+
+**Architecture implementee** :
+
+1. **Base de donnees** :
+   - Table `races` : stockage GPX + metadonnees course
+   - Table `race_aid_stations` : ravitaillements avec km, elevation, type, services
+   - Table `admin_settings` : configuration admin
+   - Migration Alembic `002_add_ptp_tables.py`
+
+2. **Services** :
+   - `race_service.py` : CRUD complet pour les courses
+   - `ptp_service.py` :
+     - Parsing tableau ravitos via Claude Haiku
+     - Integration API sunrise-sunset.org pour lever/coucher soleil
+
+3. **API Endpoints** :
+   - Admin (proteges par token) : login, CRUD races, parse-ravito-table
+   - Public : liste courses, details par slug, sun-times
+
+**Decisions techniques** :
+- Auth admin simple (SHA256 + session token) plutot qu'OAuth
+- Claude Haiku pour parsing (cout/performance optimal)
+- GPX stocke en TEXT dans PostgreSQL (pas de fichier)
+- Rate limiting sur endpoints sensibles
+
+**Fichiers crees** :
+```
+backend/app/models/race.py
+backend/app/models/ptp.py
+backend/app/services/race_service.py
+backend/app/services/ptp_service.py
+backend/app/api/admin.py
+backend/app/api/races.py
+backend/app/api/ptp.py
+backend/alembic/versions/002_add_ptp_tables.py
+```
+
+**Impact** :
+- Backend pret pour le frontend
+- Migration a executer en prod avant deploiement
+- Variables env requises : ANTHROPIC_API_KEY, ADMIN_SECRET_URL, ADMIN_PASSWORD_HASH
+
+**Prochaines etapes** :
+- Phase 4-5 : Frontend Admin + Public
+- Phase 6 : Profil enrichi avec chartjs-plugin-annotation
+- Phase 7 : Export PDF avec html2canvas + jsPDF
+
+---
+
 ### [2026-01-26] Refactorisation et nettoyage du projet
 
 **Categorie** : Cleanup / Security

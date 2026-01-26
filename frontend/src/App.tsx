@@ -5,6 +5,7 @@ import { FAQ } from './pages/FAQ';
 import { Legal } from './pages/Legal';
 import { RaceRecovery } from './pages/RaceRecovery';
 import { Marketing } from './pages/Marketing';
+import { AdminPage } from './pages/AdminPage';
 import { WorkspaceLayout } from './layouts/WorkspaceLayout';
 import { useAppStore } from './store/useAppStore';
 
@@ -60,6 +61,7 @@ function App() {
         <Route path="/faq" element={<FAQ />} />
         <Route path="/legal" element={<Legal />} />
         <Route path="/race-recovery" element={<RaceRecovery />} />
+        <Route path="/admin/:secret" element={<AdminPage />} />
         <Route path="/share/:shareId" element={<SharedView onStateLoaded={handleStateLoaded} />} />
       </Routes>
     </>

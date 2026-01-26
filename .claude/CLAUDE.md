@@ -3,6 +3,7 @@
 > **Ce fichier est lu automatiquement par Claude Code au démarrage de chaque session.**
 > Derniere mise a jour : 2026-01-26
 > Derniere refactorisation : 2026-01-26
+> Sprint actuel : PTP (Profile to Print) - Phases 1-3 completees
 
 ---
 
@@ -82,15 +83,15 @@ GPXIFY/
 │
 ├── backend/                  # FastAPI API (103 MB avec venv)
 │   ├── app/
-│   │   ├── api/              # 4 routers (gpx, share, contact, race_recovery)
-│   │   ├── services/         # 11 services metier
-│   │   ├── models/           # Pydantic models (30+ schemas)
-│   │   ├── db/               # SQLAlchemy ORM + database.py
+│   │   ├── api/              # 7 routers (gpx, share, contact, race_recovery, admin, races, ptp)
+│   │   ├── services/         # 13 services metier (+race_service, ptp_service)
+│   │   ├── models/           # Pydantic models (40+ schemas, +race.py, ptp.py)
+│   │   ├── db/               # SQLAlchemy ORM + models (Race, RaceAidStation, AdminSettings)
 │   │   ├── core/             # Config, logging
 │   │   ├── middleware/       # Rate limiting (SlowAPI)
 │   │   └── utils/            # Helpers (elevation_quality, share_id)
 │   ├── tests/                # Tests pytest (7 fichiers)
-│   ├── alembic/              # Migrations DB
+│   ├── alembic/              # Migrations DB (002_add_ptp_tables.py)
 │   └── requirements.txt
 │
 ├── scripts/                  # Scripts utilitaires
@@ -123,6 +124,23 @@ GPXIFY/
 - Liens de partage anonymes
 - Expiration automatique à 30 jours
 - Pas d'authentification requise pour visualiser
+
+### PTP (Profile to Print) - EN COURS
+Feature "Roadbook imprimable" pour les courses de trail :
+
+**Page Admin** (`/admin/{secret}`) :
+- Gestion des courses (UTMB, CCC, etc.)
+- Upload GPX + validation automatique
+- Parsing tableau ravitos via Claude API (Haiku)
+- Publication/dépublication des courses
+
+**Page Public** (`/roadbook`) - À VENIR :
+- Sélection d'une course publiée
+- Configuration roadbook (heure départ, 3-flasques, notes nutrition)
+- Profil altimétrique enrichi (km + temps de passage + lever/coucher soleil)
+- Export PDF A4 paysage (version Coureur + Assistance)
+
+**Status** : Backend complet (Phases 1-3), Frontend à faire (Phases 4-8)
 
 ---
 
@@ -235,10 +253,18 @@ cd backend && alembic revision --autogenerate -m "description"  # Nouvelle migra
 - [x] Secrets Google OAuth retires de `.env.production.example`
 - [x] Fichiers orphelins organises dans `scripts/` et `backend/tests/`
 - [x] Dossier `src/test/` vide supprime
+- [x] Backend PTP complet (CRUD races, parsing Claude, sun-times API)
+
+### En Cours (Sprint PTP)
+- [ ] Frontend Admin (AdminPage, formulaires, preview)
+- [ ] Frontend Public (RoadbookPage, config coureur)
+- [ ] Profil enrichi (markers km + temps + soleil)
+- [ ] Export PDF (html2canvas + jsPDF)
 
 ### Problemes Connus
 - Migrations Alembic skippees en production (voir Dockerfile backend ligne 33-34)
 - Monitoring frontend manquant (TODO Sentry dans ErrorBoundary.tsx:33)
+- Migration `002_add_ptp_tables.py` a executer en prod avant deploiement PTP
 
 ### Ameliorations Planifiees
 - Google OAuth (partiellement configure, pas encore implemente)
@@ -253,7 +279,37 @@ cd backend && alembic revision --autogenerate -m "description"  # Nouvelle migra
 
 ---
 
-## 11. Références
+## 11. API PTP (Profile to Print)
+
+### Endpoints Admin (protégés par token)
+| Route | Méthode | Description |
+|-------|---------|-------------|
+| `/api/v1/admin/login` | POST | Authentification admin |
+| `/api/v1/admin/logout` | POST | Déconnexion admin |
+| `/api/v1/admin/races` | GET | Lister toutes les courses |
+| `/api/v1/admin/races` | POST | Créer une course |
+| `/api/v1/admin/races/{id}` | GET | Détails d'une course |
+| `/api/v1/admin/races/{id}` | PUT | Modifier une course |
+| `/api/v1/admin/races/{id}` | DELETE | Supprimer une course |
+| `/api/v1/admin/parse-ravito-table` | POST | Parser tableau avec Claude API |
+
+### Endpoints Public
+| Route | Méthode | Description |
+|-------|---------|-------------|
+| `/api/v1/races` | GET | Lister courses publiées |
+| `/api/v1/races/{slug}` | GET | Détails d'une course par slug |
+| `/api/v1/ptp/sun-times` | POST | Lever/coucher soleil (sunrise-sunset.org) |
+
+### Variables d'environnement PTP
+```bash
+ANTHROPIC_API_KEY=...        # Pour parsing Claude Haiku
+ADMIN_SECRET_URL=...         # Segment URL secret admin
+ADMIN_PASSWORD_HASH=...      # Hash SHA256 du mot de passe
+```
+
+---
+
+## 12. Références
 
 ### Documentation
 - [README.md](../README.md) - Vue d'ensemble du projet
