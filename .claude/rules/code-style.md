@@ -220,10 +220,12 @@ mypy app/
 
 ---
 
-## Points d'Attention Identifiés
+## Points d'Attention Identifies
 
 | Pattern | Localisation | Note |
 |---------|--------------|------|
-| `except Exception as e` générique | `gpx.py:76`, `share.py:93` | Acceptable pour catch-all API |
-| Rate limit commenté | `share.py:18` | À réactiver |
-| TODO dans le code | `share.py:64` | Rate limiting par IP à implémenter |
+| `except Exception as e` generique | `gpx.py:76`, `share.py:93` | Acceptable pour catch-all API |
+| TODO dans le code | `share.py:64` | Rate limiting par IP a implementer |
+
+### Corrige le 2026-01-26
+- [x] Rate limit reactive sur `share.py:18` (10/minute)

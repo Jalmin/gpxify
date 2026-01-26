@@ -59,3 +59,13 @@ htmlcov/
 # Logs
 *.log
 logs/
+
+# Test data (personal GPX files)
+Sauvemacourse-test/
+
+# Archived documentation
+improvements/
+
+# Project templates (dev only)
+project-template/
+template-tailwind-css/

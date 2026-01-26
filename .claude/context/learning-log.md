@@ -7,7 +7,49 @@
 
 ## 2026
 
-### [2026-01-26] Analyse complète du projet et remplissage .claude/
+### [2026-01-26] Refactorisation et nettoyage du projet
+
+**Categorie** : Cleanup / Security
+
+**Decouverte** :
+Nettoyage complet du projet suite a la cartographie initiale. Corrections de securite et reorganisation des fichiers.
+
+**Actions effectuees** :
+
+1. **Securite CRITIQUE** :
+   - Suppression des secrets Google OAuth de `.env.production.example`
+   - Credentials reelles remplacees par placeholders
+
+2. **Rate limiting** :
+   - Reactivation sur endpoint `/share/save` (10/minute)
+   - Etait commente depuis un debug precedent
+
+3. **Organisation fichiers** :
+   - Creation dossier `scripts/` pour les scripts shell (4 fichiers)
+   - Deplacement `test_merge.py` et fichiers GPX test vers `backend/tests/`
+   - Suppression dossier `src/test/` vide (redundant)
+
+4. **Gitignore** :
+   - Ajout `Sauvemacourse-test/` (donnees test personnelles)
+   - Ajout `improvements/` (documentation obsolete)
+   - Ajout templates (`project-template/`, `template-tailwind-css/`)
+
+**Fichiers modifies** :
+- `.env.production.example` - Secrets retires
+- `backend/app/api/share.py:18` - Rate limit reactive
+- `.gitignore` - 4 nouveaux patterns
+- `.claude/CLAUDE.md` - Structure mise a jour
+- `.claude/rules/*.md` - Status corrections mis a jour
+- `.claude/context/cleanup-plan.md` - Plan de nettoyage cree
+
+**Impact** :
+- Securite amelioree (pas de credentials dans le repo)
+- Structure projet plus propre et documentee
+- Base pour les futures ameliorations
+
+---
+
+### [2026-01-26] Analyse complete du projet et remplissage .claude/
 
 **Catégorie** : Documentation
 

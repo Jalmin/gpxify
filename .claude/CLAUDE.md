@@ -1,7 +1,8 @@
 # GPXIFY - Claude Code Context
 
 > **Ce fichier est lu automatiquement par Claude Code au démarrage de chaque session.**
-> Dernière mise à jour : 2026-01-26
+> Derniere mise a jour : 2026-01-26
+> Derniere refactorisation : 2026-01-26
 
 ---
 
@@ -63,33 +64,44 @@ Permettre aux athlètes d'analyser leurs traces GPX avec des profils d'altitude,
 
 ```
 GPXIFY/
-├── frontend/                 # React SPA
+├── frontend/                 # React SPA (218 MB avec node_modules)
 │   ├── src/
-│   │   ├── components/       # Composants React
-│   │   ├── pages/            # Pages (routing)
-│   │   ├── stores/           # Zustand stores
-│   │   ├── services/         # API clients
-│   │   ├── hooks/            # Custom hooks
-│   │   ├── utils/            # Helpers
+│   │   ├── components/       # 33 composants React
+│   │   │   ├── ui/           # Composants UI reutilisables
+│   │   │   ├── Dashboard/    # 7 composants Dashboard
+│   │   │   └── Map/          # Composants carte
+│   │   ├── pages/            # 5 pages (Marketing, FAQ, Legal, etc.)
+│   │   ├── store/            # Zustand store (useAppStore.ts)
+│   │   ├── services/         # API client (api.ts)
+│   │   ├── hooks/            # 4 custom hooks
+│   │   ├── types/            # Types TypeScript (gpx.ts)
+│   │   ├── schemas/          # Schemas Zod
 │   │   └── test/             # Tests Vitest
 │   ├── package.json
-│   ├── vite.config.ts
-│   └── Dockerfile
+│   └── vite.config.ts
 │
-├── backend/                  # FastAPI API
+├── backend/                  # FastAPI API (103 MB avec venv)
 │   ├── app/
-│   │   ├── api/              # Routes API
-│   │   ├── services/         # Business logic
-│   │   ├── models/           # SQLAlchemy models
-│   │   ├── schemas/          # Pydantic schemas
-│   │   └── core/             # Config, auth, utils
-│   ├── tests/                # Tests pytest
-│   ├── requirements.txt
-│   └── Dockerfile
+│   │   ├── api/              # 4 routers (gpx, share, contact, race_recovery)
+│   │   ├── services/         # 11 services metier
+│   │   ├── models/           # Pydantic models (30+ schemas)
+│   │   ├── db/               # SQLAlchemy ORM + database.py
+│   │   ├── core/             # Config, logging
+│   │   ├── middleware/       # Rate limiting (SlowAPI)
+│   │   └── utils/            # Helpers (elevation_quality, share_id)
+│   ├── tests/                # Tests pytest (7 fichiers)
+│   ├── alembic/              # Migrations DB
+│   └── requirements.txt
 │
-├── alembic/                  # Migrations DB
+├── scripts/                  # Scripts utilitaires
+│   ├── test-upload.sh
+│   ├── debug-server.sh
+│   ├── check-logs.sh
+│   └── check-containers.sh
+│
+├── .claude/                  # Contexte Claude Code
 ├── docker-compose.yml        # Orchestration
-└── docs/                     # Documentation
+└── *.md                      # Documentation (23 fichiers)
 ```
 
 ---
@@ -218,18 +230,26 @@ cd backend && alembic revision --autogenerate -m "description"  # Nouvelle migra
 
 ## 10. Points d'Attention Actuels
 
-### Problèmes Connus
-- Rate limiting temporairement désactivé sur `/share/save` (ligne 18 de `share.py`)
-- Migrations Alembic skippées en production (voir Dockerfile backend ligne 33-34)
+### Problemes Resolus (2026-01-26)
+- [x] Rate limiting reactive sur `/share/save` (10/minute)
+- [x] Secrets Google OAuth retires de `.env.production.example`
+- [x] Fichiers orphelins organises dans `scripts/` et `backend/tests/`
+- [x] Dossier `src/test/` vide supprime
 
-### Améliorations Planifiées
-- Google OAuth (partiellement configuré, pas encore implémenté)
-- Upload vers Google Drive (Phase 2, commenté dans `gpx.py`)
-- Rate limiting par IP pour les partages (TODO dans `share.py`)
+### Problemes Connus
+- Migrations Alembic skippees en production (voir Dockerfile backend ligne 33-34)
+- Monitoring frontend manquant (TODO Sentry dans ErrorBoundary.tsx:33)
+
+### Ameliorations Planifiees
+- Google OAuth (partiellement configure, pas encore implemente)
+- Upload vers Google Drive (Phase 2, commente dans `gpx.py`)
+- Rate limiting par IP pour les partages (TODO dans `share.py:64`)
+- Integration Sentry pour error tracking
 
 ### Dette Technique
-- Les migrations Alembic ne sont pas exécutées automatiquement au démarrage Docker
-- Certains tests retournent 400 ou 500 de manière interchangeable (voir `test_api.py`)
+- Les migrations Alembic ne sont pas executees automatiquement au demarrage Docker
+- Routes API avec nommage inconsistant (snake_case vs kebab-case)
+- Coverage tests basse (~20%, cible: 70%)
 
 ---
 

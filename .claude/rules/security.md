@@ -47,10 +47,11 @@ REFRESH_TOKEN_EXPIRATION = 604800  # 7 jours
 
 ### Rate Limiting (SlowAPI)
 ```python
-# Limites actuelles
-RATE_LIMIT_UPLOAD = "10/minute"
-RATE_LIMIT_ANALYZE = "30/minute"
-RATE_LIMIT_SHARE = "5/minute"
+# Limites actuelles (depuis le code source 2026-01-26)
+RATE_LIMIT_UPLOAD = "30/minute"     # gpx.py:28
+RATE_LIMIT_MERGE = "10/minute"      # gpx.py:160
+RATE_LIMIT_AID_STATION = "20/minute" # gpx.py:228
+RATE_LIMIT_SHARE = "10/minute"      # share.py:18
 ```
 
 ---
