@@ -1,7 +1,7 @@
 # Plan de Nettoyage - GPXIFY
 
 > Analyse effectuee le 2026-01-26
-> Statut: PHASE 1-2 TERMINEES
+> Statut: PHASE 1-4 TERMINEES
 
 ---
 
@@ -11,8 +11,8 @@
 |----------|--------|--------|
 | CRITIQUE | 1 | CORRIGE |
 | HAUTE | 1 | CORRIGE |
-| MOYENNE | 3 | BACKLOG |
-| BASSE | 4 | PARTIEL |
+| MOYENNE | 3 | 1 DOCUMENTE |
+| BASSE | 4 | CORRIGE |
 
 ---
 
@@ -80,8 +80,8 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 ### 3.3 Variables d'environnement inutilisees
 - **Variables**:
   - `VITE_GOOGLE_CLIENT_ID` (defini mais jamais importe)
-- **Action**: Supprimer ou implementer
-- **Statut**: [ ] Backlog
+- **Action**: Documente comme Phase 2 (Google OAuth)
+- **Statut**: [x] DOCUMENTE - Variable optionnelle pour Phase 2
 
 ---
 
@@ -110,6 +110,7 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 ### 4.3 Fichiers de documentation a consolider
 - 23 fichiers .md a la racine
 - Action: Regrouper dans docs/ ou archiver
+- **Statut**: [x] CORRIGE - docs/ cree avec structure deployment/, google-auth/, archive/
 
 ---
 
@@ -126,15 +127,15 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 6. [x] Supprimer dossier src/test/ vide
 7. [x] Mettre a jour .gitignore
 
-### Phase 3 - Documentation (Prochaine semaine)
-8. [ ] Consolider documentation .md
-9. [ ] Documenter templates (project-template/, template-tailwind-css/)
-10. [ ] Archiver improvements/
+### Phase 3 - Documentation - TERMINEE
+8. [x] Consolider documentation .md (docs/ cree)
+9. [x] Documenter templates (PURPOSE.md ajoutes)
+10. [x] Archiver improvements/ (PURPOSE.md ajoute)
 
-### Phase 4 - Refactoring (Backlog)
-11. [ ] Standardiser routes API
-12. [ ] Implementer monitoring Sentry
-13. [ ] Nettoyer variables env inutilisees
+### Phase 4 - Refactoring - PARTIEL
+11. [ ] Standardiser routes API (reporte v2 - breaking change)
+12. [ ] Implementer monitoring Sentry (backlog)
+13. [x] Nettoyer variables env inutilisees (documente comme Phase 2)
 
 ---
 
@@ -149,23 +150,29 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 | TODOs non resolus | 2 |
 | Variables env inutilisees | 4 |
 
-### Apres nettoyage Phase 1-2 (actuel)
+### Apres nettoyage Phase 1-4 (actuel)
 | Metrique | Valeur | Delta |
 |----------|--------|-------|
-| Fichiers orphelins racine | 0 | -7 |
-| Dossiers inutilises | 3 | -2 |
+| Fichiers .md racine | 5 | -18 |
+| Dossiers documentes | 3 | +3 (PURPOSE.md) |
 | Secrets exposes | 0 | -2 |
 | TODOs documentes | 2 | = |
-| Variables env inutilisees | 4 | = |
+| Variables env | 1 optionnelle | documente |
 
-### Apres nettoyage complet (cible Phase 3-4)
-| Metrique | Valeur |
-|----------|--------|
-| Fichiers orphelins racine | 0 |
-| Dossiers inutilises | 0 |
-| Secrets exposes | 0 |
-| TODOs documentes | 2 |
-| Variables env inutilisees | 0 |
+### Structure finale
+```
+GPXIFY/
+├── docs/                    # Documentation organisee
+│   ├── deployment/          # 6 fichiers
+│   ├── google-auth/         # 4 fichiers
+│   ├── archive/             # 8 fichiers historiques
+│   └── README.md
+├── scripts/                 # Scripts utilitaires
+├── .claude/                 # Contexte Claude
+├── frontend/                # React SPA
+├── backend/                 # FastAPI API
+└── *.md                     # 5 fichiers essentiels
+```
 
 ---
 

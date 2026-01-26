@@ -2,7 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string
-  readonly VITE_GOOGLE_CLIENT_ID: string
+  // Phase 2: Google OAuth (not yet implemented)
+  readonly VITE_GOOGLE_CLIENT_ID?: string
 }
 
 interface ImportMeta {
