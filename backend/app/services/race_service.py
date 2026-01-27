@@ -2,17 +2,120 @@
 Race service
 Handles CRUD operations for races and aid stations
 """
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from uuid import UUID
 import logging
 import re
+import math
+import gpxpy
 from sqlalchemy.orm import Session
 
 from app.db.models import Race, RaceAidStation
-from app.models.race import RaceCreate, RaceUpdate, RaceAidStationCreate
+from app.models.race import RaceCreate, RaceUpdate, RaceAidStationCreate, RavitoType
 from app.services.gpx_parser import GPXParser
 
 logger = logging.getLogger(__name__)
+
+
+def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate distance between two points in meters using Haversine formula"""
+    R = 6371000  # Earth radius in meters
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+
+    a = math.sin(delta_phi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+    return R * c
+
+
+def extract_waypoints_from_gpx(gpx_content: str) -> List[dict]:
+    """
+    Extract waypoints from GPX content and calculate their distance along the track.
+
+    Returns list of dicts with: name, lat, lon, sym, desc, distance_km, elevation
+    """
+    gpx = gpxpy.parse(gpx_content)
+
+    if not gpx.waypoints:
+        return []
+
+    # Build track points list for distance calculation
+    track_points = []
+    cumulative_distances = []
+    cumulative_distance = 0.0
+
+    for track in gpx.tracks:
+        for segment in track.segments:
+            for i, point in enumerate(segment.points):
+                track_points.append((point.latitude, point.longitude, point.elevation))
+                if i > 0:
+                    prev = segment.points[i-1]
+                    cumulative_distance += haversine_distance(
+                        prev.latitude, prev.longitude,
+                        point.latitude, point.longitude
+                    )
+                cumulative_distances.append(cumulative_distance)
+
+    if not track_points:
+        return []
+
+    waypoints = []
+    for wpt in gpx.waypoints:
+        # Skip non-aid station waypoints (like "Start", "Finish" without AS prefix)
+        name = wpt.name or wpt.description or ""
+
+        # Find closest track point to calculate distance
+        min_dist = float('inf')
+        closest_idx = 0
+        for i, (lat, lon, ele) in enumerate(track_points):
+            dist = haversine_distance(wpt.latitude, wpt.longitude, lat, lon)
+            if dist < min_dist:
+                min_dist = dist
+                closest_idx = i
+
+        # Get distance along track and elevation
+        distance_km = cumulative_distances[closest_idx] / 1000 if cumulative_distances else 0
+        elevation = track_points[closest_idx][2] if track_points[closest_idx][2] else None
+
+        waypoints.append({
+            'name': wpt.description or wpt.name or "Unknown",
+            'short_name': wpt.name or "",
+            'lat': wpt.latitude,
+            'lon': wpt.longitude,
+            'sym': wpt.symbol or "",
+            'distance_km': round(distance_km, 2),
+            'elevation': int(elevation) if elevation else None,
+        })
+
+    # Sort by distance along track
+    waypoints.sort(key=lambda w: w['distance_km'])
+
+    return waypoints
+
+
+def waypoint_to_aid_station(wpt: dict, position_order: int) -> RaceAidStationCreate:
+    """Convert a waypoint dict to RaceAidStationCreate"""
+    # Determine type based on symbol
+    sym = wpt.get('sym', '').lower()
+    if 'drinking water' in sym or 'water' in sym:
+        ravito_type = RavitoType.EAU
+    elif 'restaurant' in sym or 'food' in sym:
+        ravito_type = RavitoType.BOUFFE
+    else:
+        ravito_type = RavitoType.ASSISTANCE
+
+    return RaceAidStationCreate(
+        name=wpt['name'],
+        distance_km=wpt['distance_km'],
+        elevation=wpt.get('elevation'),
+        type=ravito_type,
+        services=None,
+        cutoff_time=None,
+        position_order=position_order,
+    )
 
 
 class RaceService:
@@ -71,8 +174,21 @@ class RaceService:
         db.add(race)
         db.flush()  # Get the race ID
 
-        # Create aid stations
-        for i, station_data in enumerate(race_data.aid_stations):
+        # Create aid stations - use provided or extract from GPX waypoints
+        aid_stations_to_create = race_data.aid_stations
+
+        if not aid_stations_to_create:
+            # Try to extract waypoints from GPX
+            waypoints = extract_waypoints_from_gpx(race_data.gpx_content)
+            # Filter to only AS (aid station) waypoints
+            as_waypoints = [w for w in waypoints if w['short_name'].upper().startswith('AS')]
+            if as_waypoints:
+                aid_stations_to_create = [
+                    waypoint_to_aid_station(w, i) for i, w in enumerate(as_waypoints)
+                ]
+                logger.info(f"Extracted {len(aid_stations_to_create)} aid stations from GPX waypoints")
+
+        for i, station_data in enumerate(aid_stations_to_create or []):
             station = RaceAidStation(
                 race_id=race.id,
                 name=station_data.name,
@@ -148,13 +264,27 @@ class RaceService:
                     race.start_location_lat = track.points[0].lat
                     race.start_location_lon = track.points[0].lon
 
-        # Update aid stations if provided
-        if update_data.aid_stations is not None:
+        # Update aid stations if provided OR if GPX was updated and race has no stations
+        aid_stations_to_create = update_data.aid_stations
+
+        # If GPX was updated and no aid stations provided, try to extract from waypoints
+        if update_data.gpx_content is not None and aid_stations_to_create is None:
+            existing_count = db.query(RaceAidStation).filter(RaceAidStation.race_id == race_id).count()
+            if existing_count == 0:
+                waypoints = extract_waypoints_from_gpx(update_data.gpx_content)
+                as_waypoints = [w for w in waypoints if w['short_name'].upper().startswith('AS')]
+                if as_waypoints:
+                    aid_stations_to_create = [
+                        waypoint_to_aid_station(w, i) for i, w in enumerate(as_waypoints)
+                    ]
+                    logger.info(f"Extracted {len(aid_stations_to_create)} aid stations from GPX waypoints")
+
+        if aid_stations_to_create is not None:
             # Delete existing aid stations
             db.query(RaceAidStation).filter(RaceAidStation.race_id == race_id).delete()
 
             # Create new aid stations
-            for i, station_data in enumerate(update_data.aid_stations):
+            for i, station_data in enumerate(aid_stations_to_create):
                 station = RaceAidStation(
                     race_id=race.id,
                     name=station_data.name,
