@@ -41,6 +41,8 @@ class RaceBase(BaseModel):
     """Base race data"""
     name: str
     slug: str = Field(..., pattern=r"^[a-z0-9-]+$")
+    description: Optional[str] = None
+    is_published: bool = False
 
 
 class RaceCreate(RaceBase):
