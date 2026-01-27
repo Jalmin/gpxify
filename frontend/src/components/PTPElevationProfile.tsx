@@ -171,8 +171,7 @@ export function PTPElevationProfile({
       const emoji = getStationEmoji(pt.station.type);
       const timeStr = formatTime(pt.arrival);
 
-      // Vertical line at aid station - full height, visible
-      // Use numeric values for linear scale positioning
+      // Vertical line at aid station
       annotations[`line-${index}`] = {
         type: 'line',
         xMin: distanceKm,
@@ -182,23 +181,36 @@ export function PTPElevationProfile({
         borderDash: [8, 4],
       };
 
-      // Check if label is in the last 15% of track (needs left alignment)
-      const isNearEnd = distanceKm > totalDistanceKm * 0.85;
+      // Calculate distance to neighbors to detect clustering
+      const prevDist = index > 0 ? distanceKm - passageTimes[index - 1].station.distance_km : 999;
+      const nextDist = index < passageTimes.length - 1 ? passageTimes[index + 1].station.distance_km - distanceKm : 999;
+      const isCloseToNeighbor = prevDist < 20 || nextDist < 20;
 
-      // Alternate labels TOP and BOTTOM to avoid overlap
+      // Position: TOP for even indices, BOTTOM for odd
       const isTop = index % 2 === 0;
 
-      // More aggressive vertical stagger (4 levels instead of 2)
-      const staggerLevel = index % 4;
-      const baseOffset = [0, 35, 15, 50][staggerLevel];
+      // Vertical offset based on position in sequence
+      // Use 6 levels of stagger for better spacing
+      const staggerLevel = index % 6;
+      const yOffsets = [0, 40, 20, 55, 10, 45];
+      const baseYOffset = yOffsets[staggerLevel];
+
+      // Horizontal offset to spread out clustered labels
+      // Alternate left/right when labels are close
+      let xOffset = 0;
+      if (distanceKm > totalDistanceKm * 0.85) {
+        xOffset = -80; // Near end: shift left
+      } else if (isCloseToNeighbor) {
+        // Alternate left/right for clustered labels
+        xOffset = (index % 2 === 0) ? -40 : 40;
+      }
 
       annotations[`label-${index}`] = {
         type: 'label',
         xValue: distanceKm,
         yValue: isTop ? 'max' : 'min',
-        yAdjust: isTop ? (-20 - baseOffset) : (20 + baseOffset),
-        // Shift labels near the end to the left
-        xAdjust: isNearEnd ? -80 : 0,
+        yAdjust: isTop ? (-20 - baseYOffset) : (20 + baseYOffset),
+        xAdjust: xOffset,
         content: [
           `${emoji} ${pt.station.name}`,
           `${distanceKm.toFixed(1)}km | ${timeStr}`,
@@ -358,6 +370,8 @@ export function PTPElevationProfile({
         x: {
           type: 'linear' as const,
           display: true,
+          min: 0,
+          max: totalDistanceKm,
           title: {
             display: true,
             text: 'Distance (km)',
