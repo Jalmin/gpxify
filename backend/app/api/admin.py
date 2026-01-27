@@ -53,16 +53,30 @@ def verify_admin_token(x_admin_token: Optional[str] = Header(None)) -> bool:
     return True
 
 
+def get_setting_from_db(db: Session, key: str) -> Optional[str]:
+    """Get a setting value from admin_settings table"""
+    from sqlalchemy import text
+    result = db.execute(text("SELECT value FROM admin_settings WHERE key = :key"), {"key": key})
+    row = result.fetchone()
+    return row[0] if row else None
+
+
 @router.post("/login", response_model=AdminLoginResponse)
 @limiter.limit("5/minute")  # Prevent brute force
-async def admin_login(request: Request, body: AdminLoginRequest):
+async def admin_login(request: Request, body: AdminLoginRequest, db: Session = Depends(get_db)):
     """
     Admin login with password
 
     Returns a session token if password is correct
     """
-    # Get stored password hash from config or default
+    # Get stored password hash from config, then fallback to database
     stored_hash = settings.ADMIN_PASSWORD_HASH
+
+    # Fallback: try to get from database if not in env
+    if not stored_hash:
+        stored_hash = get_setting_from_db(db, "admin_password_hash")
+        if stored_hash:
+            logger.info("Using admin password hash from database")
 
     # If no password configured, use a default for development
     if not stored_hash:
@@ -250,6 +264,7 @@ async def delete_race(
 async def parse_ravito_table(
     request: Request,
     body: ParseRavitoTableRequest,
+    db: Session = Depends(get_db),
     _: bool = Depends(verify_admin_token)
 ):
     """
@@ -257,7 +272,12 @@ async def parse_ravito_table(
 
     Returns structured ravito data that can be used to create aid stations
     """
-    if not settings.ANTHROPIC_API_KEY:
+    # Get API key from env or database
+    api_key = settings.ANTHROPIC_API_KEY
+    if not api_key:
+        api_key = get_setting_from_db(db, "anthropic_api_key")
+
+    if not api_key:
         raise HTTPException(
             status_code=503,
             detail="Anthropic API key not configured"
@@ -266,7 +286,7 @@ async def parse_ravito_table(
     try:
         parsed = await PTPService.parse_ravito_table_with_claude(
             raw_text=body.raw_text,
-            anthropic_api_key=settings.ANTHROPIC_API_KEY
+            anthropic_api_key=api_key
         )
 
         return ParseRavitoTableResponse(success=True, data=parsed)
