@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Mountain,
   Clock,
@@ -21,6 +22,8 @@ import { PTPElevationProfile } from '@/components/PTPElevationProfile';
 import { exportToPDF, ExportMode } from '@/utils/pdfExport';
 
 export function RoadbookPage() {
+  const { slug } = useParams<{ slug?: string }>();
+
   // Race selection
   const [races, setRaces] = useState<Race[]>([]);
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
@@ -58,8 +61,20 @@ export function RoadbookPage() {
     setIsLoadingRaces(true);
     setError(null);
     try {
-      const response = await ptpApi.getPublishedRaces();
-      setRaces(response.races);
+      const racesList = await ptpApi.getPublishedRaces();
+      setRaces(racesList);
+
+      // Auto-select race if slug is provided in URL
+      if (slug && racesList.length > 0) {
+        const matchingRace = racesList.find((r) => r.slug === slug);
+        if (matchingRace) {
+          // Load full race details including gpx_content
+          const fullRace = await ptpApi.getRaceBySlug(slug);
+          setSelectedRace(fullRace);
+        } else {
+          setError(`Course "${slug}" non trouvée`);
+        }
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Erreur de chargement des courses');
     } finally {
@@ -88,12 +103,23 @@ export function RoadbookPage() {
     }
   };
 
-  const handleRaceSelect = (raceId: string) => {
-    const race = races.find((r) => r.id === raceId) || null;
-    setSelectedRace(race);
+  const handleRaceSelect = async (raceId: string) => {
+    const race = races.find((r) => r.id === raceId);
+    if (!race) {
+      setSelectedRace(null);
+      return;
+    }
     setSunTimes(null);
-    // Reset notes for new race
     setConfig((prev) => ({ ...prev, notes: {} }));
+
+    // Load full race details including gpx_content
+    try {
+      const fullRace = await ptpApi.getRaceBySlug(race.slug);
+      setSelectedRace(fullRace);
+    } catch (err) {
+      console.error('Error loading race details:', err);
+      setSelectedRace(race);
+    }
   };
 
   // Calculate estimated passage times based on Naismith formula

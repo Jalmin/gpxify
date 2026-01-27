@@ -64,6 +64,7 @@ function App() {
         <Route path="/race-recovery" element={<RaceRecovery />} />
         <Route path="/admin/:secret" element={<AdminPage />} />
         <Route path="/roadbook" element={<RoadbookPage />} />
+        <Route path="/roadbook/:slug" element={<RoadbookPage />} />
         <Route path="/share/:shareId" element={<SharedView onStateLoaded={handleStateLoaded} />} />
       </Routes>
     </>

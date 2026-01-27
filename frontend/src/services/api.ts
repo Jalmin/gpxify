@@ -286,8 +286,8 @@ export const ptpApi = {
   /**
    * Get published races (public)
    */
-  getPublishedRaces: async (): Promise<RaceListResponse> => {
-    const response = await apiClient.get<RaceListResponse>('/races');
+  getPublishedRaces: async (): Promise<Race[]> => {
+    const response = await apiClient.get<Race[]>('/races');
     return response.data;
   },
 
