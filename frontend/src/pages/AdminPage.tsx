@@ -94,7 +94,8 @@ export function AdminPage() {
       const races = await adminApi.getRaces();
       setRaces(races);
     } catch (err: any) {
-      if (err.response?.status === 401) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        // Token invalid or expired - force re-login
         setIsAuthenticated(false);
         adminApi.setToken(null);
       } else {
