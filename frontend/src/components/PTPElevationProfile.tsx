@@ -181,49 +181,39 @@ export function PTPElevationProfile({
         borderDash: [8, 4],
       };
 
-      // Calculate distance to neighbors to detect clustering
-      const prevDist = index > 0 ? distanceKm - passageTimes[index - 1].station.distance_km : 999;
-      const nextDist = index < passageTimes.length - 1 ? passageTimes[index + 1].station.distance_km - distanceKm : 999;
-      const isCloseToNeighbor = prevDist < 20 || nextDist < 20;
-
-      // Position: TOP for even indices, BOTTOM for odd
-      const isTop = index % 2 === 0;
-
-      // Vertical offset based on position in sequence
-      // Use 6 levels of stagger for better spacing
-      const staggerLevel = index % 6;
-      const yOffsets = [0, 40, 20, 55, 10, 45];
+      // All labels on TOP, stacked vertically with different offsets
+      // Use 8 levels of vertical stagger to spread labels out
+      const staggerLevel = index % 8;
+      const yOffsets = [0, 50, 25, 75, 12, 62, 37, 87];
       const baseYOffset = yOffsets[staggerLevel];
 
-      // Horizontal offset to spread out clustered labels
-      // Alternate left/right when labels are close
+      // Horizontal offset to spread out labels
       let xOffset = 0;
-      if (distanceKm > totalDistanceKm * 0.85) {
-        xOffset = -80; // Near end: shift left
-      } else if (isCloseToNeighbor) {
-        // Alternate left/right for clustered labels
-        xOffset = (index % 2 === 0) ? -40 : 40;
+      if (distanceKm > totalDistanceKm * 0.9) {
+        xOffset = -100; // Near end: shift left more
+      } else if (distanceKm < totalDistanceKm * 0.1) {
+        xOffset = 50; // Near start: shift right
       }
 
       annotations[`label-${index}`] = {
         type: 'label',
         xValue: distanceKm,
-        yValue: isTop ? 'max' : 'min',
-        yAdjust: isTop ? (-20 - baseYOffset) : (20 + baseYOffset),
+        yValue: 'max',
+        yAdjust: -20 - baseYOffset,
         xAdjust: xOffset,
         content: [
           `${emoji} ${pt.station.name}`,
           `${distanceKm.toFixed(1)}km | ${timeStr}`,
         ],
         font: {
-          size: 14,
+          size: 12,
           weight: 'bold',
           family: 'system-ui, -apple-system, sans-serif',
         },
         color: '#b91c1c',
-        backgroundColor: 'rgba(255, 255, 255, 0.98)',
-        padding: { top: 6, bottom: 6, left: 8, right: 8 },
-        borderRadius: 6,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        padding: { top: 4, bottom: 4, left: 6, right: 6 },
+        borderRadius: 4,
         borderColor: 'rgba(220, 38, 38, 0.4)',
         borderWidth: 1,
       };
@@ -338,10 +328,10 @@ export function PTPElevationProfile({
       // Add padding for labels outside the chart area
       layout: {
         padding: {
-          top: 120,    // Space for labels above
-          bottom: 80,  // Space for labels below
+          top: 180,    // Space for 8 levels of stacked labels above
+          bottom: 20,  // Minimal bottom padding (no labels below)
           left: 10,
-          right: 60,   // Space for right-side labels
+          right: 80,   // Space for right-side labels
         },
       },
       interaction: {
@@ -405,8 +395,8 @@ export function PTPElevationProfile({
 
   return (
     <div className="w-full">
-      {/* Taller chart for labels on TOP and BOTTOM */}
-      <div className="h-[500px]">
+      {/* Taller chart for stacked labels on TOP */}
+      <div className="h-[600px]">
         <Line data={chartData} options={options} />
       </div>
 
