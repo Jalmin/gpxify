@@ -345,8 +345,8 @@ export function RoadbookPage() {
 
           {/* Export content wrapper */}
           <div ref={exportRef} className="space-y-6 bg-white p-4 rounded-lg">
-          {/* Elevation Profile */}
-          {selectedRace && config.departure_time && passageTimes.length > 0 && (
+          {/* Elevation Profile - show even without aid stations */}
+          {selectedRace && selectedRace.gpx_content && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -358,7 +358,7 @@ export function RoadbookPage() {
                 <PTPElevationProfile
                   gpxContent={selectedRace.gpx_content}
                   passageTimes={passageTimes}
-                  departureTime={new Date(config.departure_time)}
+                  departureTime={config.departure_time ? new Date(config.departure_time) : undefined}
                   sunTimes={sunTimes}
                   totalDistanceKm={selectedRace.total_distance_km || 0}
                 />

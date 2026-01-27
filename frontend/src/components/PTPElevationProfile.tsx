@@ -38,8 +38,8 @@ interface PTPElevationProfileProps {
   gpxContent: string;
   /** Aid stations with passage times */
   passageTimes: PassageTime[];
-  /** Departure time */
-  departureTime: Date;
+  /** Departure time (optional) */
+  departureTime?: Date;
   /** Sun times (optional) */
   sunTimes?: SunTimes | null;
   /** Total distance in km */
