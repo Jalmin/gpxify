@@ -40,7 +40,7 @@ class RaceService:
             Created Race object
         """
         # Parse GPX to extract statistics
-        gpx_data = GPXParser.parse_gpx_content(race_data.gpx_content)
+        gpx_data = GPXParser.parse_gpx_file(race_data.gpx_content, race_data.name)
 
         if not gpx_data.tracks:
             raise ValueError("GPX file contains no tracks")
