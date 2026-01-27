@@ -17,6 +17,8 @@ COPY . .
 # Build arguments for environment variables
 ARG VITE_API_URL
 ARG VITE_GOOGLE_CLIENT_ID
+# Cache buster - change this to force rebuild
+ARG CACHE_BUST=1
 
 # Create .env file for build
 RUN echo "VITE_API_URL=${VITE_API_URL}" > .env && \
