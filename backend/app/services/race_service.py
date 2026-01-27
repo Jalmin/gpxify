@@ -137,7 +137,7 @@ class RaceService:
         if update_data.gpx_content is not None:
             race.gpx_content = update_data.gpx_content
             # Re-parse GPX for statistics
-            gpx_data = GPXParser.parse_gpx_content(update_data.gpx_content)
+            gpx_data = GPXParser.parse_gpx_file(update_data.gpx_content, race.name)
             if gpx_data.tracks:
                 track = gpx_data.tracks[0]
                 stats = track.statistics
