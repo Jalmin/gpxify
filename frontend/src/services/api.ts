@@ -205,7 +205,7 @@ export const adminApi = {
     if (token) {
       try {
         await apiClient.post('/admin/logout', null, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { 'X-Admin-Token': token },
         });
       } catch {
         // Ignore logout errors
@@ -220,7 +220,7 @@ export const adminApi = {
   getRaces: async (): Promise<RaceListResponse> => {
     const token = adminApi.getToken();
     const response = await apiClient.get<RaceListResponse>('/admin/races', {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { 'X-Admin-Token': token },
     });
     return response.data;
   },
@@ -231,7 +231,7 @@ export const adminApi = {
   getRace: async (id: string): Promise<Race> => {
     const token = adminApi.getToken();
     const response = await apiClient.get<Race>(`/admin/races/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { 'X-Admin-Token': token },
     });
     return response.data;
   },
@@ -242,7 +242,7 @@ export const adminApi = {
   createRace: async (data: RaceCreate): Promise<Race> => {
     const token = adminApi.getToken();
     const response = await apiClient.post<Race>('/admin/races', data, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { 'X-Admin-Token': token },
     });
     return response.data;
   },
@@ -253,7 +253,7 @@ export const adminApi = {
   updateRace: async (id: string, data: RaceUpdate): Promise<Race> => {
     const token = adminApi.getToken();
     const response = await apiClient.put<Race>(`/admin/races/${id}`, data, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { 'X-Admin-Token': token },
     });
     return response.data;
   },
@@ -264,7 +264,7 @@ export const adminApi = {
   deleteRace: async (id: string): Promise<void> => {
     const token = adminApi.getToken();
     await apiClient.delete(`/admin/races/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { 'X-Admin-Token': token },
     });
   },
 
@@ -275,8 +275,8 @@ export const adminApi = {
     const token = adminApi.getToken();
     const response = await apiClient.post<ParsedRavitoTable>(
       '/admin/parse-ravito-table',
-      { table_text: tableText },
-      { headers: { Authorization: `Bearer ${token}` } }
+      { raw_text: tableText },
+      { headers: { 'X-Admin-Token': token } }
     );
     return response.data;
   },
