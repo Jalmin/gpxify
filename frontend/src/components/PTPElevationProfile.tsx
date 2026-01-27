@@ -166,6 +166,32 @@ export function PTPElevationProfile({
   const aidStationAnnotations = useMemo(() => {
     const annotations: Record<string, any> = {};
 
+    // First pass: assign stagger levels based on proximity to avoid overlaps
+    // Labels within 15km of each other need different levels
+    const OVERLAP_THRESHOLD_KM = 15;
+    const assignedLevels: number[] = [];
+
+    passageTimes.forEach((pt, index) => {
+      const distanceKm = pt.station.distance_km;
+
+      // Find which levels are already used by nearby stations
+      const usedLevels = new Set<number>();
+      for (let i = 0; i < index; i++) {
+        const prevDist = passageTimes[i].station.distance_km;
+        if (Math.abs(distanceKm - prevDist) < OVERLAP_THRESHOLD_KM) {
+          usedLevels.add(assignedLevels[i]);
+        }
+      }
+
+      // Find the first available level (0, 1, 2)
+      let level = 0;
+      while (usedLevels.has(level) && level < 3) {
+        level++;
+      }
+      assignedLevels.push(level);
+    });
+
+    // Second pass: create annotations
     passageTimes.forEach((pt, index) => {
       const distanceKm = pt.station.distance_km;
       const emoji = getStationEmoji(pt.station.type);
@@ -181,38 +207,37 @@ export function PTPElevationProfile({
         borderDash: [8, 4],
       };
 
-      // All labels on TOP, stacked vertically with different offsets
-      // Use 8 levels of vertical stagger to spread labels out
-      const staggerLevel = index % 8;
-      const yOffsets = [0, 50, 25, 75, 12, 62, 37, 87];
-      const baseYOffset = yOffsets[staggerLevel];
+      // 3 levels of vertical stagger (each label ~55px with 3 lines)
+      const level = assignedLevels[index];
+      const yOffset = level * 60;
 
-      // Horizontal offset to spread out labels
+      // Horizontal offset for edge labels
       let xOffset = 0;
       if (distanceKm > totalDistanceKm * 0.9) {
-        xOffset = -100; // Near end: shift left more
-      } else if (distanceKm < totalDistanceKm * 0.1) {
-        xOffset = 50; // Near start: shift right
+        xOffset = -80;
+      } else if (distanceKm < totalDistanceKm * 0.08) {
+        xOffset = 40;
       }
 
       annotations[`label-${index}`] = {
         type: 'label',
         xValue: distanceKm,
         yValue: 'max',
-        yAdjust: -20 - baseYOffset,
+        yAdjust: -15 - yOffset,
         xAdjust: xOffset,
         content: [
           `${emoji} ${pt.station.name}`,
-          `${distanceKm.toFixed(1)}km | ${timeStr}`,
+          `${distanceKm.toFixed(1)} km`,
+          timeStr,
         ],
         font: {
-          size: 12,
+          size: 11,
           weight: 'bold',
           family: 'system-ui, -apple-system, sans-serif',
         },
         color: '#b91c1c',
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        padding: { top: 4, bottom: 4, left: 6, right: 6 },
+        padding: { top: 3, bottom: 3, left: 5, right: 5 },
         borderRadius: 4,
         borderColor: 'rgba(220, 38, 38, 0.4)',
         borderWidth: 1,
@@ -328,10 +353,10 @@ export function PTPElevationProfile({
       // Add padding for labels outside the chart area
       layout: {
         padding: {
-          top: 180,    // Space for 8 levels of stacked labels above
-          bottom: 20,  // Minimal bottom padding (no labels below)
+          top: 200,    // Space for 3 levels of stacked labels (~60px each)
+          bottom: 20,  // Minimal bottom padding
           left: 10,
-          right: 80,   // Space for right-side labels
+          right: 60,
         },
       },
       interaction: {
