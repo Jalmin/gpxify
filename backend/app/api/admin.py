@@ -145,6 +145,16 @@ async def list_all_races(
         total_distance_km=r.total_distance_km,
         total_elevation_gain=r.total_elevation_gain,
         is_published=r.is_published,
+        aid_stations=[{
+            "id": str(s.id),
+            "name": s.name,
+            "distance_km": s.distance_km,
+            "elevation": s.elevation,
+            "type": s.type,
+            "services": s.services,
+            "cutoff_time": s.cutoff_time,
+            "position_order": s.position_order,
+        } for s in r.aid_stations]
     ) for r in races]
 
 

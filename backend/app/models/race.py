@@ -75,13 +75,14 @@ class RaceResponse(RaceBase):
 
 
 class RaceListResponse(BaseModel):
-    """List of races (public view)"""
+    """List of races (admin view includes aid_stations)"""
     id: str
     name: str
     slug: str
     total_distance_km: Optional[float] = None
     total_elevation_gain: Optional[int] = None
     is_published: bool
+    aid_stations: List[RaceAidStationResponse] = []
 
     class Config:
         from_attributes = True
