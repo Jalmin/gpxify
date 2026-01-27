@@ -62,6 +62,7 @@ class RaceUpdate(BaseModel):
 class RaceResponse(RaceBase):
     """Race response with full data"""
     id: str
+    gpx_content: str  # Full GPX content for elevation profile
     total_distance_km: Optional[float] = None
     total_elevation_gain: Optional[int] = None
     total_elevation_loss: Optional[int] = None

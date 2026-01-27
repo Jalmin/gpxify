@@ -50,6 +50,7 @@ async def get_race_by_slug(slug: str, db: Session = Depends(get_db)):
         id=str(race.id),
         name=race.name,
         slug=race.slug,
+        gpx_content=race.gpx_content,
         total_distance_km=race.total_distance_km,
         total_elevation_gain=race.total_elevation_gain,
         total_elevation_loss=race.total_elevation_loss,
