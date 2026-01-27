@@ -216,13 +216,8 @@ export function PTPElevationProfile({
       const level = assignedLevels[index];
       const yOffset = level * 75;
 
-      // Horizontal offset for edge labels
-      let xOffset = 0;
-      if (distanceKm > totalDistanceKm * 0.9) {
-        xOffset = -80;
-      } else if (distanceKm < totalDistanceKm * 0.08) {
-        xOffset = 40;
-      }
+      // No horizontal offset - labels stay aligned with their lines
+      const xOffset = 0;
 
       annotations[`label-${index}`] = {
         type: 'label',
@@ -362,7 +357,7 @@ export function PTPElevationProfile({
           top: 240,    // Space for 3 levels of 4-line labels (~75px each)
           bottom: 20,  // Minimal bottom padding
           left: 10,
-          right: 60,
+          right: 100,  // More space for labels near track end
         },
       },
       interaction: {
