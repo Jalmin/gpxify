@@ -318,7 +318,7 @@ export function RoadbookPage() {
           )}
 
           {/* Export content wrapper */}
-          <div ref={exportRef}>
+          <div ref={exportRef} className="space-y-6 bg-white p-4 rounded-lg">
           {/* Elevation Profile */}
           {selectedRace && config.departure_time && passageTimes.length > 0 && (
             <Card>

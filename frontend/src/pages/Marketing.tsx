@@ -1,8 +1,8 @@
 import { FileUpload } from '@/components/FileUpload';
 import { Footer } from '@/components/Footer';
 import { useGPXUpload } from '@/hooks/useGPXUpload';
-import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Zap, GitMerge } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { TrendingUp, Zap, GitMerge, FileText } from 'lucide-react';
 
 export function Marketing() {
   const { handleFileSelect, isUploading } = useGPXUpload();
@@ -119,6 +119,38 @@ export function Marketing() {
                   <p className="text-sm text-gray-500">
                     → Algorithme de vitesse ajustée à la pente • Upload direct sur Strava • Unique sur le marché
                   </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Use Case 4 - Roadbook */}
+            <div className="space-y-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-950 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-6 h-6 text-blue-400" />
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-2xl font-bold text-white">
+                    Roadbook personnalisé
+                  </h3>
+                  <p className="text-gray-400 leading-relaxed">
+                    Tu prépares un ultra comme l'UTMB, la CCC ou une autre grande course ?
+                    Génère ton roadbook personnalisé avec tes temps de passage calculés selon ton allure.
+                  </p>
+                  <p className="text-gray-400 leading-relaxed">
+                    Profil altimétrique enrichi avec les ravitaillements, lever et coucher du soleil
+                    positionnés sur ta course. Ajoute tes notes nutrition par ravito, configure
+                    ta capacité en flasques, et exporte le tout en PDF.
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    → Version Coureur + Assistance • Temps de passage auto • Export PDF A4
+                  </p>
+                  <Link
+                    to="/roadbook"
+                    className="inline-flex items-center gap-2 mt-2 text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    Accéder au Roadbook →
+                  </Link>
                 </div>
               </div>
             </div>

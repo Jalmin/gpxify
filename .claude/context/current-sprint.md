@@ -1,8 +1,8 @@
 # Current Sprint - PTP (Profile to Print)
 
-> **Dernière mise à jour** : 2026-01-26
+> **Dernière mise à jour** : 2026-01-27
 > **Sprint** : PTP Feature
-> **Période** : 2026-01-26 - En cours
+> **Période** : 2026-01-26 - 2026-01-27 (TERMINÉ)
 
 ---
 
@@ -12,15 +12,15 @@
 - [x] Phase 1 : Migrations BDD (races, aid_stations, admin_settings)
 - [x] Phase 2 : Backend Admin (CRUD races, auth, parsing Claude)
 - [x] Phase 3 : Backend Public (GET races, sun-times)
-- [ ] Phase 4 : Frontend Admin (AdminPage, formulaires)
-- [ ] Phase 5 : Frontend Public (RoadbookPage, config)
+- [x] Phase 4 : Frontend Admin (AdminPage, formulaires)
+- [x] Phase 5 : Frontend Public (RoadbookPage, config)
 
 ### Should Have (Important)
-- [ ] Phase 6 : Profil enrichi (markers km + temps + soleil)
-- [ ] Phase 7 : Export PDF (html2canvas + jsPDF)
+- [x] Phase 6 : Profil enrichi (markers km + temps + soleil)
+- [x] Phase 7 : Export PDF (html2canvas + jsPDF)
 
 ### Nice to Have (Si temps)
-- [ ] Phase 8 : Polish (CSS print, responsive, tests)
+- [x] Phase 8 : Polish (spacing, lien Marketing, docs)
 
 ---
 
@@ -29,8 +29,10 @@
 | Issue | Priorité | Status | Description |
 |-------|----------|--------|-------------|
 | PTP Backend | High | ✅ Complété | CRUD races, auth, Claude parsing |
-| PTP Frontend Admin | High | 🔄 À faire | Page admin avec formulaires |
-| PTP Frontend Public | High | 🔄 À faire | Page roadbook coureur |
+| PTP Frontend Admin | High | ✅ Complété | Page admin avec formulaires |
+| PTP Frontend Public | High | ✅ Complété | Page roadbook coureur |
+| PTP Profil enrichi | Medium | ✅ Complété | Annotations Chart.js |
+| PTP Export PDF | Medium | ✅ Complété | html2canvas + jsPDF |
 
 ---
 
@@ -49,13 +51,12 @@
 - [x] Router `ptp.py` : endpoint sun-times
 - [x] Variables env ajoutées : ANTHROPIC_API_KEY, ADMIN_SECRET_URL, ADMIN_PASSWORD_HASH
 
-### En cours
-- [ ] Frontend AdminPage (Phase 4)
-
-### À venir
-- [ ] Frontend RoadbookPage (Phase 5)
-- [ ] Profil Chart.js avec annotations (Phase 6)
-- [ ] Export PDF multi-pages (Phase 7)
+### Complété (Phase 4-8)
+- [x] Frontend AdminPage avec login, CRUD, parsing Claude
+- [x] Frontend RoadbookPage avec config coureur
+- [x] Profil Chart.js avec annotations (ravitos, soleil)
+- [x] Export PDF multi-pages (Coureur + Assistance)
+- [x] Lien Marketing -> Roadbook
 
 ---
 
@@ -134,12 +135,13 @@ backend/alembic/versions/
 └── 002_add_ptp_tables.py
 ```
 
-### Prochaines étapes Frontend
-1. Installer `chartjs-plugin-annotation`, `html2canvas`, `jspdf`
-2. Créer types TypeScript dans `types/ptp.ts`
-3. Créer API client dans `services/api.ts`
-4. AdminPage : login + CRUD + preview
-5. RoadbookPage : sélecteur + config + profil + PDF
+### Fichiers Frontend créés
+- `frontend/src/types/ptp.ts` - Types TypeScript
+- `frontend/src/pages/AdminPage.tsx` - Page admin
+- `frontend/src/pages/RoadbookPage.tsx` - Page roadbook
+- `frontend/src/components/PTPElevationProfile.tsx` - Profil enrichi
+- `frontend/src/utils/pdfExport.ts` - Export PDF
+- `frontend/src/services/api.ts` - API client (adminApi, ptpApi)
 
 ---
 

@@ -1,9 +1,9 @@
 # GPXIFY - Claude Code Context
 
 > **Ce fichier est lu automatiquement par Claude Code au démarrage de chaque session.**
-> Derniere mise a jour : 2026-01-26
+> Derniere mise a jour : 2026-01-27
 > Derniere refactorisation : 2026-01-26
-> Sprint actuel : PTP (Profile to Print) - Phases 1-3 completees
+> Sprint actuel : PTP (Profile to Print) - TERMINE (Phases 1-8)
 
 ---
 
@@ -134,13 +134,13 @@ Feature "Roadbook imprimable" pour les courses de trail :
 - Parsing tableau ravitos via Claude API (Haiku)
 - Publication/dépublication des courses
 
-**Page Public** (`/roadbook`) - À VENIR :
+**Page Public** (`/roadbook`) :
 - Sélection d'une course publiée
-- Configuration roadbook (heure départ, 3-flasques, notes nutrition)
-- Profil altimétrique enrichi (km + temps de passage + lever/coucher soleil)
+- Configuration roadbook (heure départ, flasques, allure, notes nutrition)
+- Profil altimétrique enrichi (markers ravitos + lever/coucher soleil)
 - Export PDF A4 paysage (version Coureur + Assistance)
 
-**Status** : Backend complet (Phases 1-3), Frontend à faire (Phases 4-8)
+**Status** : TERMINE - Backend + Frontend complets (Phases 1-8)
 
 ---
 
@@ -255,11 +255,12 @@ cd backend && alembic revision --autogenerate -m "description"  # Nouvelle migra
 - [x] Dossier `src/test/` vide supprime
 - [x] Backend PTP complet (CRUD races, parsing Claude, sun-times API)
 
-### En Cours (Sprint PTP)
-- [ ] Frontend Admin (AdminPage, formulaires, preview)
-- [ ] Frontend Public (RoadbookPage, config coureur)
-- [ ] Profil enrichi (markers km + temps + soleil)
-- [ ] Export PDF (html2canvas + jsPDF)
+### Termine (Sprint PTP 2026-01-27)
+- [x] Frontend Admin (AdminPage, formulaires, preview)
+- [x] Frontend Public (RoadbookPage, config coureur)
+- [x] Profil enrichi (markers km + temps + soleil)
+- [x] Export PDF (html2canvas + jsPDF)
+- [x] Lien Marketing -> Roadbook
 
 ### Problemes Connus
 - Migrations Alembic skippees en production (voir Dockerfile backend ligne 33-34)
