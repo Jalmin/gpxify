@@ -91,8 +91,8 @@ export function AdminPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await adminApi.getRaces();
-      setRaces(response.races);
+      const races = await adminApi.getRaces();
+      setRaces(races);
     } catch (err: any) {
       if (err.response?.status === 401) {
         setIsAuthenticated(false);

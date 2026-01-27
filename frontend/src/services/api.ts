@@ -217,9 +217,9 @@ export const adminApi = {
   /**
    * Get all races (admin view)
    */
-  getRaces: async (): Promise<RaceListResponse> => {
+  getRaces: async (): Promise<Race[]> => {
     const token = adminApi.getToken();
-    const response = await apiClient.get<RaceListResponse>('/admin/races', {
+    const response = await apiClient.get<Race[]>('/admin/races', {
       headers: { 'X-Admin-Token': token },
     });
     return response.data;
