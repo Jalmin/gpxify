@@ -175,31 +175,40 @@ export function PTPElevationProfile({
       const emoji = getStationEmoji(pt.station.type);
       const timeStr = formatTime(pt.arrival);
 
-      // Vertical line at aid station
+      // Vertical line at aid station - full height, more visible
       annotations[`line-${index}`] = {
         type: 'line',
         xMin: distanceKm.toFixed(1),
         xMax: distanceKm.toFixed(1),
-        borderColor: 'rgba(239, 68, 68, 0.7)',
+        borderColor: 'rgba(239, 68, 68, 0.8)',
         borderWidth: 2,
-        borderDash: [5, 5],
+        borderDash: [6, 4],
       };
 
-      // Label with station info
+      // Label with station info - BIGGER and more readable
+      // Alternate between top and slightly lower to avoid overlap
+      const yOffset = (index % 3) * 35; // 3 levels of staggering
+
       annotations[`label-${index}`] = {
         type: 'label',
         xValue: distanceKm.toFixed(1),
         yValue: 'max',
-        yAdjust: -10 - (index % 2) * 25, // Stagger labels
-        content: [`${emoji} ${pt.station.name}`, `${distanceKm}km | ${timeStr}`],
+        yAdjust: -15 - yOffset,
+        content: [
+          `${emoji} ${pt.station.name}`,
+          `${distanceKm}km | ${timeStr}`,
+        ],
         font: {
-          size: 10,
+          size: 12,
           weight: 'bold',
+          family: 'system-ui, sans-serif',
         },
-        color: 'rgb(239, 68, 68)',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        padding: 4,
+        color: '#dc2626',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        padding: { top: 4, bottom: 4, left: 6, right: 6 },
         borderRadius: 4,
+        borderColor: 'rgba(239, 68, 68, 0.3)',
+        borderWidth: 1,
       };
     });
 
@@ -211,18 +220,35 @@ export function PTPElevationProfile({
     if (!sunTimes || !departureTime) return {};
 
     const annotations: Record<string, any> = {};
-    const basePaceKmH = 5; // km/h for estimation
+
+    // Use average pace from passage times if available, otherwise default 5km/h
+    let basePaceKmH = 5;
+    if (passageTimes.length > 1) {
+      const lastStation = passageTimes[passageTimes.length - 1];
+      const hoursToLast = lastStation.timeFromStart / 60;
+      if (hoursToLast > 0) {
+        basePaceKmH = lastStation.station.distance_km / hoursToLast;
+      }
+    }
 
     // Parse sun times (format: "HH:MM:SS")
-    const parseTimeStr = (timeStr: string): Date => {
+    const parseTimeStr = (timeStr: string, nextDay = false): Date => {
       const [h, m] = timeStr.split(':').map(Number);
       const date = new Date(departureTime);
+      if (nextDay) {
+        date.setDate(date.getDate() + 1);
+      }
       date.setHours(h, m, 0, 0);
       return date;
     };
 
     const sunriseTime = parseTimeStr(sunTimes.sunrise);
-    const sunsetTime = parseTimeStr(sunTimes.sunset);
+    let sunsetTime = parseTimeStr(sunTimes.sunset);
+
+    // If sunset is before departure, it's next day's sunset
+    if (sunsetTime.getTime() < departureTime.getTime()) {
+      sunsetTime = parseTimeStr(sunTimes.sunset, true);
+    }
 
     // Calculate km at sunrise/sunset
     const getKmAtTime = (time: Date): number | null => {
@@ -241,20 +267,22 @@ export function PTPElevationProfile({
         type: 'line',
         xMin: sunriseKm.toFixed(1),
         xMax: sunriseKm.toFixed(1),
-        borderColor: 'rgba(251, 191, 36, 0.8)',
+        borderColor: 'rgba(251, 191, 36, 0.9)',
         borderWidth: 3,
       };
       annotations['sunrise-label'] = {
         type: 'label',
         xValue: sunriseKm.toFixed(1),
         yValue: 'min',
-        yAdjust: 20,
+        yAdjust: 25,
         content: [`☀️ Lever ${sunTimes.sunrise.slice(0, 5)}`],
-        font: { size: 10 },
-        color: 'rgb(251, 191, 36)',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        padding: 4,
+        font: { size: 12, weight: 'bold' },
+        color: '#d97706',
+        backgroundColor: 'rgba(255, 251, 235, 0.95)',
+        padding: { top: 4, bottom: 4, left: 6, right: 6 },
         borderRadius: 4,
+        borderColor: 'rgba(251, 191, 36, 0.5)',
+        borderWidth: 1,
       };
     }
 
@@ -263,25 +291,27 @@ export function PTPElevationProfile({
         type: 'line',
         xMin: sunsetKm.toFixed(1),
         xMax: sunsetKm.toFixed(1),
-        borderColor: 'rgba(249, 115, 22, 0.8)',
+        borderColor: 'rgba(249, 115, 22, 0.9)',
         borderWidth: 3,
       };
       annotations['sunset-label'] = {
         type: 'label',
         xValue: sunsetKm.toFixed(1),
         yValue: 'min',
-        yAdjust: 40,
+        yAdjust: 50,
         content: [`🌅 Coucher ${sunTimes.sunset.slice(0, 5)}`],
-        font: { size: 10 },
-        color: 'rgb(249, 115, 22)',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        padding: 4,
+        font: { size: 12, weight: 'bold' },
+        color: '#ea580c',
+        backgroundColor: 'rgba(255, 247, 237, 0.95)',
+        padding: { top: 4, bottom: 4, left: 6, right: 6 },
         borderRadius: 4,
+        borderColor: 'rgba(249, 115, 22, 0.5)',
+        borderWidth: 1,
       };
     }
 
     return annotations;
-  }, [sunTimes, departureTime, totalDistanceKm]);
+  }, [sunTimes, departureTime, totalDistanceKm, passageTimes]);
 
   // Chart options with annotations
   const options = useMemo(
@@ -336,7 +366,7 @@ export function PTPElevationProfile({
 
   if (points.length === 0) {
     return (
-      <div className="h-80 flex items-center justify-center text-muted-foreground">
+      <div className="h-96 flex items-center justify-center text-muted-foreground">
         Chargement du profil...
       </div>
     );
@@ -344,7 +374,8 @@ export function PTPElevationProfile({
 
   return (
     <div className="w-full">
-      <div className="h-80">
+      {/* Taller chart for better label visibility */}
+      <div className="h-[400px]">
         <Line data={chartData} options={options} />
       </div>
 
