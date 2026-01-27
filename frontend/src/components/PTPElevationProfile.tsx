@@ -185,22 +185,29 @@ export function PTPElevationProfile({
         borderDash: [8, 4],
       };
 
+      // Check if label is in the last 15% of track (needs left alignment)
+      const isNearEnd = distanceKm > totalDistanceKm * 0.85;
+
       // Alternate labels TOP and BOTTOM to avoid overlap
       const isTop = index % 2 === 0;
-      // Additional stagger within top/bottom groups
-      const groupOffset = Math.floor(index / 2) % 2 === 0 ? 0 : 30;
+
+      // More aggressive vertical stagger (4 levels instead of 2)
+      const staggerLevel = index % 4;
+      const baseOffset = [0, 35, 15, 50][staggerLevel];
 
       annotations[`label-${index}`] = {
         type: 'label',
         xValue: distanceKm.toFixed(1),
         yValue: isTop ? 'max' : 'min',
-        yAdjust: isTop ? (-20 - groupOffset) : (20 + groupOffset),
+        yAdjust: isTop ? (-20 - baseOffset) : (20 + baseOffset),
+        // Shift labels near the end to the left
+        xAdjust: isNearEnd ? -80 : 0,
         content: [
           `${emoji} ${pt.station.name}`,
           `${distanceKm.toFixed(1)}km | ${timeStr}`,
         ],
         font: {
-          size: 14, // BIGGER font
+          size: 14,
           weight: 'bold',
           family: 'system-ui, -apple-system, sans-serif',
         },
@@ -214,7 +221,7 @@ export function PTPElevationProfile({
     });
 
     return annotations;
-  }, [passageTimes]);
+  }, [passageTimes, totalDistanceKm]);
 
   // Create sun annotations
   const sunAnnotations = useMemo(() => {
