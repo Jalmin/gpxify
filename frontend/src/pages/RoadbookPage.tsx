@@ -76,7 +76,12 @@ export function RoadbookPage() {
         }
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erreur de chargement des courses');
+      const detail = err.response?.data?.detail;
+      // Handle Pydantic validation errors which return an object/array
+      const errorMsg = typeof detail === 'string'
+        ? detail
+        : detail?.msg || JSON.stringify(detail) || 'Erreur de chargement des courses';
+      setError(errorMsg);
     } finally {
       setIsLoadingRaces(false);
     }

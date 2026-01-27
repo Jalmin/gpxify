@@ -21,6 +21,15 @@ import { Footer } from '@/components/Footer';
 
 type ViewMode = 'list' | 'create' | 'edit';
 
+// Helper to extract error message from API errors (handles Pydantic validation errors)
+const getErrorMessage = (err: any, fallback: string): string => {
+  const detail = err.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail[0]?.msg) return detail[0].msg;
+  if (detail?.msg) return detail.msg;
+  return fallback;
+};
+
 export function AdminPage() {
   // Auth state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -75,7 +84,7 @@ export function AdminPage() {
         setAuthError(response.message || 'Mot de passe incorrect');
       }
     } catch (err: any) {
-      setAuthError(err.response?.data?.detail || 'Erreur de connexion');
+      setAuthError(getErrorMessage(err, 'Erreur de connexion'));
     } finally {
       setIsLoggingIn(false);
     }
@@ -99,7 +108,7 @@ export function AdminPage() {
         setIsAuthenticated(false);
         adminApi.setToken(null);
       } else {
-        setError(err.response?.data?.detail || 'Erreur de chargement');
+        setError(getErrorMessage(err, 'Erreur de chargement'));
       }
     } finally {
       setIsLoading(false);
@@ -155,7 +164,7 @@ export function AdminPage() {
       await adminApi.deleteRace(race.id);
       loadRaces();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erreur de suppression');
+      setError(getErrorMessage(err, 'Erreur de suppression'));
     }
   };
 
@@ -164,7 +173,7 @@ export function AdminPage() {
       await adminApi.updateRace(race.id, { is_published: !race.is_published });
       loadRaces();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erreur de mise à jour');
+      setError(getErrorMessage(err, 'Erreur de mise à jour'));
     }
   };
 
@@ -212,7 +221,7 @@ export function AdminPage() {
       );
       setFormData((prev) => ({ ...prev, aid_stations: aidStations }));
     } catch (err: any) {
-      setParseError(err.response?.data?.detail || 'Erreur de parsing');
+      setParseError(getErrorMessage(err, 'Erreur de parsing'));
     } finally {
       setIsParsing(false);
     }
@@ -236,7 +245,7 @@ export function AdminPage() {
       setViewMode('list');
       loadRaces();
     } catch (err: any) {
-      setSaveError(err.response?.data?.detail || 'Erreur de sauvegarde');
+      setSaveError(getErrorMessage(err, 'Erreur de sauvegarde'));
     } finally {
       setIsSaving(false);
     }
