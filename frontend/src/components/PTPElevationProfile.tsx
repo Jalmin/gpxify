@@ -365,7 +365,7 @@ export function PTPElevationProfile({
           },
           ticks: {
             maxTicksLimit: 15,
-            callback: (value: number) => value.toFixed(0),
+            callback: (value: string | number) => typeof value === 'number' ? value.toFixed(0) : value,
           },
         },
         y: {
