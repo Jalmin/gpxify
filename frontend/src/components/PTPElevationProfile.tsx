@@ -167,8 +167,8 @@ export function PTPElevationProfile({
     const annotations: Record<string, any> = {};
 
     // First pass: assign stagger levels based on proximity to avoid overlaps
-    // Labels within 15km of each other need different levels
-    const OVERLAP_THRESHOLD_KM = 15;
+    // Labels within 25km of each other need different levels
+    const OVERLAP_THRESHOLD_KM = 25;
     const assignedLevels: number[] = [];
 
     passageTimes.forEach((pt, index) => {
@@ -197,6 +197,11 @@ export function PTPElevationProfile({
       const emoji = getStationEmoji(pt.station.type);
       const timeStr = formatTime(pt.arrival);
 
+      // Split station name: "AS01 Lizard point" -> ["AS01", "Lizard point"]
+      const nameParts = pt.station.name.match(/^(AS\d+)\s+(.+)$/i);
+      const stationNumber = nameParts ? nameParts[1] : '';
+      const stationName = nameParts ? nameParts[2] : pt.station.name;
+
       // Vertical line at aid station
       annotations[`line-${index}`] = {
         type: 'line',
@@ -207,9 +212,9 @@ export function PTPElevationProfile({
         borderDash: [8, 4],
       };
 
-      // 3 levels of vertical stagger (each label ~55px with 3 lines)
+      // 3 levels of vertical stagger (each label ~70px with 4 lines)
       const level = assignedLevels[index];
-      const yOffset = level * 60;
+      const yOffset = level * 75;
 
       // Horizontal offset for edge labels
       let xOffset = 0;
@@ -226,12 +231,13 @@ export function PTPElevationProfile({
         yAdjust: -15 - yOffset,
         xAdjust: xOffset,
         content: [
-          `${emoji} ${pt.station.name}`,
+          `${emoji} ${stationNumber}`,
+          stationName,
           `${distanceKm.toFixed(1)} km`,
           timeStr,
         ],
         font: {
-          size: 11,
+          size: 10,
           weight: 'bold',
           family: 'system-ui, -apple-system, sans-serif',
         },
@@ -353,7 +359,7 @@ export function PTPElevationProfile({
       // Add padding for labels outside the chart area
       layout: {
         padding: {
-          top: 200,    // Space for 3 levels of stacked labels (~60px each)
+          top: 240,    // Space for 3 levels of 4-line labels (~75px each)
           bottom: 20,  // Minimal bottom padding
           left: 10,
           right: 60,
