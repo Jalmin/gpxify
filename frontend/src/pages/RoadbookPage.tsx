@@ -21,8 +21,8 @@ import { Footer } from '@/components/Footer';
 import { PTPElevationProfile } from '@/components/PTPElevationProfile';
 import { exportToPDF, ExportMode } from '@/utils/pdfExport';
 
-// Build timestamp - evaluated at build time
-const BUILD_TIME = '__BUILD_TIME__';
+// Build timestamp - evaluated at build time by Vite define
+declare const __BUILD_TIME__: string;
 
 export function RoadbookPage() {
   const { slug } = useParams<{ slug?: string }>();
@@ -507,7 +507,7 @@ export function RoadbookPage() {
       </div>
       {/* Build version for debugging */}
       <div className="text-center text-xs text-muted-foreground/50 py-2">
-        Build: {BUILD_TIME}
+        Build: {__BUILD_TIME__}
       </div>
       <Footer />
     </div>
