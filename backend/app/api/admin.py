@@ -33,24 +33,10 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Simple in-memory session store (in production, use Redis or DB)
-admin_sessions = {}
-
 
 def hash_password(password: str) -> str:
     """Hash password with SHA256 (simple approach for single admin)"""
     return hashlib.sha256(password.encode()).hexdigest()
-
-
-def verify_admin_token(x_admin_token: Optional[str] = Header(None)) -> bool:
-    """Verify admin token from header"""
-    if not x_admin_token:
-        raise HTTPException(status_code=401, detail="Admin token required")
-
-    if x_admin_token not in admin_sessions:
-        raise HTTPException(status_code=403, detail="Invalid or expired token")
-
-    return True
 
 
 def get_setting_from_db(db: Session, key: str) -> Optional[str]:
@@ -59,6 +45,36 @@ def get_setting_from_db(db: Session, key: str) -> Optional[str]:
     result = db.execute(text("SELECT value FROM admin_settings WHERE key = :key"), {"key": key})
     row = result.fetchone()
     return row[0] if row else None
+
+
+def set_setting_in_db(db: Session, key: str, value: str) -> None:
+    """Set a setting value in admin_settings table"""
+    from sqlalchemy import text
+    # Delete existing
+    db.execute(text("DELETE FROM admin_settings WHERE key = :key"), {"key": key})
+    # Insert new
+    db.execute(text("INSERT INTO admin_settings (key, value) VALUES (:key, :value)"), {"key": key, "value": value})
+    db.commit()
+
+
+def verify_admin_token_with_db(db: Session, token: str) -> bool:
+    """Verify admin token against database"""
+    stored_token = get_setting_from_db(db, "admin_session_token")
+    return stored_token == token
+
+
+def verify_admin_token(
+    x_admin_token: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+) -> bool:
+    """Verify admin token from header against database"""
+    if not x_admin_token:
+        raise HTTPException(status_code=401, detail="Admin token required")
+
+    if not verify_admin_token_with_db(db, x_admin_token):
+        raise HTTPException(status_code=403, detail="Invalid or expired token")
+
+    return True
 
 
 @router.post("/login", response_model=AdminLoginResponse)
@@ -92,9 +108,9 @@ async def admin_login(request: Request, body: AdminLoginRequest, db: Session = D
             message="Invalid password"
         )
 
-    # Generate session token
+    # Generate session token and store in database (works across workers)
     token = secrets.token_urlsafe(32)
-    admin_sessions[token] = True
+    set_setting_in_db(db, "admin_session_token", token)
 
     logger.info(f"Admin login successful from {request.client.host}")
 
@@ -105,10 +121,11 @@ async def admin_login(request: Request, body: AdminLoginRequest, db: Session = D
 
 
 @router.post("/logout")
-async def admin_logout(x_admin_token: str = Header(...)):
+async def admin_logout(x_admin_token: str = Header(...), db: Session = Depends(get_db)):
     """Logout and invalidate session token"""
-    if x_admin_token in admin_sessions:
-        del admin_sessions[x_admin_token]
+    from sqlalchemy import text
+    db.execute(text("DELETE FROM admin_settings WHERE key = 'admin_session_token'"))
+    db.commit()
     return {"success": True}
 
 
