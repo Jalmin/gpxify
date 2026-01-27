@@ -143,17 +143,13 @@ export function PTPElevationProfile({
     return points.filter((_, i) => i % step === 0);
   }, [points]);
 
-  // Prepare chart data
+  // Prepare chart data - using {x, y} format for linear scale
   const chartData = useMemo(() => {
-    const distances = sampledPoints.map((p) => p.distance.toFixed(1));
-    const elevations = sampledPoints.map((p) => p.elevation);
-
     return {
-      labels: distances,
       datasets: [
         {
           label: 'Altitude (m)',
-          data: elevations,
+          data: sampledPoints.map((p) => ({ x: p.distance, y: p.elevation })),
           fill: true,
           borderColor: 'rgb(59, 130, 246)',
           backgroundColor: 'rgba(59, 130, 246, 0.2)',
@@ -176,10 +172,11 @@ export function PTPElevationProfile({
       const timeStr = formatTime(pt.arrival);
 
       // Vertical line at aid station - full height, visible
+      // Use numeric values for linear scale positioning
       annotations[`line-${index}`] = {
         type: 'line',
-        xMin: distanceKm.toFixed(1),
-        xMax: distanceKm.toFixed(1),
+        xMin: distanceKm,
+        xMax: distanceKm,
         borderColor: 'rgba(220, 38, 38, 0.9)',
         borderWidth: 2,
         borderDash: [8, 4],
@@ -197,7 +194,7 @@ export function PTPElevationProfile({
 
       annotations[`label-${index}`] = {
         type: 'label',
-        xValue: distanceKm.toFixed(1),
+        xValue: distanceKm,
         yValue: isTop ? 'max' : 'min',
         yAdjust: isTop ? (-20 - baseOffset) : (20 + baseOffset),
         // Shift labels near the end to the left
@@ -273,14 +270,14 @@ export function PTPElevationProfile({
     if (sunriseKm !== null && sunriseKm > 0) {
       annotations['sunrise-line'] = {
         type: 'line',
-        xMin: sunriseKm.toFixed(1),
-        xMax: sunriseKm.toFixed(1),
+        xMin: sunriseKm,
+        xMax: sunriseKm,
         borderColor: 'rgba(251, 191, 36, 1)',
         borderWidth: 4,
       };
       annotations['sunrise-label'] = {
         type: 'label',
-        xValue: sunriseKm.toFixed(1),
+        xValue: sunriseKm,
         yValue: 'max',
         yAdjust: -80,
         content: [`☀️ LEVER ${sunTimes.sunrise.slice(0, 5)}`],
@@ -297,14 +294,14 @@ export function PTPElevationProfile({
     if (sunsetKm !== null) {
       annotations['sunset-line'] = {
         type: 'line',
-        xMin: sunsetKm.toFixed(1),
-        xMax: sunsetKm.toFixed(1),
+        xMin: sunsetKm,
+        xMax: sunsetKm,
         borderColor: 'rgba(249, 115, 22, 1)',
         borderWidth: 4,
       };
       annotations['sunset-label'] = {
         type: 'label',
-        xValue: sunsetKm.toFixed(1),
+        xValue: sunsetKm,
         yValue: 'max',
         yAdjust: -110,
         content: [`🌅 COUCHER ${sunTimes.sunset.slice(0, 5)}`],
@@ -345,7 +342,7 @@ export function PTPElevationProfile({
         },
         tooltip: {
           callbacks: {
-            title: (items: any) => `Distance: ${items[0].label} km`,
+            title: (items: any) => `Distance: ${items[0].parsed.x.toFixed(1)} km`,
             label: (item: any) => `Altitude: ${Math.round(item.parsed.y)} m`,
           },
         },
@@ -359,6 +356,7 @@ export function PTPElevationProfile({
       },
       scales: {
         x: {
+          type: 'linear' as const,
           display: true,
           title: {
             display: true,
@@ -367,6 +365,7 @@ export function PTPElevationProfile({
           },
           ticks: {
             maxTicksLimit: 15,
+            callback: (value: number) => value.toFixed(0),
           },
         },
         y: {
