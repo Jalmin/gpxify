@@ -175,39 +175,40 @@ export function PTPElevationProfile({
       const emoji = getStationEmoji(pt.station.type);
       const timeStr = formatTime(pt.arrival);
 
-      // Vertical line at aid station - full height, more visible
+      // Vertical line at aid station - full height, visible
       annotations[`line-${index}`] = {
         type: 'line',
         xMin: distanceKm.toFixed(1),
         xMax: distanceKm.toFixed(1),
-        borderColor: 'rgba(239, 68, 68, 0.8)',
+        borderColor: 'rgba(220, 38, 38, 0.9)',
         borderWidth: 2,
-        borderDash: [6, 4],
+        borderDash: [8, 4],
       };
 
-      // Label with station info - BIGGER and more readable
-      // Alternate between top and slightly lower to avoid overlap
-      const yOffset = (index % 3) * 35; // 3 levels of staggering
+      // Alternate labels TOP and BOTTOM to avoid overlap
+      const isTop = index % 2 === 0;
+      // Additional stagger within top/bottom groups
+      const groupOffset = Math.floor(index / 2) % 2 === 0 ? 0 : 30;
 
       annotations[`label-${index}`] = {
         type: 'label',
         xValue: distanceKm.toFixed(1),
-        yValue: 'max',
-        yAdjust: -15 - yOffset,
+        yValue: isTop ? 'max' : 'min',
+        yAdjust: isTop ? (-20 - groupOffset) : (20 + groupOffset),
         content: [
           `${emoji} ${pt.station.name}`,
-          `${distanceKm}km | ${timeStr}`,
+          `${distanceKm.toFixed(1)}km | ${timeStr}`,
         ],
         font: {
-          size: 12,
+          size: 14, // BIGGER font
           weight: 'bold',
-          family: 'system-ui, sans-serif',
+          family: 'system-ui, -apple-system, sans-serif',
         },
-        color: '#dc2626',
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        padding: { top: 4, bottom: 4, left: 6, right: 6 },
-        borderRadius: 4,
-        borderColor: 'rgba(239, 68, 68, 0.3)',
+        color: '#b91c1c',
+        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+        padding: { top: 6, bottom: 6, left: 8, right: 8 },
+        borderRadius: 6,
+        borderColor: 'rgba(220, 38, 38, 0.4)',
         borderWidth: 1,
       };
     });
@@ -267,22 +268,22 @@ export function PTPElevationProfile({
         type: 'line',
         xMin: sunriseKm.toFixed(1),
         xMax: sunriseKm.toFixed(1),
-        borderColor: 'rgba(251, 191, 36, 0.9)',
-        borderWidth: 3,
+        borderColor: 'rgba(251, 191, 36, 1)',
+        borderWidth: 4,
       };
       annotations['sunrise-label'] = {
         type: 'label',
         xValue: sunriseKm.toFixed(1),
-        yValue: 'min',
-        yAdjust: 25,
-        content: [`☀️ Lever ${sunTimes.sunrise.slice(0, 5)}`],
-        font: { size: 12, weight: 'bold' },
-        color: '#d97706',
-        backgroundColor: 'rgba(255, 251, 235, 0.95)',
-        padding: { top: 4, bottom: 4, left: 6, right: 6 },
-        borderRadius: 4,
-        borderColor: 'rgba(251, 191, 36, 0.5)',
-        borderWidth: 1,
+        yValue: 'max',
+        yAdjust: -80,
+        content: [`☀️ LEVER ${sunTimes.sunrise.slice(0, 5)}`],
+        font: { size: 14, weight: 'bold' },
+        color: '#b45309',
+        backgroundColor: 'rgba(254, 243, 199, 0.98)',
+        padding: { top: 6, bottom: 6, left: 10, right: 10 },
+        borderRadius: 6,
+        borderColor: 'rgba(251, 191, 36, 0.8)',
+        borderWidth: 2,
       };
     }
 
@@ -291,22 +292,22 @@ export function PTPElevationProfile({
         type: 'line',
         xMin: sunsetKm.toFixed(1),
         xMax: sunsetKm.toFixed(1),
-        borderColor: 'rgba(249, 115, 22, 0.9)',
-        borderWidth: 3,
+        borderColor: 'rgba(249, 115, 22, 1)',
+        borderWidth: 4,
       };
       annotations['sunset-label'] = {
         type: 'label',
         xValue: sunsetKm.toFixed(1),
-        yValue: 'min',
-        yAdjust: 50,
-        content: [`🌅 Coucher ${sunTimes.sunset.slice(0, 5)}`],
-        font: { size: 12, weight: 'bold' },
-        color: '#ea580c',
-        backgroundColor: 'rgba(255, 247, 237, 0.95)',
-        padding: { top: 4, bottom: 4, left: 6, right: 6 },
-        borderRadius: 4,
-        borderColor: 'rgba(249, 115, 22, 0.5)',
-        borderWidth: 1,
+        yValue: 'max',
+        yAdjust: -110,
+        content: [`🌅 COUCHER ${sunTimes.sunset.slice(0, 5)}`],
+        font: { size: 14, weight: 'bold' },
+        color: '#c2410c',
+        backgroundColor: 'rgba(255, 237, 213, 0.98)',
+        padding: { top: 6, bottom: 6, left: 10, right: 10 },
+        borderRadius: 6,
+        borderColor: 'rgba(249, 115, 22, 0.8)',
+        borderWidth: 2,
       };
     }
 
@@ -318,6 +319,15 @@ export function PTPElevationProfile({
     () => ({
       responsive: true,
       maintainAspectRatio: false,
+      // Add padding for labels outside the chart area
+      layout: {
+        padding: {
+          top: 120,    // Space for labels above
+          bottom: 80,  // Space for labels below
+          left: 10,
+          right: 60,   // Space for right-side labels
+        },
+      },
       interaction: {
         mode: 'index' as const,
         intersect: false,
@@ -333,6 +343,7 @@ export function PTPElevationProfile({
           },
         },
         annotation: {
+          clip: false, // Allow annotations outside chart area
           annotations: {
             ...aidStationAnnotations,
             ...sunAnnotations,
@@ -374,8 +385,8 @@ export function PTPElevationProfile({
 
   return (
     <div className="w-full">
-      {/* Taller chart for better label visibility */}
-      <div className="h-[400px]">
+      {/* Taller chart for labels on TOP and BOTTOM */}
+      <div className="h-[500px]">
         <Line data={chartData} options={options} />
       </div>
 
