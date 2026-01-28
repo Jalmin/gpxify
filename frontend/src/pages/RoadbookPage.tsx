@@ -430,7 +430,7 @@ export function RoadbookPage() {
                         </th>
                         <th className="text-center p-3">Passage</th>
                         <th className="text-center p-3">Temps</th>
-                        <th className="text-left p-3">
+                        <th className="text-center p-3">
                           <StickyNote className="w-4 h-4 inline" /> Notes
                         </th>
                       </tr>
@@ -442,48 +442,44 @@ export function RoadbookPage() {
                           <td className="p-3 text-right">{station.distance_km}</td>
                           <td className="p-3 text-right">{station.elevation || '-'}</td>
                           <td className="p-3 text-center text-lg">{getStationIcon(station.type)}</td>
-                          <td className="p-3">
-                            <div className="flex justify-center">
-                              <select
-                                value={config.flask_capacities[i] ?? config.flask_capacity}
-                                onChange={(e) =>
-                                  setConfig((prev) => ({
-                                    ...prev,
-                                    flask_capacities: {
-                                      ...prev.flask_capacities,
-                                      [i]: parseInt(e.target.value),
-                                    },
-                                  }))
-                                }
-                                className="px-2 py-1 text-sm bg-background border border-border rounded text-center focus:outline-none focus:ring-1 focus:ring-primary"
-                              >
-                                <option value={2}>2</option>
-                                <option value={3}>3</option>
-                              </select>
-                            </div>
+                          <td className="p-3 text-center">
+                            <select
+                              value={config.flask_capacities[i] ?? config.flask_capacity}
+                              onChange={(e) =>
+                                setConfig((prev) => ({
+                                  ...prev,
+                                  flask_capacities: {
+                                    ...prev.flask_capacities,
+                                    [i]: parseInt(e.target.value),
+                                  },
+                                }))
+                              }
+                              className="w-14 px-2 py-1 text-sm bg-background border border-border rounded text-center focus:outline-none focus:ring-1 focus:ring-primary"
+                            >
+                              <option value={2}>2</option>
+                              <option value={3}>3</option>
+                            </select>
                           </td>
                           <td className="p-3 text-center font-mono">{formatTime(arrival)}</td>
                           <td className="p-3 text-center text-muted-foreground">
                             +{formatDuration(timeFromStart)}
                           </td>
-                          <td className="p-3">
-                            <div className="flex justify-center">
-                              <input
-                                type="text"
-                                value={config.notes[station.id || i.toString()] || ''}
-                                onChange={(e) =>
-                                  setConfig((prev) => ({
-                                    ...prev,
-                                    notes: {
-                                      ...prev.notes,
-                                      [station.id || i.toString()]: e.target.value,
-                                    },
-                                  }))
-                                }
-                                placeholder="Gel, sel, etc."
-                                className="w-full max-w-[150px] px-2 py-1 text-sm bg-background border border-border rounded text-center focus:outline-none focus:ring-1 focus:ring-primary"
-                              />
-                            </div>
+                          <td className="p-3 text-center">
+                            <input
+                              type="text"
+                              value={config.notes[station.id || i.toString()] || ''}
+                              onChange={(e) =>
+                                setConfig((prev) => ({
+                                  ...prev,
+                                  notes: {
+                                    ...prev.notes,
+                                    [station.id || i.toString()]: e.target.value,
+                                  },
+                                }))
+                              }
+                              placeholder="Gel, sel..."
+                              className="w-28 px-2 py-1 text-sm bg-background border border-border rounded text-center focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
                           </td>
                         </tr>
                       ))}

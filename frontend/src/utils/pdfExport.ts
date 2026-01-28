@@ -37,12 +37,6 @@ export async function exportToPDF({ raceName, mode, element }: ExportOptions): P
   const imgWidth = A4_WIDTH - 2 * MARGIN;
   const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-  // If content is taller than one page, split across pages
-  const pageHeight = A4_HEIGHT - 2 * MARGIN;
-  let heightLeft = imgHeight;
-  let position = MARGIN;
-  let page = 1;
-
   // Add title
   const modeLabel = mode === 'runner' ? 'Coureur' : 'Assistance';
   pdf.setFontSize(16);
@@ -52,17 +46,24 @@ export async function exportToPDF({ raceName, mode, element }: ExportOptions): P
   // Add image - use JPEG with compression for smaller file size
   const imgData = canvas.toDataURL('image/jpeg', 0.85);
 
-  // First page
-  pdf.addImage(imgData, 'JPEG', MARGIN, MARGIN + 10, imgWidth, imgHeight);
-  heightLeft -= pageHeight - 10;
+  // Page dimensions
+  const pageHeight = A4_HEIGHT - 2 * MARGIN;
+  const titleOffset = 10; // Space for title on first page
 
-  // Additional pages if needed
-  while (heightLeft > 0) {
+  // Calculate how many pages we need
+  const firstPageContentHeight = pageHeight - titleOffset;
+  const remainingHeight = imgHeight - firstPageContentHeight;
+  const additionalPages = remainingHeight > 0 ? Math.ceil(remainingHeight / pageHeight) : 0;
+
+  // First page - position image starting after title
+  pdf.addImage(imgData, 'JPEG', MARGIN, MARGIN + titleOffset, imgWidth, imgHeight);
+
+  // Additional pages if needed - shift the image up to show next portion
+  for (let i = 0; i < additionalPages; i++) {
     pdf.addPage();
-    page++;
-    position = heightLeft - imgHeight;
-    pdf.addImage(imgData, 'JPEG', MARGIN, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
+    // Calculate Y position to show the correct portion of the image
+    const yOffset = -(firstPageContentHeight + i * pageHeight) + MARGIN;
+    pdf.addImage(imgData, 'JPEG', MARGIN, yOffset, imgWidth, imgHeight);
   }
 
   // Add footer with date on each page
