@@ -37,6 +37,7 @@ export function RoadbookPage() {
   const [config, setConfig] = useState<RunnerConfig>({
     departure_time: '',
     flask_capacity: 2,
+    flask_capacities: {},
     notes: {},
   });
 
@@ -118,7 +119,7 @@ export function RoadbookPage() {
       return;
     }
     setSunTimes(null);
-    setConfig((prev) => ({ ...prev, notes: {} }));
+    setConfig((prev) => ({ ...prev, notes: {}, flask_capacities: {} }));
 
     // Load full race details including gpx_content
     try {
@@ -275,15 +276,26 @@ export function RoadbookPage() {
                       onChange={(e) =>
                         setConfig((prev) => ({ ...prev, departure_time: e.target.value }))
                       }
-                      className="w-full px-4 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      onClick={(e) => {
+                        // Force open picker on Chrome Mac
+                        const input = e.target as HTMLInputElement;
+                        if (input.showPicker) {
+                          try {
+                            input.showPicker();
+                          } catch {
+                            // Ignore if already open
+                          }
+                        }
+                      }}
+                      className="w-full px-4 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                     />
                   </div>
 
-                  {/* Flask capacity */}
+                  {/* Flask capacity - default for all segments */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium mb-1">
                       <Droplets className="w-4 h-4" />
-                      Capacité eau (flasques)
+                      Flasques par défaut
                     </label>
                     <select
                       value={config.flask_capacity}
@@ -291,11 +303,11 @@ export function RoadbookPage() {
                         setConfig((prev) => ({
                           ...prev,
                           flask_capacity: parseInt(e.target.value),
+                          flask_capacities: {}, // Reset per-segment when default changes
                         }))
                       }
                       className="w-full px-4 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                     >
-                      <option value={1}>1 flasque (500ml)</option>
                       <option value={2}>2 flasques (1L)</option>
                       <option value={3}>3 flasques (1.5L)</option>
                     </select>
@@ -351,8 +363,9 @@ export function RoadbookPage() {
             </Card>
           )}
 
-          {/* Export content wrapper */}
-          <div ref={exportRef} className="space-y-6 bg-white p-4 rounded-lg">
+          {/* Export content wrapper - print-friendly theme with horizontal scroll */}
+          <div className="overflow-x-auto">
+          <div ref={exportRef} className="print-content space-y-6 bg-white p-4 rounded-lg min-w-[900px]">
           {/* Elevation Profile - show even without aid stations */}
           {selectedRace && selectedRace.gpx_content && (
             <Card>
@@ -392,6 +405,9 @@ export function RoadbookPage() {
                         <th className="text-right p-3">Km</th>
                         <th className="text-right p-3">Alt.</th>
                         <th className="text-center p-3">Type</th>
+                        <th className="text-center p-3">
+                          <Droplets className="w-4 h-4 inline" /> Flasques
+                        </th>
                         <th className="text-center p-3">Passage</th>
                         <th className="text-center p-3">Temps</th>
                         <th className="text-left p-3">
@@ -406,6 +422,24 @@ export function RoadbookPage() {
                           <td className="p-3 text-right">{station.distance_km}</td>
                           <td className="p-3 text-right">{station.elevation || '-'}</td>
                           <td className="p-3 text-center text-lg">{getStationIcon(station.type)}</td>
+                          <td className="p-3 text-center">
+                            <select
+                              value={config.flask_capacities[i] ?? config.flask_capacity}
+                              onChange={(e) =>
+                                setConfig((prev) => ({
+                                  ...prev,
+                                  flask_capacities: {
+                                    ...prev.flask_capacities,
+                                    [i]: parseInt(e.target.value),
+                                  },
+                                }))
+                              }
+                              className="px-2 py-1 text-sm bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                            >
+                              <option value={2}>2</option>
+                              <option value={3}>3</option>
+                            </select>
+                          </td>
                           <td className="p-3 text-center font-mono">{formatTime(arrival)}</td>
                           <td className="p-3 text-center text-muted-foreground">
                             +{formatDuration(timeFromStart)}
@@ -462,6 +496,7 @@ export function RoadbookPage() {
                 </CardContent>
             </Card>
           )}
+          </div>
           </div>
           {/* End export content wrapper */}
 

@@ -71,3 +71,65 @@
 .elevation-div .background {
   background-color: white;
 }
+
+/* Print-friendly roadbook styles */
+.print-content {
+  background-color: white !important;
+  color: #1a1a1a !important;
+}
+
+.print-content .card {
+  background-color: white !important;
+  border-color: #e5e5e5 !important;
+  color: #1a1a1a !important;
+}
+
+.print-content .card-header {
+  background-color: white !important;
+}
+
+.print-content .card-title {
+  color: #1a1a1a !important;
+}
+
+.print-content table {
+  color: #1a1a1a !important;
+}
+
+.print-content thead {
+  background-color: #f5f5f5 !important;
+}
+
+.print-content th,
+.print-content td {
+  color: #1a1a1a !important;
+  border-color: #e5e5e5 !important;
+}
+
+.print-content .bg-muted,
+.print-content .bg-muted\/50 {
+  background-color: #f5f5f5 !important;
+}
+
+.print-content .text-muted-foreground {
+  color: #666666 !important;
+}
+
+/* Print media query */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-content {
+    background-color: white !important;
+  }
+
+  /* Hide non-printable elements */
+  .no-print {
+    display: none !important;
+  }
+}

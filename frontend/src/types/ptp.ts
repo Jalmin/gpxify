@@ -104,7 +104,8 @@ export interface GetSunTimesResponse {
 // Runner configuration for roadbook
 export interface RunnerConfig {
   departure_time: string; // ISO datetime
-  flask_capacity: number; // 1, 2, or 3 flasks
+  flask_capacity: number; // 1, 2, or 3 flasks (default for new segments)
+  flask_capacities: Record<number, number>; // segment_index -> flask count (2 or 3)
   pace_override?: number; // km/h, optional override of Naismith
   notes: Record<string, string>; // aid_station_id -> note
 }

@@ -151,8 +151,8 @@ export function PTPElevationProfile({
           label: 'Altitude (m)',
           data: sampledPoints.map((p) => ({ x: p.distance, y: p.elevation })),
           fill: true,
-          borderColor: 'rgb(59, 130, 246)',
-          backgroundColor: 'rgba(59, 130, 246, 0.2)',
+          borderColor: '#1a1a1a',
+          backgroundColor: 'rgba(0, 0, 0, 0.08)',
           tension: 0.3,
           pointRadius: 0,
           pointHoverRadius: 4,
@@ -248,7 +248,7 @@ export function PTPElevationProfile({
     return annotations;
   }, [passageTimes, totalDistanceKm]);
 
-  // Create sun annotations
+  // Create sun annotations with night zones
   const sunAnnotations = useMemo(() => {
     if (!sunTimes || !departureTime) return {};
 
@@ -265,37 +265,84 @@ export function PTPElevationProfile({
     }
 
     // Parse sun times (format: "HH:MM:SS")
-    const parseTimeStr = (timeStr: string, nextDay = false): Date => {
+    const parseTimeStr = (timeStr: string, daysOffset = 0): Date => {
       const [h, m] = timeStr.split(':').map(Number);
       const date = new Date(departureTime);
-      if (nextDay) {
-        date.setDate(date.getDate() + 1);
-      }
+      date.setDate(date.getDate() + daysOffset);
       date.setHours(h, m, 0, 0);
       return date;
     };
 
-    const sunriseTime = parseTimeStr(sunTimes.sunrise);
-    let sunsetTime = parseTimeStr(sunTimes.sunset);
-
-    // If sunset is before departure, it's next day's sunset
-    if (sunsetTime.getTime() < departureTime.getTime()) {
-      sunsetTime = parseTimeStr(sunTimes.sunset, true);
-    }
-
-    // Calculate km at sunrise/sunset
-    const getKmAtTime = (time: Date): number | null => {
+    // Calculate km at a given time
+    const getKmAtTime = (time: Date): number => {
       const diffMs = time.getTime() - departureTime.getTime();
-      if (diffMs < 0) return null;
       const hours = diffMs / (1000 * 60 * 60);
-      const km = hours * basePaceKmH;
-      return km <= totalDistanceKm ? km : null;
+      return hours * basePaceKmH;
     };
 
-    const sunriseKm = getKmAtTime(sunriseTime);
-    const sunsetKm = getKmAtTime(sunsetTime);
+    // Get sunrise/sunset times for day 0 and day 1 (for multi-day races)
+    const sunriseDay0 = parseTimeStr(sunTimes.sunrise, 0);
+    const sunsetDay0 = parseTimeStr(sunTimes.sunset, 0);
+    const sunriseDay1 = parseTimeStr(sunTimes.sunrise, 1);
+    const sunsetDay1 = parseTimeStr(sunTimes.sunset, 1);
 
-    if (sunriseKm !== null && sunriseKm > 0) {
+    // Determine night zones based on departure time
+    const nightZones: { startKm: number; endKm: number }[] = [];
+
+    // Check if we start before sunrise (night at the beginning)
+    if (departureTime < sunriseDay0) {
+      const sunriseKm = getKmAtTime(sunriseDay0);
+      if (sunriseKm > 0 && sunriseKm <= totalDistanceKm) {
+        nightZones.push({ startKm: 0, endKm: sunriseKm });
+      } else if (sunriseKm > totalDistanceKm) {
+        // Entire race is at night before sunrise
+        nightZones.push({ startKm: 0, endKm: totalDistanceKm });
+      }
+    }
+
+    // Night after sunset day 0 until sunrise day 1 (or end of race)
+    const sunsetKm0 = getKmAtTime(sunsetDay0);
+    const sunriseKm1 = getKmAtTime(sunriseDay1);
+
+    if (sunsetKm0 >= 0 && sunsetKm0 < totalDistanceKm) {
+      // Night zone from sunset to either next sunrise or end of race
+      const nightEndKm = Math.min(sunriseKm1, totalDistanceKm);
+      if (nightEndKm > sunsetKm0) {
+        nightZones.push({ startKm: sunsetKm0, endKm: nightEndKm });
+      }
+    }
+
+    // Night after sunset day 1 (for very long races)
+    const sunsetKm1 = getKmAtTime(sunsetDay1);
+    if (sunsetKm1 >= 0 && sunsetKm1 < totalDistanceKm && sunriseKm1 < sunsetKm1) {
+      nightZones.push({ startKm: sunsetKm1, endKm: totalDistanceKm });
+    }
+
+    // Create box annotations for night zones
+    nightZones.forEach((zone, i) => {
+      annotations[`night-zone-${i}`] = {
+        type: 'box',
+        xMin: zone.startKm,
+        xMax: zone.endKm,
+        backgroundColor: 'rgba(30, 41, 59, 0.15)', // Slate-800 with transparency
+        borderWidth: 0,
+        drawTime: 'beforeDatasetsDraw',
+      };
+    });
+
+    // Calculate visible sunrise/sunset positions for labels
+    const sunriseKm = departureTime < sunriseDay0
+      ? getKmAtTime(sunriseDay0)
+      : (getKmAtTime(sunriseDay1) <= totalDistanceKm ? getKmAtTime(sunriseDay1) : null);
+
+    const sunsetKm = getKmAtTime(sunsetDay0) >= 0 && getKmAtTime(sunsetDay0) <= totalDistanceKm
+      ? getKmAtTime(sunsetDay0)
+      : (getKmAtTime(sunsetDay1) >= 0 && getKmAtTime(sunsetDay1) <= totalDistanceKm
+          ? getKmAtTime(sunsetDay1)
+          : null);
+
+    // Sunrise line and label
+    if (sunriseKm !== null && sunriseKm > 0 && sunriseKm <= totalDistanceKm) {
       annotations['sunrise-line'] = {
         type: 'line',
         xMin: sunriseKm,
@@ -319,7 +366,8 @@ export function PTPElevationProfile({
       };
     }
 
-    if (sunsetKm !== null) {
+    // Sunset line and label
+    if (sunsetKm !== null && sunsetKm >= 0 && sunsetKm <= totalDistanceKm) {
       annotations['sunset-line'] = {
         type: 'line',
         xMin: sunsetKm,
@@ -392,10 +440,15 @@ export function PTPElevationProfile({
             display: true,
             text: 'Distance (km)',
             font: { weight: 'bold' as const },
+            color: '#1a1a1a',
           },
           ticks: {
             maxTicksLimit: 15,
             callback: (value: string | number) => typeof value === 'number' ? value.toFixed(0) : value,
+            color: '#1a1a1a',
+          },
+          grid: {
+            color: 'rgba(0, 0, 0, 0.1)',
           },
         },
         y: {
@@ -404,6 +457,13 @@ export function PTPElevationProfile({
             display: true,
             text: 'Altitude (m)',
             font: { weight: 'bold' as const },
+            color: '#1a1a1a',
+          },
+          ticks: {
+            color: '#1a1a1a',
+          },
+          grid: {
+            color: 'rgba(0, 0, 0, 0.1)',
           },
         },
       },
@@ -413,7 +473,7 @@ export function PTPElevationProfile({
 
   if (points.length === 0) {
     return (
-      <div className="h-96 flex items-center justify-center text-muted-foreground">
+      <div className="h-96 flex items-center justify-center text-gray-600">
         Chargement du profil...
       </div>
     );
@@ -427,13 +487,17 @@ export function PTPElevationProfile({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 mt-4 text-sm justify-center">
+      <div className="flex flex-wrap gap-4 mt-4 text-sm justify-center text-gray-800">
         <div className="flex items-center gap-1">
-          <div className="w-4 h-0.5 bg-red-500 border-dashed border-red-500" />
+          <div className="w-4 h-0.5 bg-red-600 border-dashed border-red-600" />
           <span>Ravitaillement</span>
         </div>
         {sunTimes && (
           <>
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-4 bg-slate-800/15 border border-slate-300 rounded" />
+              <span>Nuit</span>
+            </div>
             <div className="flex items-center gap-1">
               <span>☀️</span>
               <span>Lever du soleil</span>
