@@ -18,9 +18,9 @@ export async function exportToPDF({ raceName, mode, element }: ExportOptions): P
   const A4_HEIGHT = 210;
   const MARGIN = 10;
 
-  // Create canvas from element
+  // Create canvas from element - optimized for file size
   const canvas = await html2canvas(element, {
-    scale: 2, // Higher resolution
+    scale: 1.5, // Good quality without excessive size
     useCORS: true,
     logging: false,
     backgroundColor: '#ffffff',
@@ -49,11 +49,11 @@ export async function exportToPDF({ raceName, mode, element }: ExportOptions): P
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${raceName} - Roadbook ${modeLabel}`, MARGIN, MARGIN);
 
-  // Add image
-  const imgData = canvas.toDataURL('image/png');
+  // Add image - use JPEG with compression for smaller file size
+  const imgData = canvas.toDataURL('image/jpeg', 0.85);
 
   // First page
-  pdf.addImage(imgData, 'PNG', MARGIN, MARGIN + 10, imgWidth, imgHeight);
+  pdf.addImage(imgData, 'JPEG', MARGIN, MARGIN + 10, imgWidth, imgHeight);
   heightLeft -= pageHeight - 10;
 
   // Additional pages if needed
@@ -61,7 +61,7 @@ export async function exportToPDF({ raceName, mode, element }: ExportOptions): P
     pdf.addPage();
     page++;
     position = heightLeft - imgHeight;
-    pdf.addImage(imgData, 'PNG', MARGIN, position, imgWidth, imgHeight);
+    pdf.addImage(imgData, 'JPEG', MARGIN, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
   }
 
