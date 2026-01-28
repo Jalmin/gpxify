@@ -375,7 +375,7 @@ export function RoadbookPage() {
                   Profil altimétrique
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <PTPElevationProfile
                   gpxContent={selectedRace.gpx_content}
                   passageTimes={passageTimes}
@@ -383,6 +383,26 @@ export function RoadbookPage() {
                   sunTimes={sunTimes}
                   totalDistanceKm={selectedRace.total_distance_km || 0}
                 />
+                {/* Quick summary under profile */}
+                {config.departure_time && passageTimes.length > 0 && (
+                  <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-sm border-t border-border">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Départ:</span>
+                      <span className="font-bold">{formatTime(new Date(config.departure_time))}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mountain className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Temps estimé:</span>
+                      <span className="font-bold">{formatDuration(passageTimes[passageTimes.length - 1].timeFromStart)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      <span className="text-muted-foreground">Arrivée:</span>
+                      <span className="font-bold text-primary">{formatTime(passageTimes[passageTimes.length - 1].arrival)}</span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -422,44 +442,48 @@ export function RoadbookPage() {
                           <td className="p-3 text-right">{station.distance_km}</td>
                           <td className="p-3 text-right">{station.elevation || '-'}</td>
                           <td className="p-3 text-center text-lg">{getStationIcon(station.type)}</td>
-                          <td className="p-3 text-center">
-                            <select
-                              value={config.flask_capacities[i] ?? config.flask_capacity}
-                              onChange={(e) =>
-                                setConfig((prev) => ({
-                                  ...prev,
-                                  flask_capacities: {
-                                    ...prev.flask_capacities,
-                                    [i]: parseInt(e.target.value),
-                                  },
-                                }))
-                              }
-                              className="px-2 py-1 text-sm bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
-                            >
-                              <option value={2}>2</option>
-                              <option value={3}>3</option>
-                            </select>
+                          <td className="p-3">
+                            <div className="flex justify-center">
+                              <select
+                                value={config.flask_capacities[i] ?? config.flask_capacity}
+                                onChange={(e) =>
+                                  setConfig((prev) => ({
+                                    ...prev,
+                                    flask_capacities: {
+                                      ...prev.flask_capacities,
+                                      [i]: parseInt(e.target.value),
+                                    },
+                                  }))
+                                }
+                                className="px-2 py-1 text-sm bg-background border border-border rounded text-center focus:outline-none focus:ring-1 focus:ring-primary"
+                              >
+                                <option value={2}>2</option>
+                                <option value={3}>3</option>
+                              </select>
+                            </div>
                           </td>
                           <td className="p-3 text-center font-mono">{formatTime(arrival)}</td>
                           <td className="p-3 text-center text-muted-foreground">
                             +{formatDuration(timeFromStart)}
                           </td>
                           <td className="p-3">
-                            <input
-                              type="text"
-                              value={config.notes[station.id || i.toString()] || ''}
-                              onChange={(e) =>
-                                setConfig((prev) => ({
-                                  ...prev,
-                                  notes: {
-                                    ...prev.notes,
-                                    [station.id || i.toString()]: e.target.value,
-                                  },
-                                }))
-                              }
-                              placeholder="Gel, sel, etc."
-                              className="w-full px-2 py-1 text-sm bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
-                            />
+                            <div className="flex justify-center">
+                              <input
+                                type="text"
+                                value={config.notes[station.id || i.toString()] || ''}
+                                onChange={(e) =>
+                                  setConfig((prev) => ({
+                                    ...prev,
+                                    notes: {
+                                      ...prev.notes,
+                                      [station.id || i.toString()]: e.target.value,
+                                    },
+                                  }))
+                                }
+                                placeholder="Gel, sel, etc."
+                                className="w-full max-w-[150px] px-2 py-1 text-sm bg-background border border-border rounded text-center focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -469,7 +493,7 @@ export function RoadbookPage() {
 
                 {/* Summary */}
                 <div className="mt-4 p-4 bg-muted/50 rounded-md">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Distance totale</span>
                       <div className="font-bold">{selectedRace.total_distance_km} km</div>
@@ -487,6 +511,14 @@ export function RoadbookPage() {
                       <div className="font-bold">
                         {passageTimes.length > 0
                           ? formatDuration(passageTimes[passageTimes.length - 1].timeFromStart)
+                          : '-'}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Arrivée estimée</span>
+                      <div className="font-bold">
+                        {passageTimes.length > 0
+                          ? formatTime(passageTimes[passageTimes.length - 1].arrival)
                           : '-'}
                       </div>
                     </div>
