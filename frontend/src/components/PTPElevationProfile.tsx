@@ -480,9 +480,9 @@ export function PTPElevationProfile({
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full bg-white rounded-lg">
       {/* Taller chart for stacked labels on TOP */}
-      <div className="h-[600px]">
+      <div className="h-[600px] bg-white">
         <Line data={chartData} options={options} />
       </div>
 
