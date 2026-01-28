@@ -96,7 +96,7 @@ class RaceAidStation(Base):
     elevation = Column(Integer, nullable=True)  # Altitude of the aid station
     type = Column(String(20), nullable=False)  # 'eau', 'bouffe', 'assistance'
     services = Column(ARRAY(String), nullable=True)  # ['eau', 'boissons', 'solide', 'douche']
-    cutoff_time = Column(String(10), nullable=True)  # "14:30" barrier time
+    cutoff_time = Column(String(50), nullable=True)  # "Wed 08:45 PM" barrier time
     position_order = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
