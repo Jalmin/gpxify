@@ -10,8 +10,10 @@ class ParsedRavito(BaseModel):
     """Ravito parsed from external table"""
     name: str
     distance_km: float
+    elevation: Optional[int] = None
     type: Optional[RavitoType] = None
     services: Optional[List[str]] = None
+    cutoff_time: Optional[str] = None
 
 
 class ParsedRavitoTable(BaseModel):

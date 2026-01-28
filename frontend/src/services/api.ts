@@ -272,12 +272,15 @@ export const adminApi = {
    */
   parseRavitoTable: async (tableText: string): Promise<ParsedRavitoTable> => {
     const token = adminApi.getToken();
-    const response = await apiClient.post<ParsedRavitoTable>(
+    const response = await apiClient.post<{ success: boolean; data?: ParsedRavitoTable; error?: string }>(
       '/admin/parse-ravito-table',
       { raw_text: tableText },
       { headers: { 'X-Admin-Token': token } }
     );
-    return response.data;
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error || 'Erreur de parsing');
+    }
+    return response.data.data;
   },
 };
 

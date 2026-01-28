@@ -282,6 +282,7 @@ export function AdminPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="Entrez le mot de passe admin"
+                    autoComplete="current-password"
                     autoFocus
                   />
                 </div>
@@ -353,10 +354,11 @@ export function AdminPage() {
                     <input
                       type="text"
                       value={formData.slug}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, slug: generateSlug(e.target.value) }))}
                       className="w-full px-4 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       placeholder="utmb-2025"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">Lettres minuscules, chiffres et tirets uniquement</p>
                   </div>
                 </div>
 

@@ -43,18 +43,26 @@ class PTPService:
 Extrais chaque ravitaillement avec:
 - name: Le nom du point de ravitaillement
 - distance_km: Distance en kilomètres depuis le départ (nombre décimal)
-- type: Un parmi "eau" (eau uniquement), "bouffe" (nourriture/solide disponible), "assistance" (assistance autorisée)
-- services: Liste des services disponibles (ex: ["eau", "boissons", "solide", "assistance", "douche", "lits"])
+- elevation: Altitude en mètres (entier, optionnel)
+- type: Un parmi "eau", "bouffe", ou "assistance"
+- services: Liste de services (ex: ["eau", "boissons", "solide", "assistance"])
+- cutoff_time: Barrière horaire si présente (format "HH:MM" ou le format original)
 
 Règles pour déterminer le type:
-- "eau" = uniquement eau/boissons, pas de nourriture solide
-- "bouffe" = nourriture solide disponible (barres, gels, soupes, pâtes, etc.)
-- "assistance" = l'assistance personnelle est autorisée à ce point
+- "assistance" = si l'assistance personnelle est autorisée (souvent indiqué par +4 ou plus services, ou mention explicite)
+- "bouffe" = si nourriture solide disponible (la majorité des ravitos)
+- "eau" = uniquement eau/boissons, pas de nourriture
 
-Retourne UNIQUEMENT du JSON valide dans ce format exact:
+Pour les tableaux UTMB:
+- Les colonnes "+N" dans Services indiquent le nombre de services
+- +4 ou plus = généralement ravito avec assistance
+- "Cut Off" = barrière horaire (cutoff_time)
+- "Altitude (M)" ou "Alt." = elevation
+
+IMPORTANT: Retourne UNIQUEMENT du JSON valide, rien d'autre:
 {{
   "ravitos": [
-    {{"name": "...", "distance_km": 0.0, "type": "eau|bouffe|assistance", "services": ["..."]}}
+    {{"name": "...", "distance_km": 0.0, "elevation": 1234, "type": "eau|bouffe|assistance", "services": ["..."], "cutoff_time": "HH:MM"}}
   ],
   "race_name": "..." (si détecté),
   "total_distance": 0.0 (si détecté)
@@ -91,11 +99,21 @@ Texte à parser:
                 except ValueError:
                     ravito_type = RavitoType.BOUFFE
 
+                # Parse elevation (can be int or None)
+                elevation = r.get("elevation")
+                if elevation is not None:
+                    try:
+                        elevation = int(elevation)
+                    except (ValueError, TypeError):
+                        elevation = None
+
                 ravitos.append(ParsedRavito(
                     name=r["name"],
                     distance_km=float(r["distance_km"]),
+                    elevation=elevation,
                     type=ravito_type,
-                    services=r.get("services")
+                    services=r.get("services"),
+                    cutoff_time=r.get("cutoff_time")
                 ))
 
             return ParsedRavitoTable(
