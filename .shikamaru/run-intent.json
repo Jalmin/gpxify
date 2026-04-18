@@ -1,90 +1,82 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-04-18T00:00:00Z",
+  "generatedAt": "2026-04-18T23:00:00Z",
   "project": "GPXIFY",
   "source": "shika-speccer",
-  "note": "T3.1 est a demarrer manuellement (creation compte Sentry). T3.2 et T3.3 peuvent etre executees en parallele. T3.4 depend des deux.",
+  "note": "T9.2 frontend TDD. Depend de T9.1 (merge PR #1 avant deploy prod). Aligne sur les noms de champs backend commites : calc_mode, constant_pace_kmh, trail_planner_config.",
   "tasks": [
     {
-      "id": "T3.1",
-      "title": "Setup Sentry account + SENTRY_DSN",
+      "id": "T9.2",
+      "title": "Frontend UI Trail Planner + store Zustand + schema Zod + migration localStorage",
       "status": "ready",
-      "type": "observability",
+      "type": "feature",
       "priority": "medium",
-      "parent": "T3",
-      "dependsOn": [],
-      "timeout": "30min",
+      "parent": "T9",
+      "dependsOn": ["T9.1"],
+      "timeout": "2h",
+      "branch": "shika/T9.2-trail-planner-frontend",
+      "tddStrict": true,
       "files": [
-        ".env.example",
-        ".env.production.example",
-        "ENV_VARIABLES.md",
-        "backend/app/core/config.py"
+        "frontend/src/store/useAppStore.ts",
+        "frontend/src/types/gpx.ts",
+        "frontend/src/schemas/validation.ts",
+        "frontend/src/components/AidStationTable.tsx",
+        "frontend/src/components/Dashboard/AidStationsTab.tsx",
+        "frontend/src/components/TrailPlannerForm.tsx",
+        "frontend/src/constants/presets.ts",
+        "frontend/src/components/AidStationTable.test.tsx",
+        "frontend/src/store/useAppStore.test.ts"
       ],
-      "manualAction": "Creer le projet Sentry (plan Developer, region EU)"
-    },
-    {
-      "id": "T3.2",
-      "title": "Backend Sentry integration (FastAPI + PII scrubbing)",
-      "status": "ready",
-      "type": "observability",
-      "priority": "medium",
-      "parent": "T3",
-      "dependsOn": ["T3.1"],
-      "timeout": "2h",
-      "files": [
-        "backend/requirements.txt",
-        "backend/app/core/sentry.py",
-        "backend/app/main.py",
-        "backend/tests/test_sentry_scrubber.py"
-      ]
-    },
-    {
-      "id": "T3.3",
-      "title": "Frontend Sentry integration (React + PII scrubbing)",
-      "status": "ready",
-      "type": "observability",
-      "priority": "medium",
-      "parent": "T3",
-      "dependsOn": ["T3.1"],
-      "timeout": "2h",
-      "files": [
-        "frontend/package.json",
-        "frontend/src/lib/sentry.ts",
-        "frontend/src/main.tsx",
-        "frontend/src/components/ErrorBoundary.tsx",
-        ".env.example"
-      ]
-    },
-    {
-      "id": "T3.4",
-      "title": "Release tagging + smoke test prod + doc observability",
-      "status": "ready",
-      "type": "observability",
-      "priority": "medium",
-      "parent": "T3",
-      "dependsOn": ["T3.2", "T3.3"],
-      "timeout": "1h",
-      "files": [
-        "frontend/vite.config.ts",
-        "backend/app/main.py",
-        "backend/app/core/sentry.py",
-        "docs/OBSERVABILITY.md"
-      ]
+      "apiContract": {
+        "endpoint": "POST /api/v1/gpx/aid-station-table",
+        "payloadShape": {
+          "track_points": "TrackPoint[]",
+          "aid_stations": "AidStation[]",
+          "calc_mode": "'naismith' | 'constant_pace' | 'trail_planner'",
+          "constant_pace_kmh": "number (required if calc_mode=constant_pace)",
+          "trail_planner_config": {
+            "flat_pace_kmh": "number (0 < x <= 30)",
+            "climb_penalty_min_per_100m": "number (0 <= x <= 30)",
+            "descent_bonus_min_per_100m": "number (0 <= x <= 20)",
+            "fatigue_percent_per_interval": "number (default 0, 0 <= x <= 50)",
+            "fatigue_interval_km": "number (default 20, > 0)"
+          }
+        },
+        "deprecatedField": {
+          "use_naismith": "Removed. Sending this field returns HTTP 400."
+        }
+      },
+      "storeShape": {
+        "calcMode": "'naismith' | 'constant_pace' | 'trail_planner'",
+        "constantPaceKmh": "number | null",
+        "trailPlannerConfig": "TrailPlannerConfig | null",
+        "migration": {
+          "fromVersion": "unversioned (v1)",
+          "toVersion": 2,
+          "rules": [
+            "useNaismith=true -> calcMode='naismith', trailPlannerConfig=null",
+            "useNaismith=false + customPace='10' -> calcMode='constant_pace', constantPaceKmh=10"
+          ]
+        }
+      },
+      "preset": {
+        "trail-moyen": {
+          "flat_pace_kmh": 10,
+          "climb_penalty_min_per_100m": 6,
+          "descent_bonus_min_per_100m": 3,
+          "fatigue_percent_per_interval": 5,
+          "fatigue_interval_km": 20
+        }
+      }
     }
   ],
   "decisions": {
-    "plan": "sentry-developer-free",
-    "sampling": {
-      "errors": 1.0,
-      "tracesSampleRate": 0.05
+    "api": {
+      "calcModeEnum": true,
+      "deprecatedUseNaismith": "HTTP 400"
     },
-    "piiScrubbing": {
-      "level": "maximal",
-      "denyListKeys": ["lat", "lon", "elevation", "track_data", "points"],
-      "stripBodyPatterns": ["/api/v1/gpx/*", "/api/v1/share/*"],
-      "stripIp": true
-    },
-    "environments": ["production"],
-    "releaseTagging": "git-sha"
+    "fatigue": "linear-progressive",
+    "scope": ["dashboard"],
+    "envs": ["production"]
   }
 }
