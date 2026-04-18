@@ -1,8 +1,26 @@
 """
 GPX data models (Pydantic schemas for API)
 """
+from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel
+from fastapi import HTTPException
+from pydantic import BaseModel, Field, model_validator
+
+
+class CalcMode(str, Enum):
+    """Time estimation mode for aid station table."""
+    NAISMITH = "naismith"
+    CONSTANT_PACE = "constant_pace"
+    TRAIL_PLANNER = "trail_planner"
+
+
+class TrailPlannerConfig(BaseModel):
+    """User-tunable parameters for the Trail Planner calc mode."""
+    flat_pace_kmh: float = Field(..., gt=0, le=30)
+    climb_penalty_min_per_100m: float = Field(..., ge=0, le=30)
+    descent_bonus_min_per_100m: float = Field(..., ge=0, le=20)
+    fatigue_percent_per_interval: float = Field(default=0, ge=0, le=50)
+    fatigue_interval_km: float = Field(default=20, gt=0)
 
 
 class Coordinate(BaseModel):
@@ -136,11 +154,43 @@ class AidStationSegment(BaseModel):
 
 
 class AidStationTableRequest(BaseModel):
-    """Request to generate aid station table"""
+    """Request to generate aid station table.
+
+    Supports three time-estimation modes via `calc_mode`:
+    - NAISMITH (default): modified Naismith rule for trail running
+    - CONSTANT_PACE: flat km/h pace, requires `constant_pace_kmh`
+    - TRAIL_PLANNER: 4 tunable parameters, requires `trail_planner_config`
+    """
     track_points: List[TrackPoint]
-    aid_stations: List[AidStation]  # Ordered list of aid stations with km markers
-    use_naismith: bool = True  # Use Naismith formula for time estimation
-    custom_pace_kmh: Optional[float] = None  # Custom pace in km/h (overrides Naismith)
+    aid_stations: List[AidStation]
+    calc_mode: CalcMode = CalcMode.NAISMITH
+    constant_pace_kmh: Optional[float] = Field(default=None, gt=0)
+    trail_planner_config: Optional[TrailPlannerConfig] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_deprecated_fields(cls, data):
+        if isinstance(data, dict) and "use_naismith" in data:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Field 'use_naismith' is deprecated. "
+                    "Use 'calc_mode' enum: 'naismith' | 'constant_pace' | 'trail_planner'."
+                ),
+            )
+        return data
+
+    @model_validator(mode="after")
+    def _enforce_calc_mode_coherence(self):
+        if self.calc_mode == CalcMode.CONSTANT_PACE and self.constant_pace_kmh is None:
+            raise ValueError(
+                "constant_pace_kmh is required when calc_mode=constant_pace"
+            )
+        if self.calc_mode == CalcMode.TRAIL_PLANNER and self.trail_planner_config is None:
+            raise ValueError(
+                "trail_planner_config is required when calc_mode=trail_planner"
+            )
+        return self
 
 
 class AidStationTableResponse(BaseModel):

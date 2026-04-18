@@ -9,10 +9,12 @@ import gpxpy.gpx
 from typing import List, Optional, Tuple
 
 from app.models.gpx import (
-    GPXData,
-    TrackPoint,
     AidStation,
     AidStationTableResponse,
+    CalcMode,
+    GPXData,
+    TrackPoint,
+    TrailPlannerConfig,
 )
 from app.services.gpx_parse_service import GPXParseService
 from app.services.gpx_export_service import GPXExportService
@@ -144,21 +146,23 @@ class GPXParser:
     def generate_aid_station_table(
         points: List[TrackPoint],
         aid_stations: List[AidStation],
-        use_naismith: bool = True,
-        custom_pace_kmh: Optional[float] = None
+        calc_mode: CalcMode = CalcMode.NAISMITH,
+        constant_pace_kmh: Optional[float] = None,
+        trail_planner_config: Optional[TrailPlannerConfig] = None,
     ) -> AidStationTableResponse:
-        """
-        Generate aid station table with segment statistics and time estimates
+        """Generate aid station table with segment statistics and time estimates.
 
         Args:
-            points: Track points with distance and elevation
-            aid_stations: List of aid stations with km markers
-            use_naismith: Use Naismith formula (True) or custom pace (False)
-            custom_pace_kmh: Custom pace in km/h if not using Naismith
-
-        Returns:
-            AidStationTableResponse with segments and statistics
+            points: Track points with distance and elevation.
+            aid_stations: Ordered list of aid stations (at least 2).
+            calc_mode: Time estimation mode. Defaults to NAISMITH.
+            constant_pace_kmh: Required when calc_mode=CONSTANT_PACE.
+            trail_planner_config: Required when calc_mode=TRAIL_PLANNER.
         """
         return AidStationService.generate_aid_station_table(
-            points, aid_stations, use_naismith, custom_pace_kmh
+            points=points,
+            aid_stations=aid_stations,
+            calc_mode=calc_mode,
+            constant_pace_kmh=constant_pace_kmh,
+            trail_planner_config=trail_planner_config,
         )
