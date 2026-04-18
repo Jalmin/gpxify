@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-04-18T00:00:00Z",
+  "project": "GPXIFY",
+  "type": "fullstack",
+  "category": "fullstack",
+  "sources": [
+    { "path": ".claude/CLAUDE.md", "type": "context", "priority": 1, "summary": "Constitution projet (stack, conventions, etat sprints)" },
+    { "path": "SPEC.md", "type": "spec", "priority": 1, "summary": "Specification fonctionnelle et technique" },
+    { "path": "TASKS.md", "type": "tasks", "priority": 1, "summary": "Backlog + historique" },
+    { "path": "AGENTS.md", "type": "memory", "priority": 2, "summary": "Learnings et erreurs connues inter-sessions" },
+    { "path": "ROADMAP.md", "type": "roadmap", "priority": 2, "summary": "Now/Next/Later" },
+    { "path": "DECISIONS.md", "type": "decisions", "priority": 2, "summary": "Arbitrages techniques et rationale" },
+    { "path": "ARCHITECTURE.md", "type": "context", "priority": 3, "summary": "Architecture detaillee (existant)" },
+    { "path": ".claude/rules/", "type": "rules", "priority": 2, "summary": "Regles detaillees (code-style, testing, security, api-design, database, git-workflow)" }
+  ],
+  "patterns": [
+    "env-config",
+    "testing-framework",
+    "docker-deployment",
+    "ci-cd"
+  ],
+  "stack": {
+    "frontend": {
+      "lang": "typescript",
+      "framework": "react@18.3",
+      "build": "vite@5.4",
+      "styling": "tailwindcss@3.4",
+      "state": "zustand@5.0",
+      "testing": "vitest@2.1"
+    },
+    "backend": {
+      "lang": "python@3.11",
+      "framework": "fastapi@0.115",
+      "orm": "sqlalchemy@2.0",
+      "db": "postgresql",
+      "migrations": "alembic@1.13",
+      "testing": "pytest@8.3"
+    },
+    "infra": {
+      "containers": "docker-multistage",
+      "orchestration": "docker-compose",
+      "proxy": "nginx-alpine",
+      "deployment": "coolify-compatible"
+    }
+  }
+}

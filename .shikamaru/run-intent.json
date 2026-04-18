@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-04-18T00:00:00Z",
+  "project": "GPXIFY",
+  "source": "shika-speccer",
+  "note": "T3.1 est a demarrer manuellement (creation compte Sentry). T3.2 et T3.3 peuvent etre executees en parallele. T3.4 depend des deux.",
+  "tasks": [
+    {
+      "id": "T3.1",
+      "title": "Setup Sentry account + SENTRY_DSN",
+      "status": "ready",
+      "type": "observability",
+      "priority": "medium",
+      "parent": "T3",
+      "dependsOn": [],
+      "timeout": "30min",
+      "files": [
+        ".env.example",
+        ".env.production.example",
+        "ENV_VARIABLES.md",
+        "backend/app/core/config.py"
+      ],
+      "manualAction": "Creer le projet Sentry (plan Developer, region EU)"
+    },
+    {
+      "id": "T3.2",
+      "title": "Backend Sentry integration (FastAPI + PII scrubbing)",
+      "status": "ready",
+      "type": "observability",
+      "priority": "medium",
+      "parent": "T3",
+      "dependsOn": ["T3.1"],
+      "timeout": "2h",
+      "files": [
+        "backend/requirements.txt",
+        "backend/app/core/sentry.py",
+        "backend/app/main.py",
+        "backend/tests/test_sentry_scrubber.py"
+      ]
+    },
+    {
+      "id": "T3.3",
+      "title": "Frontend Sentry integration (React + PII scrubbing)",
+      "status": "ready",
+      "type": "observability",
+      "priority": "medium",
+      "parent": "T3",
+      "dependsOn": ["T3.1"],
+      "timeout": "2h",
+      "files": [
+        "frontend/package.json",
+        "frontend/src/lib/sentry.ts",
+        "frontend/src/main.tsx",
+        "frontend/src/components/ErrorBoundary.tsx",
+        ".env.example"
+      ]
+    },
+    {
+      "id": "T3.4",
+      "title": "Release tagging + smoke test prod + doc observability",
+      "status": "ready",
+      "type": "observability",
+      "priority": "medium",
+      "parent": "T3",
+      "dependsOn": ["T3.2", "T3.3"],
+      "timeout": "1h",
+      "files": [
+        "frontend/vite.config.ts",
+        "backend/app/main.py",
+        "backend/app/core/sentry.py",
+        "docs/OBSERVABILITY.md"
+      ]
+    }
+  ],
+  "decisions": {
+    "plan": "sentry-developer-free",
+    "sampling": {
+      "errors": 1.0,
+      "tracesSampleRate": 0.05
+    },
+    "piiScrubbing": {
+      "level": "maximal",
+      "denyListKeys": ["lat", "lon", "elevation", "track_data", "points"],
+      "stripBodyPatterns": ["/api/v1/gpx/*", "/api/v1/share/*"],
+      "stripIp": true
+    },
+    "environments": ["production"],
+    "releaseTagging": "git-sha"
+  }
+}
