@@ -3,7 +3,7 @@ Unit tests for GPX Parser service
 """
 import pytest
 from app.services.gpx_parser import GPXParser
-from app.models.gpx import AidStation
+from app.models.gpx import AidStation, CalcMode
 
 
 class TestGPXParser:
@@ -57,7 +57,7 @@ class TestGPXParser:
         result = GPXParser.generate_aid_station_table(
             points=points,
             aid_stations=aid_stations,
-            use_naismith=True
+            calc_mode=CalcMode.NAISMITH,
         )
 
         # 1km at 12 km/h = 5 minutes
@@ -81,8 +81,8 @@ class TestGPXParser:
         result = GPXParser.generate_aid_station_table(
             points=points,
             aid_stations=aid_stations,
-            use_naismith=False,
-            custom_pace_kmh=10.0
+            calc_mode=CalcMode.CONSTANT_PACE,
+            constant_pace_kmh=10.0,
         )
 
         # 1km at 10 km/h = 6 minutes
@@ -119,7 +119,7 @@ class TestAidStationTable:
         table_result = GPXParser.generate_aid_station_table(
             points=points,
             aid_stations=aid_stations,
-            use_naismith=True
+            calc_mode=CalcMode.NAISMITH,
         )
 
         # Should have 2 segments

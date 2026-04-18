@@ -265,8 +265,9 @@ async def generate_aid_station_table(request: Request, table_request: AidStation
         result = GPXParser.generate_aid_station_table(
             points=table_request.track_points,
             aid_stations=table_request.aid_stations,
-            use_naismith=table_request.use_naismith,
-            custom_pace_kmh=table_request.custom_pace_kmh
+            calc_mode=table_request.calc_mode,
+            constant_pace_kmh=table_request.constant_pace_kmh,
+            trail_planner_config=table_request.trail_planner_config,
         )
 
         return result
