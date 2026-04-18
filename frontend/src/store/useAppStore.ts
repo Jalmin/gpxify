@@ -3,7 +3,12 @@
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Track, AidStationTableResponse } from '../types/gpx';
+import type {
+  Track,
+  AidStationTableResponse,
+  CalcMode,
+  TrailPlannerConfig,
+} from '../types/gpx';
 
 export interface GPXFileData {
   id: string;
@@ -18,10 +23,19 @@ export interface AidStation {
 
 export interface AidStationTableState {
   aidStations: AidStation[];
-  useNaismith: boolean;
-  customPace: string;
+  calcMode: CalcMode;
+  constantPaceKmh: number | null;
+  trailPlannerConfig: TrailPlannerConfig | null;
   tableResult: AidStationTableResponse | null;
 }
+
+export const DEFAULT_AID_STATION_TABLE_STATE: AidStationTableState = {
+  aidStations: [],
+  calcMode: 'naismith',
+  constantPaceKmh: null,
+  trailPlannerConfig: null,
+  tableResult: null,
+};
 
 interface AppState {
   // GPX Files
@@ -54,6 +68,52 @@ interface AppState {
   setActiveTab: (tab: 'analyze' | 'merge' | 'aid-stations' | 'race-recovery') => void;
 }
 
+export const AID_STATION_TABLE_STATE_VERSION = 2;
+
+/**
+ * Migrate persisted state from the pre-calcMode schema (v1 or unversioned)
+ * to v2. Idempotent and safe when called with unknown shapes.
+ *
+ * v1 shape: { useNaismith: boolean, customPace: string, ... }
+ * v2 shape: { calcMode, constantPaceKmh, trailPlannerConfig, ... }
+ */
+export function migrateAidStationTableState(
+  raw: unknown,
+): AidStationTableState {
+  const obj = (raw ?? {}) as Record<string, unknown>;
+
+  // Already migrated (v2) — trust and pass through with defaults for missing keys.
+  if (typeof obj.calcMode === 'string') {
+    return {
+      ...DEFAULT_AID_STATION_TABLE_STATE,
+      ...(obj as Partial<AidStationTableState>),
+    };
+  }
+
+  // v1 / unversioned — derive new shape from legacy fields.
+  const useNaismith = obj.useNaismith;
+  const customPaceRaw = obj.customPace;
+  const parsedPace =
+    typeof customPaceRaw === 'string'
+      ? parseFloat(customPaceRaw)
+      : typeof customPaceRaw === 'number'
+        ? customPaceRaw
+        : NaN;
+
+  const wasConstantPace = useNaismith === false;
+
+  return {
+    aidStations: Array.isArray(obj.aidStations)
+      ? (obj.aidStations as AidStation[])
+      : [],
+    calcMode: wasConstantPace ? 'constant_pace' : 'naismith',
+    constantPaceKmh:
+      wasConstantPace && Number.isFinite(parsedPace) ? parsedPace : null,
+    trailPlannerConfig: null,
+    tableResult: (obj.tableResult as AidStationTableResponse) ?? null,
+  };
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
@@ -61,12 +121,7 @@ export const useAppStore = create<AppState>()(
       files: [],
       selectedFileId: null,
       aidStations: [],
-      aidStationTable: {
-        aidStations: [],
-        useNaismith: true,
-        customPace: '12',
-        tableResult: null,
-      },
+      aidStationTable: DEFAULT_AID_STATION_TABLE_STATE,
       activeTab: 'analyze',
 
       // File actions
@@ -140,8 +195,20 @@ export const useAppStore = create<AppState>()(
         })),
     }),
     {
-      name: 'gpxify-storage', // LocalStorage key
-      // Only persist files and aid stations, not UI state
+      name: 'gpxify-storage',
+      version: AID_STATION_TABLE_STATE_VERSION,
+      migrate: (persistedState, fromVersion) => {
+        // Always pass the aidStationTable sub-object through the migrator.
+        // Works for any prior version, including unversioned v1.
+        const state = (persistedState ?? {}) as Record<string, unknown>;
+        if (fromVersion < AID_STATION_TABLE_STATE_VERSION) {
+          return {
+            ...state,
+            aidStationTable: migrateAidStationTableState(state.aidStationTable),
+          };
+        }
+        return state;
+      },
       partialize: (state) => ({
         files: state.files,
         selectedFileId: state.selectedFileId,

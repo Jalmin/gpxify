@@ -8,7 +8,7 @@ import { Marketing } from './pages/Marketing';
 import { AdminPage } from './pages/AdminPage';
 import { RoadbookPage } from './pages/RoadbookPage';
 import { WorkspaceLayout } from './layouts/WorkspaceLayout';
-import { useAppStore } from './store/useAppStore';
+import { useAppStore, migrateAidStationTableState } from './store/useAppStore';
 
 function App() {
   const location = useLocation();
@@ -29,9 +29,13 @@ function App() {
     }
 
     if (state.aidStationTable) {
-      setAidStationTable(state.aidStationTable);
-      if (state.aidStationTable.aidStations) {
-        setAidStations(state.aidStationTable.aidStations);
+      // Normalize through the same migration used for persisted localStorage,
+      // so shared links created with the v1 shape (useNaismith/customPace)
+      // still load cleanly into the new calc_mode store.
+      const normalized = migrateAidStationTableState(state.aidStationTable);
+      setAidStationTable(normalized);
+      if (normalized.aidStations) {
+        setAidStations(normalized.aidStations);
       }
     }
 

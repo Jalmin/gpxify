@@ -46,19 +46,58 @@ export const AidStationSchema = z.object({
 export type AidStationInput = z.infer<typeof AidStationSchema>;
 
 /**
+ * Trail Planner Configuration Validation
+ * Mirrors the backend Pydantic TrailPlannerConfig constraints.
+ */
+export const TrailPlannerConfigSchema = z.object({
+  flat_pace_kmh: z
+    .number()
+    .gt(0, "L'allure sur plat doit être > 0 km/h")
+    .lte(30, "L'allure sur plat ne peut pas dépasser 30 km/h"),
+  climb_penalty_min_per_100m: z
+    .number()
+    .gte(0, 'La pénalité de montée doit être ≥ 0')
+    .lte(30, 'La pénalité de montée ne peut pas dépasser 30 min/100m'),
+  descent_bonus_min_per_100m: z
+    .number()
+    .gte(0, 'Le bonus descente doit être ≥ 0')
+    .lte(20, 'Le bonus descente ne peut pas dépasser 20 min/100m'),
+  fatigue_percent_per_interval: z
+    .number()
+    .gte(0, 'Le facteur fatigue doit être ≥ 0')
+    .lte(50, 'Le facteur fatigue ne peut pas dépasser 50%'),
+  fatigue_interval_km: z
+    .number()
+    .gt(0, "L'intervalle fatigue doit être > 0 km"),
+});
+
+export type TrailPlannerConfigInput = z.infer<typeof TrailPlannerConfigSchema>;
+
+/**
+ * Calc config discriminated by `calc_mode` — matches backend API contract.
+ */
+export const CalcConfigSchema = z.discriminatedUnion('calc_mode', [
+  z.object({ calc_mode: z.literal('naismith') }),
+  z.object({
+    calc_mode: z.literal('constant_pace'),
+    constant_pace_kmh: z
+      .number()
+      .gt(0, "L'allure doit être > 0 km/h")
+      .lte(30, "L'allure ne peut pas dépasser 30 km/h"),
+  }),
+  z.object({
+    calc_mode: z.literal('trail_planner'),
+    trail_planner_config: TrailPlannerConfigSchema,
+  }),
+]);
+
+export type CalcConfigInput = z.infer<typeof CalcConfigSchema>;
+
+/**
  * Aid Station Table Configuration Validation
  */
 export const AidStationTableConfigSchema = z.object({
-  useNaismith: z.boolean(),
-  customPace: z
-    .string()
-    .regex(/^\d+(\.\d+)?$/, 'Le rythme doit être un nombre')
-    .refine((val) => parseFloat(val) >= 1, {
-      message: 'Le rythme doit être au moins 1 min/km',
-    })
-    .refine((val) => parseFloat(val) <= 60, {
-      message: 'Le rythme ne peut pas dépasser 60 min/km',
-    }),
+  calcConfig: CalcConfigSchema,
   aidStations: z
     .array(AidStationSchema)
     .min(1, 'Au moins un ravitaillement est requis')
