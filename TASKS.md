@@ -184,7 +184,9 @@ lastUpdated: 2026-04-18
 ---
 
 ### T9.1: [TDD] Backend TimeCalculator trail_planner + migration API enum `calc_mode`
-**status:** ready
+**status:** committed (PR ouvert)
+**PR:** https://github.com/Jalmin/gpxify/pull/1
+**branch:** shika/T9.1-trail-planner-backend
 **type:** feature
 **priority:** medium
 **parent:** T9
@@ -272,7 +274,9 @@ lastUpdated: 2026-04-18
 ---
 
 ### T9.2: [TDD] Frontend UI AidStationTable + store + schema Zod (mode Trail Planner)
-**status:** ready
+**status:** committed (PR ouvert, inclut T13+T14)
+**PR:** https://github.com/Jalmin/gpxify/pull/2
+**branch:** shika/T9.2-trail-planner-frontend
 **type:** feature
 **priority:** medium
 **parent:** T9
@@ -359,7 +363,9 @@ lastUpdated: 2026-04-18
 ---
 
 ### T9.3: Doc FAQ + tooltip + reponse a Paul
-**status:** ready
+**status:** committed (PR ouvert, reply Paul a envoyer manuellement)
+**PR:** https://github.com/Jalmin/gpxify/pull/3
+**branch:** shika/T9.3-faq-doc
 **type:** doc
 **priority:** low
 **parent:** T9
@@ -503,7 +509,9 @@ R: Trois modes de calcul des temps de passage :
 ## Review follow-ups (issu de /shika-review 2026-04-19 sur PRs #1-3)
 
 ### T10: [infra] Fix conftest SQLite ARRAY — debloquer les tests API
-**status:** ready
+**status:** committed (PR ouvert)
+**PR:** https://github.com/Jalmin/gpxify/pull/4
+**branch:** shika/T10-fix-conftest-sqlite-array
 **type:** infra
 **priority:** high
 **origin:** /shika-review 2026-04-19 (Issue 1 + Issue 8, P1 + P2)
@@ -535,7 +543,8 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ### T11: [doc] Documenter le fix incident `total_time_minutes` dans PR #1
-**status:** ready
+**status:** done (PR body edite)
+**Completed:** 2026-04-19
 **type:** doc
 **priority:** high
 **origin:** /shika-review 2026-04-19 (Issue 2, P1)
@@ -558,7 +567,8 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ### T12: [backend] Ajouter borne superieure a `constant_pace_kmh` (parite frontend)
-**status:** ready
+**status:** committed (integre dans PR #1)
+**PR:** https://github.com/Jalmin/gpxify/pull/1 (commit d2dd58f)
 **type:** quality
 **priority:** medium
 **origin:** /shika-review 2026-04-19 (Issue 3, P2)
@@ -578,7 +588,8 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ### T13: [frontend] Fix UX `constantPaceInput` quand legacy value est null
-**status:** ready
+**status:** committed (integre dans PR #2)
+**PR:** https://github.com/Jalmin/gpxify/pull/2 (commit d4ca9b1)
 **type:** ux
 **priority:** medium
 **origin:** /shika-review 2026-04-19 (Issue 4, P2)
@@ -601,7 +612,8 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ### T14: [frontend] Wire `CalcConfigSchema.parse()` dans buildRequest (belt-and-braces)
-**status:** ready
+**status:** committed (integre dans PR #2)
+**PR:** https://github.com/Jalmin/gpxify/pull/2 (commit d4ca9b1)
 **type:** quality
 **priority:** medium
 **origin:** /shika-review 2026-04-19 (Issue 5, P2)
@@ -624,7 +636,9 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ### T15: [cleanup] `git rm frontend/src/App.tsx.backup`
-**status:** ready
+**status:** committed (PR ouvert)
+**PR:** https://github.com/Jalmin/gpxify/pull/5
+**branch:** shika/T15-rm-app-backup
 **type:** cleanup
 **priority:** low
 **origin:** /shika-review 2026-04-19 (Issue 6, P2)
@@ -645,7 +659,8 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ### T16: [backend] Commentaire inline sur le modele fatigue km-debut-segment
-**status:** ready
+**status:** committed (integre dans PR #1)
+**PR:** https://github.com/Jalmin/gpxify/pull/1 (commit d2dd58f)
 **type:** doc
 **priority:** low
 **origin:** /shika-review 2026-04-19 (Issue 7, P2)
