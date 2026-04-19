@@ -60,6 +60,11 @@ htmlcov/
 *.log
 logs/
 
+# Editor/local backup files
+*.backup
+*.bak
+*.orig
+
 # Test data (personal GPX files)
 Sauvemacourse-test/
 
