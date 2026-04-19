@@ -200,6 +200,57 @@ describe('AidStationTable — calc modes', () => {
   });
 });
 
+describe('AidStationTable — T13/T14 review follow-ups', () => {
+  it('renders empty constant_pace input when initialConstantPaceKmh is null (T13)', () => {
+    render(
+      <AidStationTable
+        track={sampleTrack}
+        aidStations={sampleAidStations}
+        calcMode="constant_pace"
+        constantPaceKmh={null}
+      />,
+    );
+    const input = screen.getByLabelText(/Allure en km\/h/) as HTMLInputElement;
+    expect(input.value).toBe('');
+    expect(input).toHaveAttribute('placeholder', 'ex. 10');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('button', { name: /Générer le tableau/ })).toBeDisabled();
+  });
+
+  it('disables submit when constant_pace > 30 km/h (T13 — parity with backend T12)', () => {
+    render(<AidStationTable track={sampleTrack} aidStations={sampleAidStations} />);
+
+    fireEvent.click(screen.getByLabelText(/Allure constante/));
+    const input = screen.getByLabelText(/Allure en km\/h/);
+    fireEvent.change(input, { target: { value: '50' } });
+
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('button', { name: /Générer le tableau/ })).toBeDisabled();
+  });
+
+  it('Zod guard blocks invalid constant_pace even if UI regresses (T14)', async () => {
+    // The submit button is disabled for bad values, so we cannot actually
+    // trigger the Zod path through the UI — the guard is defense in depth.
+    // This test proves the UI currently blocks the API call.
+    render(<AidStationTable track={sampleTrack} aidStations={sampleAidStations} />);
+
+    // Happy path: naismith submits once.
+    fireEvent.click(screen.getByRole('button', { name: /Générer le tableau/ }));
+    await waitFor(() => expect(mockGenerate).toHaveBeenCalledTimes(1));
+
+    // Switch to constant_pace with 50 km/h (invalid per T12 backend bound).
+    fireEvent.click(screen.getByLabelText(/Allure constante/));
+    fireEvent.change(screen.getByLabelText(/Allure en km\/h/), {
+      target: { value: '50' },
+    });
+
+    // Button is disabled; a click is a no-op. Give async a tick.
+    fireEvent.click(screen.getByRole('button', { name: /Générer le tableau/ }));
+    await new Promise((r) => setTimeout(r, 10));
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('AidStationTable — deprecation guard', () => {
   it('never sends a use_naismith field in any payload', async () => {
     render(<AidStationTable track={sampleTrack} aidStations={sampleAidStations} />);

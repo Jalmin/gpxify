@@ -14,6 +14,7 @@ import {
 } from '@/types/gpx';
 import { gpxApi } from '@/services/api';
 import { TrailPlannerForm, isTrailPlannerConfigValid } from './TrailPlannerForm';
+import { CalcConfigSchema, getFirstZodError } from '@/schemas/validation';
 
 interface AidStationTableProps {
   track: Track | null;
@@ -47,8 +48,12 @@ export function AidStationTable({
   const [constantPaceKmh, setConstantPaceKmh] = useState<number | null>(
     initialConstantPaceKmh,
   );
+  // When a legacy share URL or v1-migrated state comes in with null, we
+  // render an empty input (not the old "12" fallback) so the user
+  // immediately sees that a pace must be entered — matches the greyed-out
+  // submit state.
   const [constantPaceInput, setConstantPaceInput] = useState<string>(
-    initialConstantPaceKmh !== null ? String(initialConstantPaceKmh) : '12',
+    initialConstantPaceKmh !== null ? String(initialConstantPaceKmh) : '',
   );
   const [trailPlannerConfig, setTrailPlannerConfig] =
     useState<TrailPlannerConfig | null>(initialTrailPlannerConfig);
@@ -110,8 +115,13 @@ export function AidStationTable({
     };
 
     if (calcMode === 'constant_pace') {
-      if (constantPaceKmh === null || !Number.isFinite(constantPaceKmh) || constantPaceKmh <= 0) {
-        return { error: "Renseignez une allure (km/h) valide" };
+      if (
+        constantPaceKmh === null ||
+        !Number.isFinite(constantPaceKmh) ||
+        constantPaceKmh <= 0 ||
+        constantPaceKmh > 30
+      ) {
+        return { error: "Renseignez une allure (km/h) valide (entre 0 et 30)" };
       }
       base.constant_pace_kmh = constantPaceKmh;
     }
@@ -125,6 +135,22 @@ export function AidStationTable({
       base.trail_planner_config = trailPlannerConfig;
     }
 
+    // Belt-and-braces: mirror the backend Pydantic validation with Zod
+    // before sending. Catches bugs where the UI lets a bad value through
+    // (e.g. someone edits constantPaceKmh via devtools or a future form
+    // regression) and returns a friendly French message instead of a 422.
+    const calcConfig =
+      calcMode === 'naismith'
+        ? { calc_mode: 'naismith' as const }
+        : calcMode === 'constant_pace'
+          ? { calc_mode: 'constant_pace' as const, constant_pace_kmh: base.constant_pace_kmh! }
+          : { calc_mode: 'trail_planner' as const, trail_planner_config: base.trail_planner_config! };
+
+    const zodResult = CalcConfigSchema.safeParse(calcConfig);
+    if (!zodResult.success) {
+      return { error: getFirstZodError(zodResult.error) };
+    }
+
     return base;
   };
 
@@ -135,7 +161,8 @@ export function AidStationTable({
       return (
         constantPaceKmh === null ||
         !Number.isFinite(constantPaceKmh) ||
-        constantPaceKmh <= 0
+        constantPaceKmh <= 0 ||
+        constantPaceKmh > 30
       );
     }
     if (calcMode === 'trail_planner') {
@@ -383,15 +410,26 @@ export function AidStationTable({
                 <input
                   type="number"
                   step="0.1"
+                  min={0.1}
+                  max={30}
                   value={constantPaceInput}
                   onChange={(e) => handleConstantPaceChange(e.target.value)}
+                  placeholder="ex. 10"
                   aria-label="Allure en km/h"
                   aria-invalid={
                     constantPaceKmh === null ||
                     !Number.isFinite(constantPaceKmh) ||
-                    constantPaceKmh <= 0
+                    constantPaceKmh <= 0 ||
+                    constantPaceKmh > 30
                   }
-                  className="w-20 px-2 py-1 bg-background border border-border rounded text-sm"
+                  className={`w-20 px-2 py-1 bg-background border rounded text-sm ${
+                    constantPaceKmh === null ||
+                    !Number.isFinite(constantPaceKmh) ||
+                    constantPaceKmh <= 0 ||
+                    constantPaceKmh > 30
+                      ? 'border-destructive'
+                      : 'border-border'
+                  }`}
                 />
                 <span className="text-sm">km/h</span>
               </>
