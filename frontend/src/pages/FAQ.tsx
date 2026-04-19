@@ -20,7 +20,7 @@ export function FAQ() {
     },
     {
       question: 'Comment créer un tableau de ravitaillement pour une course ?',
-      answer: 'Pour créer un tableau de prévisions : 1) Uploadez votre fichier GPX de parcours. 2) Cliquez sur l\'onglet "Prévisions". 3) Sélectionnez le fichier GPX à utiliser. 4) Ajoutez les ravitaillements en indiquant leur nom et leur position kilométrique. 5) Choisissez la méthode de calcul (formule de Naismith recommandée pour le trail, ou allure personnalisée). 6) Générez le tableau pour voir les statistiques entre chaque ravitaillement (distance, D+, D-, temps estimé). 7) Exportez en CSV si besoin.',
+      answer: 'Pour créer un tableau de prévisions : 1) Uploadez votre fichier GPX de parcours. 2) Cliquez sur l\'onglet "Prévisions". 3) Sélectionnez le fichier GPX à utiliser. 4) Ajoutez les ravitaillements en indiquant leur nom et leur position kilométrique. 5) Choisissez un des 3 modes de calcul : Naismith (auto, adapté trail), Allure constante (vitesse unique), ou Trail Planner (4 paramètres ajustables). 6) Générez le tableau pour voir les statistiques entre chaque ravitaillement (distance, D+, D-, temps estimé). 7) Exportez en CSV si besoin.',
     },
     {
       question: 'Quels formats de fichiers sont supportés ?',
@@ -37,6 +37,10 @@ export function FAQ() {
     {
       question: 'Comment fonctionne la formule de Naismith pour les prévisions ?',
       answer: 'La formule de Naismith est une méthode classique pour estimer le temps de marche/course en montagne. Elle considère : une vitesse de base de 12 km/h sur le plat, ajoute 5 minutes par 100m de dénivelé positif, et retire 5 minutes par 100m de dénivelé négatif sur les pentes raides (>12%). C\'est une estimation conservative adaptée au trail et à la randonnée.',
+    },
+    {
+      question: 'Quelle est la différence entre Naismith, Allure constante et Trail Planner ?',
+      answer: 'Trois modes de calcul sont disponibles dans le tableau de ravitaillement. 1) Naismith (par défaut) — formule classique adaptée au trail : 12 km/h sur plat, +5 min par 100m D+, bonus sur pentes raides. Estimation conservative mais souvent rapide pour les allures rando ou ultra. 2) Allure constante — une seule vitesse moyenne en km/h, sans ajustement dénivelé. Utile si vous avez déjà votre allure cible. 3) Trail Planner — 4 paramètres ajustables pour coller au plus près de votre profil : allure sur plat (km/h), pénalité de montée (min / 100m D+), bonus descente (min / 100m D-), et facteur de fatigue progressif (+X% toutes les N km). Un preset "Trail moyen" est fourni (10 km/h plat, +6min/100m, -3min/100m, +5% toutes les 20km) — vous pouvez ensuite ajuster chaque valeur selon vos sensations.',
     },
     {
       question: 'Puis-je réorganiser l\'ordre de mes fichiers GPX ?',
