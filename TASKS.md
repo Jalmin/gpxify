@@ -500,6 +500,206 @@ R: Trois modes de calcul des temps de passage :
 
 ---
 
+## Review follow-ups (issu de /shika-review 2026-04-19 sur PRs #1-3)
+
+### T10: [infra] Fix conftest SQLite ARRAY — debloquer les tests API
+**status:** ready
+**type:** infra
+**priority:** high
+**origin:** /shika-review 2026-04-19 (Issue 1 + Issue 8, P1 + P2)
+
+**Goal:** Permettre aux tests de `test_api.py` et `test_gpx_parser.py` de s'executer via pytest. Actuellement bloques par la colonne `race_aid_stations.services` en PostgreSQL `ARRAY` qui ne rend pas sur SQLite.
+
+**Context:** Reviewer independant a flag que les 6 nouveaux tests API de T9.1 ne s'executent pas en CI — ils ERRORent au setup du fixture autouse `setup_database`. La PR #1 annonce "6 tests API" alors qu'en realite 0 passent. Bug preexistant du sprint PTP, maintenant critique.
+
+**Files (preview):**
+- `backend/app/db/models.py` (column `race_aid_stations.services` — `TypeDecorator` conditionnel)
+- `backend/tests/conftest.py` (idealement retirer l'override ARRAY→JSON)
+- `backend/tests/test_time_calculator.py` (retirer le hack autouse override)
+
+**Options:**
+1. `TypeDecorator` qui serialize ARRAY en JSON sur SQLite, garde ARRAY sur PostgreSQL (propre)
+2. `pytest.mark.skip` explicite sur test_api.py + note DECISIONS (pire, tests dormants)
+3. Basculer conftest sur une DB de test PostgreSQL (lourd)
+
+**Acceptance tests:**
+- [ ] `pytest backend/tests/test_api.py` s'execute sans ERROR au setup
+- [ ] `pytest backend/tests/test_gpx_parser.py` s'execute sans ERROR
+- [ ] Les 6 tests `TestAidStationCalcMode` s'executent et passent (valider la deprecation 400, trail_planner payload, etc.)
+- [ ] Les migrations Alembic restent inchangees (pas de breaking prod)
+- [ ] Override autouse dans `test_time_calculator.py` peut etre supprime
+
+**Rollback:** `git revert` si SQLAlchemy flag un comportement imprevu.
+**Timeout:** 1h30
+
+---
+
+### T11: [doc] Documenter le fix incident `total_time_minutes` dans PR #1
+**status:** ready
+**type:** doc
+**priority:** high
+**origin:** /shika-review 2026-04-19 (Issue 2, P1)
+
+**Goal:** Editer la description de PR #1 pour signaler que T9.1 corrige incidemment un silent drop (`total_estimated_time_minutes` → `total_time_minutes`) qui rendra le Total visible dans le tableau + CSV alors qu'il etait `-` avant.
+
+**Context:** Le bug etait silencieux (Pydantic ignore les extra fields en mode `extra="ignore"`). Apres T9.1, les users verront une ligne Total avec le temps — changement UX positif mais non annonce dans la PR.
+
+**Files:**
+- PR #1 description (GitHub, hors code)
+- Eventuellement ajouter une entree courte dans un CHANGELOG ou release notes si cree plus tard
+
+**Acceptance tests:**
+- [ ] PR #1 body mentionne le fix collateral (section "Side effects")
+- [ ] Utiliser le bon intitule : "Now displays total time in aid station table footer + CSV export (previously silently dropped)"
+
+**Rollback:** N/A (edition description PR)
+**Timeout:** 10min
+
+---
+
+### T12: [backend] Ajouter borne superieure a `constant_pace_kmh` (parite frontend)
+**status:** ready
+**type:** quality
+**priority:** medium
+**origin:** /shika-review 2026-04-19 (Issue 3, P2)
+
+**Goal:** Remplacer `Field(default=None, gt=0)` par `Field(default=None, gt=0, le=30)` sur `AidStationTableRequest.constant_pace_kmh` pour parite avec la validation Zod frontend et coherence avec `TrailPlannerConfig.flat_pace_kmh`.
+
+**Files:**
+- `backend/app/models/gpx.py:164` (et verifier test_api.py pour ajouter un cas `constant_pace_kmh=50 → 422`)
+
+**Acceptance tests:**
+- [ ] `Field(default=None, gt=0, le=30)` sur `constant_pace_kmh`
+- [ ] Nouveau test `test_constant_pace_too_high_returns_422` dans `TestAidStationCalcMode`
+- [ ] Depend de T10 pour que le test puisse s'executer
+
+**Timeout:** 20min
+
+---
+
+### T13: [frontend] Fix UX `constantPaceInput` quand legacy value est null
+**status:** ready
+**type:** ux
+**priority:** medium
+**origin:** /shika-review 2026-04-19 (Issue 4, P2)
+
+**Goal:** Eviter le fallback silencieux `constantPaceInput='12'` quand `initialConstantPaceKmh === null`. L'utilisateur voit un "12" valide et un bouton disabled sans comprendre.
+
+**Context:** Happens sur un shared link legacy ou un state localStorage corrompu. Le champ doit montrer qu'il est vide.
+
+**Files:**
+- `frontend/src/components/AidStationTable.tsx:39-41`
+
+**Acceptance tests:**
+- [ ] Si `initialConstantPaceKmh === null` alors `constantPaceInput === ''`
+- [ ] Ajouter `placeholder="ex. 10"` sur l'input
+- [ ] Nouveau test Vitest : legacy state null → input vide + aria-invalid
+- [ ] Submit reste disabled (pas de regression)
+
+**Timeout:** 30min
+
+---
+
+### T14: [frontend] Wire `CalcConfigSchema.parse()` dans buildRequest (belt-and-braces)
+**status:** ready
+**type:** quality
+**priority:** medium
+**origin:** /shika-review 2026-04-19 (Issue 5, P2)
+
+**Goal:** Utiliser le schema Zod `CalcConfigSchema` (actuellement exporte mais unused) dans `AidStationTable.buildRequest()` pour valider le payload avant envoi API.
+
+**Context:** Defense en profondeur — si le form UI laisse passer un invariant, Zod le rattrape avant le backend. Aligne aussi avec le pattern deja utilise pour AidStationSchema.
+
+**Files:**
+- `frontend/src/components/AidStationTable.tsx` (buildRequest)
+- Option alternative : si pas voulu, supprimer les exports unused dans `schemas/validation.ts`
+
+**Acceptance tests:**
+- [ ] `CalcConfigSchema.parse(...)` appele dans buildRequest
+- [ ] Erreur Zod renvoyee sous forme de toast utilisateur (via `formatZodError`)
+- [ ] Nouveau test Vitest : payload invalide rejete cote frontend
+
+**Timeout:** 45min
+
+---
+
+### T15: [cleanup] `git rm frontend/src/App.tsx.backup`
+**status:** ready
+**type:** cleanup
+**priority:** low
+**origin:** /shika-review 2026-04-19 (Issue 6, P2)
+
+**Goal:** Supprimer le fichier backup commite qui contient des references a `useNaismith`.
+
+**Context:** Pollue grep/audit/security scans. Dead weight.
+
+**Files:**
+- `frontend/src/App.tsx.backup` (delete)
+
+**Acceptance tests:**
+- [ ] Fichier supprime du repo
+- [ ] `grep -r "useNaismith" frontend/src/` retourne uniquement les references migration legitimes
+
+**Timeout:** 5min
+
+---
+
+### T16: [backend] Commentaire inline sur le modele fatigue km-debut-segment
+**status:** ready
+**type:** doc
+**priority:** low
+**origin:** /shika-review 2026-04-19 (Issue 7, P2)
+
+**Goal:** Ajouter un commentaire explicatif sur `aid_station_service.py:131` pour eviter qu'un futur developpeur "corrige" la ligne `cumulative_distance_km += segment_distance` (qui incremente apres calcul du segment, donc fatigue au debut de segment — intentionnel, matche TDD).
+
+**Files:**
+- `backend/app/services/aid_station_service.py:131` (commentaire)
+- Eventuellement une mention dans la FAQ (pas requis)
+
+**Acceptance tests:**
+- [ ] Commentaire 1-2 lignes explique que fatigue est coarse (start-of-segment)
+- [ ] Aucun changement de comportement
+
+**Timeout:** 10min
+
+---
+
+### T17: [frontend] Refactor AidStationTable props → internal state (later)
+**status:** later
+**type:** refactor
+**priority:** low
+**origin:** /shika-review 2026-04-19 (Issue 9, P2 — preexistant, hors scope T9)
+
+**Goal:** Remplacer le pattern `useState(initialXxx)` par soit (a) state pur interne (fully controlled), soit (b) `useEffect` de sync quand les props changent.
+
+**Context:** Pattern fragile si parent re-render avec nouvelles props sans unmount. Pas declenche aujourd'hui par les flows existants. Preexistant avant T9.2.
+
+**Files:**
+- `frontend/src/components/AidStationTable.tsx:62-67`
+
+**Timeout:** 1h (refactor + tests)
+
+---
+
+### T18: [cosmetic] Rename `paliers` → `intervals_crossed`
+**status:** later
+**type:** cosmetic
+**priority:** low
+**origin:** /shika-review 2026-04-19 (Issue 10, P3)
+
+**Goal:** Remplacer la variable francaise `paliers` dans `time_calculator.py:82` par un nom anglais pour coherence avec le reste du code.
+
+**Files:**
+- `backend/app/services/time_calculator.py:82`
+
+**Acceptance tests:**
+- [ ] `paliers` remplace par `intervals_crossed` (ou `steps`)
+- [ ] Tous les tests passent (aucun changement de comportement)
+
+**Timeout:** 5min
+
+---
+
 ## Later (ideas, pas engage)
 
 ### T7: Google OAuth (completion)
