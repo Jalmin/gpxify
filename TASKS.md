@@ -184,7 +184,7 @@ lastUpdated: 2026-04-18
 ---
 
 ### T9.1: [TDD] Backend TimeCalculator trail_planner + migration API enum `calc_mode`
-**status:** committed (PR ouvert)
+**status:** done
 **PR:** https://github.com/Jalmin/gpxify/pull/1
 **branch:** shika/T9.1-trail-planner-backend
 **type:** feature
@@ -274,7 +274,7 @@ lastUpdated: 2026-04-18
 ---
 
 ### T9.2: [TDD] Frontend UI AidStationTable + store + schema Zod (mode Trail Planner)
-**status:** committed (PR ouvert, inclut T13+T14)
+**status:** done
 **PR:** https://github.com/Jalmin/gpxify/pull/2
 **branch:** shika/T9.2-trail-planner-frontend
 **type:** feature
@@ -363,7 +363,7 @@ lastUpdated: 2026-04-18
 ---
 
 ### T9.3: Doc FAQ + tooltip + reponse a Paul
-**status:** committed (PR ouvert, reply Paul a envoyer manuellement)
+**status:** done
 **PR:** https://github.com/Jalmin/gpxify/pull/3
 **branch:** shika/T9.3-faq-doc
 **type:** doc
@@ -509,7 +509,7 @@ R: Trois modes de calcul des temps de passage :
 ## Review follow-ups (issu de /shika-review 2026-04-19 sur PRs #1-3)
 
 ### T10: [infra] Fix conftest SQLite ARRAY — debloquer les tests API
-**status:** committed (PR ouvert)
+**status:** done
 **PR:** https://github.com/Jalmin/gpxify/pull/4
 **branch:** shika/T10-fix-conftest-sqlite-array
 **type:** infra
@@ -543,7 +543,7 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ### T11: [doc] Documenter le fix incident `total_time_minutes` dans PR #1
-**status:** done (PR body edite)
+**status:** done
 **Completed:** 2026-04-19
 **type:** doc
 **priority:** high
@@ -567,7 +567,7 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ### T12: [backend] Ajouter borne superieure a `constant_pace_kmh` (parite frontend)
-**status:** committed (integre dans PR #1)
+**status:** done
 **PR:** https://github.com/Jalmin/gpxify/pull/1 (commit d2dd58f)
 **type:** quality
 **priority:** medium
@@ -588,7 +588,7 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ### T13: [frontend] Fix UX `constantPaceInput` quand legacy value est null
-**status:** committed (integre dans PR #2)
+**status:** done
 **PR:** https://github.com/Jalmin/gpxify/pull/2 (commit d4ca9b1)
 **type:** ux
 **priority:** medium
@@ -612,7 +612,7 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ### T14: [frontend] Wire `CalcConfigSchema.parse()` dans buildRequest (belt-and-braces)
-**status:** committed (integre dans PR #2)
+**status:** done
 **PR:** https://github.com/Jalmin/gpxify/pull/2 (commit d4ca9b1)
 **type:** quality
 **priority:** medium
@@ -636,7 +636,7 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ### T15: [cleanup] `git rm frontend/src/App.tsx.backup`
-**status:** committed (PR ouvert)
+**status:** done
 **PR:** https://github.com/Jalmin/gpxify/pull/5
 **branch:** shika/T15-rm-app-backup
 **type:** cleanup
@@ -659,7 +659,7 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ### T16: [backend] Commentaire inline sur le modele fatigue km-debut-segment
-**status:** committed (integre dans PR #1)
+**status:** done
 **PR:** https://github.com/Jalmin/gpxify/pull/1 (commit d2dd58f)
 **type:** doc
 **priority:** low
