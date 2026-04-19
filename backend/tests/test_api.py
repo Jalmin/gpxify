@@ -96,7 +96,7 @@ class TestAidStationTableEndpoint:
                 {'name': 'Start', 'distance_km': 0},
                 {'name': 'End', 'distance_km': points[-1].distance / 1000}
             ],
-            'use_naismith': True
+            'calc_mode': 'naismith'
         }
 
         response = client.post('/api/v1/gpx/aid-station-table', json=request_data)
@@ -116,7 +116,7 @@ class TestAidStationTableEndpoint:
             'aid_stations': [
                 {'name': 'Only One', 'distance_km': 0}
             ],
-            'use_naismith': True
+            'calc_mode': 'naismith'
         }
 
         response = client.post('/api/v1/gpx/aid-station-table', json=request_data)
@@ -373,7 +373,7 @@ class TestAidStationTableValidation:
                 {'name': 'Start', 'distance_km': 0},
                 {'name': 'End', 'distance_km': 10}
             ],
-            'use_naismith': True
+            'calc_mode': 'naismith'
         }
 
         response = client.post('/api/v1/gpx/aid-station-table', json=request_data)
@@ -404,8 +404,8 @@ class TestAidStationTableValidation:
                 {'name': 'Start', 'distance_km': 0},
                 {'name': 'End', 'distance_km': points[-1].distance / 1000}
             ],
-            'use_naismith': False,
-            'custom_pace_kmh': 10.0
+            'calc_mode': 'constant_pace',
+            'constant_pace_kmh': 10.0
         }
 
         response = client.post('/api/v1/gpx/aid-station-table', json=request_data)
@@ -414,3 +414,121 @@ class TestAidStationTableValidation:
         data = response.json()
         assert data['success'] is True
         assert len(data['segments']) == 1
+
+
+class TestAidStationCalcMode:
+    """Tests for the calc_mode enum migration and trail_planner mode."""
+
+    def _build_request(self, client, sample_gpx_simple, **overrides):
+        from app.services.gpx_parser import GPXParser
+
+        gpx_data = GPXParser.parse_gpx_file(sample_gpx_simple, "test.gpx")
+        points = gpx_data.tracks[0].points
+        base = {
+            'track_points': [
+                {
+                    'lat': p.lat,
+                    'lon': p.lon,
+                    'elevation': p.elevation,
+                    'distance': p.distance,
+                }
+                for p in points
+            ],
+            'aid_stations': [
+                {'name': 'Start', 'distance_km': 0},
+                {'name': 'End', 'distance_km': points[-1].distance / 1000},
+            ],
+        }
+        base.update(overrides)
+        return base
+
+    def test_trail_planner_with_config(self, client, sample_gpx_simple):
+        """Trail Planner mode with a full config returns a computed table."""
+        payload = self._build_request(
+            client,
+            sample_gpx_simple,
+            calc_mode='trail_planner',
+            trail_planner_config={
+                'flat_pace_kmh': 10,
+                'climb_penalty_min_per_100m': 6,
+                'descent_bonus_min_per_100m': 3,
+                'fatigue_percent_per_interval': 5,
+                'fatigue_interval_km': 20,
+            },
+        )
+        response = client.post('/api/v1/gpx/aid-station-table', json=payload)
+        assert response.status_code == 200
+        assert response.json()['success'] is True
+
+    def test_trail_planner_without_config_returns_422(self, client, sample_gpx_simple):
+        payload = self._build_request(
+            client, sample_gpx_simple, calc_mode='trail_planner'
+        )
+        response = client.post('/api/v1/gpx/aid-station-table', json=payload)
+        assert response.status_code == 422
+        assert 'trail_planner_config' in response.text
+
+    def test_constant_pace_without_pace_returns_422(self, client, sample_gpx_simple):
+        payload = self._build_request(
+            client, sample_gpx_simple, calc_mode='constant_pace'
+        )
+        response = client.post('/api/v1/gpx/aid-station-table', json=payload)
+        assert response.status_code == 422
+        assert 'constant_pace_kmh' in response.text
+
+    def test_invalid_calc_mode_returns_422(self, client, sample_gpx_simple):
+        payload = self._build_request(
+            client, sample_gpx_simple, calc_mode='sorcery'
+        )
+        response = client.post('/api/v1/gpx/aid-station-table', json=payload)
+        assert response.status_code == 422
+
+    def test_deprecated_use_naismith_returns_400(self, client, sample_gpx_simple):
+        """use_naismith field was removed — must return 400 with an explicit hint."""
+        payload = self._build_request(
+            client, sample_gpx_simple, use_naismith=True
+        )
+        response = client.post('/api/v1/gpx/aid-station-table', json=payload)
+        assert response.status_code == 400
+        assert 'deprecated' in response.text.lower()
+        assert 'calc_mode' in response.text
+
+    def test_trail_planner_flat_pace_too_high(self, client, sample_gpx_simple):
+        payload = self._build_request(
+            client,
+            sample_gpx_simple,
+            calc_mode='trail_planner',
+            trail_planner_config={
+                'flat_pace_kmh': 50,  # > 30 max
+                'climb_penalty_min_per_100m': 6,
+                'descent_bonus_min_per_100m': 3,
+            },
+        )
+        response = client.post('/api/v1/gpx/aid-station-table', json=payload)
+        assert response.status_code == 422
+
+    def test_trail_planner_fatigue_interval_zero(self, client, sample_gpx_simple):
+        payload = self._build_request(
+            client,
+            sample_gpx_simple,
+            calc_mode='trail_planner',
+            trail_planner_config={
+                'flat_pace_kmh': 10,
+                'climb_penalty_min_per_100m': 6,
+                'descent_bonus_min_per_100m': 3,
+                'fatigue_interval_km': 0,
+            },
+        )
+        response = client.post('/api/v1/gpx/aid-station-table', json=payload)
+        assert response.status_code == 422
+
+    def test_constant_pace_kmh_too_high_returns_422(self, client, sample_gpx_simple):
+        """Parity with frontend: constant_pace_kmh must be <= 30 km/h (T12)."""
+        payload = self._build_request(
+            client,
+            sample_gpx_simple,
+            calc_mode='constant_pace',
+            constant_pace_kmh=50,  # > 30 max
+        )
+        response = client.post('/api/v1/gpx/aid-station-table', json=payload)
+        assert response.status_code == 422
