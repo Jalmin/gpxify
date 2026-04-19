@@ -39,9 +39,12 @@ class TestGPXUploadEndpoint:
         assert response.status_code == 422  # Validation error
 
     def test_upload_file_too_large(self, client):
-        """Test uploading a file that exceeds size limit"""
-        # Create a file larger than 10MB
-        large_content = b'x' * (11 * 1024 * 1024)  # 11MB
+        """Test uploading a file that exceeds MAX_UPLOAD_SIZE (25MB)."""
+        # MAX_UPLOAD_SIZE = 26_214_400 (25MB). Send 26MB to trigger 413.
+        # (Previous test was 11MB but the cap was bumped to 25MB without
+        # updating the test — it was silently masked by the conftest
+        # SQLite ARRAY setup error.)
+        large_content = b'x' * (26 * 1024 * 1024)  # 26MB
         files = {
             'file': ('large.gpx', BytesIO(large_content), 'application/gpx+xml')
         }

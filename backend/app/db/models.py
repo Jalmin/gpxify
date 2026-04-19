@@ -95,7 +95,13 @@ class RaceAidStation(Base):
     distance_km = Column(Float, nullable=False)
     elevation = Column(Integer, nullable=True)  # Altitude of the aid station
     type = Column(String(20), nullable=False)  # 'eau', 'bouffe', 'assistance'
-    services = Column(ARRAY(String), nullable=True)  # ['eau', 'boissons', 'solide', 'douche']
+    # Use JSON.with_variant to keep ARRAY(String) on PostgreSQL (the prod
+    # dialect) while serializing as JSON on SQLite (used in the test suite).
+    # Same pattern as SharedState.state_json.
+    services = Column(
+        JSON().with_variant(ARRAY(String), "postgresql"),
+        nullable=True,
+    )  # ['eau', 'boissons', 'solide', 'douche']
     cutoff_time = Column(String(50), nullable=True)  # "Wed 08:45 PM" barrier time
     position_order = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
