@@ -164,7 +164,10 @@ class AidStationTableRequest(BaseModel):
     track_points: List[TrackPoint]
     aid_stations: List[AidStation]
     calc_mode: CalcMode = CalcMode.NAISMITH
-    constant_pace_kmh: Optional[float] = Field(default=None, gt=0)
+    # Parity with the frontend Zod schema (CalcConfigSchema.constant_pace_kmh)
+    # and with TrailPlannerConfig.flat_pace_kmh. Prevents a crafted client
+    # from submitting nonsense paces (e.g. 9999 km/h).
+    constant_pace_kmh: Optional[float] = Field(default=None, gt=0, le=30)
     trail_planner_config: Optional[TrailPlannerConfig] = None
 
     @model_validator(mode="before")

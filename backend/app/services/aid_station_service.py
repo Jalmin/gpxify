@@ -129,7 +129,14 @@ class AidStationService:
                 total_time_minutes += estimated_time_minutes
 
             # Advance the cumulative distance for the fatigue model on the
-            # next segment.
+            # NEXT segment. This means the fatigue multiplier for a segment
+            # is computed from the start-of-segment cumulative distance, not
+            # a midpoint/end. Consequence: a segment that straddles a palier
+            # (e.g. starts at 18km with interval_km=20) will NOT get the
+            # upcoming palier bonus — only the segment after will. This is
+            # coarse but intentional: it matches the TDD specs in
+            # test_time_calculator.py (e.g. test_fatigue_one_palier uses
+            # cumul=25 and expects exactly 1 palier).
             cumulative_distance_km += segment_distance
 
         return AidStationTableResponse(

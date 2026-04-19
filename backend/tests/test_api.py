@@ -518,3 +518,14 @@ class TestAidStationCalcMode:
         )
         response = client.post('/api/v1/gpx/aid-station-table', json=payload)
         assert response.status_code == 422
+
+    def test_constant_pace_kmh_too_high_returns_422(self, client, sample_gpx_simple):
+        """Parity with frontend: constant_pace_kmh must be <= 30 km/h (T12)."""
+        payload = self._build_request(
+            client,
+            sample_gpx_simple,
+            calc_mode='constant_pace',
+            constant_pace_kmh=50,  # > 30 max
+        )
+        response = client.post('/api/v1/gpx/aid-station-table', json=payload)
+        assert response.status_code == 422
