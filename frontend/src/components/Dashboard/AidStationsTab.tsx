@@ -1,7 +1,13 @@
 import { Table } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { AidStationTable } from '../AidStationTable';
-import { AidStation, AidStationTableResponse, Track } from '../../types/gpx';
+import {
+  AidStation,
+  AidStationTableResponse,
+  CalcMode,
+  Track,
+  TrailPlannerConfig,
+} from '../../types/gpx';
 
 interface GPXFileData {
   id: string;
@@ -11,8 +17,9 @@ interface GPXFileData {
 
 interface AidStationTableState {
   aidStations: AidStation[];
-  useNaismith: boolean;
-  customPace: string;
+  calcMode: CalcMode;
+  constantPaceKmh: number | null;
+  trailPlannerConfig: TrailPlannerConfig | null;
   tableResult: AidStationTableResponse | null;
 }
 
@@ -101,8 +108,9 @@ export function AidStationsTab({
           return selectedFile.tracks.length > 0 ? selectedFile.tracks[0] : null;
         })()}
         aidStations={aidStationTableState.aidStations}
-        useNaismith={aidStationTableState.useNaismith}
-        customPace={aidStationTableState.customPace}
+        calcMode={aidStationTableState.calcMode}
+        constantPaceKmh={aidStationTableState.constantPaceKmh}
+        trailPlannerConfig={aidStationTableState.trailPlannerConfig}
         tableResult={aidStationTableState.tableResult}
         onStateChange={onStateChange}
       />

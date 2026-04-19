@@ -4,19 +4,30 @@ import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Tooltip } from './ui/Tooltip';
 import { GPXMap } from './Map/GPXMap';
-import { Track, AidStation, AidStationTableRequest, AidStationTableResponse } from '@/types/gpx';
+import {
+  Track,
+  AidStation,
+  AidStationTableRequest,
+  AidStationTableResponse,
+  CalcMode,
+  TrailPlannerConfig,
+} from '@/types/gpx';
 import { gpxApi } from '@/services/api';
+import { TrailPlannerForm, isTrailPlannerConfigValid } from './TrailPlannerForm';
+import { CalcConfigSchema, getFirstZodError } from '@/schemas/validation';
 
 interface AidStationTableProps {
   track: Track | null;
   aidStations?: AidStation[];
-  useNaismith?: boolean;
-  customPace?: string;
+  calcMode?: CalcMode;
+  constantPaceKmh?: number | null;
+  trailPlannerConfig?: TrailPlannerConfig | null;
   tableResult?: AidStationTableResponse | null;
   onStateChange?: (state: {
     aidStations: AidStation[];
-    useNaismith: boolean;
-    customPace: string;
+    calcMode: CalcMode;
+    constantPaceKmh: number | null;
+    trailPlannerConfig: TrailPlannerConfig | null;
     tableResult: AidStationTableResponse | null;
   }) => void;
 }
@@ -24,30 +35,45 @@ interface AidStationTableProps {
 export function AidStationTable({
   track,
   aidStations: initialAidStations = [],
-  useNaismith: initialUseNaismith = true,
-  customPace: initialCustomPace = '12',
+  calcMode: initialCalcMode = 'naismith',
+  constantPaceKmh: initialConstantPaceKmh = null,
+  trailPlannerConfig: initialTrailPlannerConfig = null,
   tableResult: initialTableResult = null,
-  onStateChange
+  onStateChange,
 }: AidStationTableProps) {
   const [aidStations, setAidStations] = useState<AidStation[]>(initialAidStations);
   const [newStationName, setNewStationName] = useState('');
   const [newStationKm, setNewStationKm] = useState('');
-  const [useNaismith, setUseNaismith] = useState(initialUseNaismith);
-  const [customPace, setCustomPace] = useState(initialCustomPace);
+  const [calcMode, setCalcMode] = useState<CalcMode>(initialCalcMode);
+  const [constantPaceKmh, setConstantPaceKmh] = useState<number | null>(
+    initialConstantPaceKmh,
+  );
+  // When a legacy share URL or v1-migrated state comes in with null, we
+  // render an empty input (not the old "12" fallback) so the user
+  // immediately sees that a pace must be entered — matches the greyed-out
+  // submit state.
+  const [constantPaceInput, setConstantPaceInput] = useState<string>(
+    initialConstantPaceKmh !== null ? String(initialConstantPaceKmh) : '',
+  );
+  const [trailPlannerConfig, setTrailPlannerConfig] =
+    useState<TrailPlannerConfig | null>(initialTrailPlannerConfig);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [tableResult, setTableResult] = useState<AidStationTableResponse | null>(initialTableResult);
+  const [tableResult, setTableResult] = useState<AidStationTableResponse | null>(
+    initialTableResult,
+  );
 
   // Notify parent of state changes
   useEffect(() => {
     if (onStateChange) {
       onStateChange({
         aidStations,
-        useNaismith,
-        customPace,
+        calcMode,
+        constantPaceKmh,
+        trailPlannerConfig,
         tableResult,
       });
     }
-  }, [aidStations, useNaismith, customPace, tableResult, onStateChange]);
+  }, [aidStations, calcMode, constantPaceKmh, trailPlannerConfig, tableResult, onStateChange]);
 
   const handleAddStation = () => {
     if (!newStationName || !newStationKm) {
@@ -76,35 +102,101 @@ export function AidStationTable({
     setTableResult(null);
   };
 
-  const handleGenerate = async () => {
-    if (!track) {
-      alert('Aucune trace chargée');
-      return;
+  const buildRequest = (): AidStationTableRequest | { error: string } => {
+    if (!track) return { error: 'Aucune trace chargée' };
+    if (aidStations.length < 2) {
+      return { error: 'Au moins 2 ravitaillements sont nécessaires' };
     }
 
-    if (aidStations.length < 2) {
-      alert('Au moins 2 ravitaillements sont nécessaires');
+    const base: AidStationTableRequest = {
+      track_points: track.points,
+      aid_stations: aidStations,
+      calc_mode: calcMode,
+    };
+
+    if (calcMode === 'constant_pace') {
+      if (
+        constantPaceKmh === null ||
+        !Number.isFinite(constantPaceKmh) ||
+        constantPaceKmh <= 0 ||
+        constantPaceKmh > 30
+      ) {
+        return { error: "Renseignez une allure (km/h) valide (entre 0 et 30)" };
+      }
+      base.constant_pace_kmh = constantPaceKmh;
+    }
+
+    if (calcMode === 'trail_planner') {
+      if (!isTrailPlannerConfigValid(trailPlannerConfig)) {
+        return {
+          error: 'Remplissez les paramètres Trail Planner ou chargez un preset',
+        };
+      }
+      base.trail_planner_config = trailPlannerConfig;
+    }
+
+    // Belt-and-braces: mirror the backend Pydantic validation with Zod
+    // before sending. Catches bugs where the UI lets a bad value through
+    // (e.g. someone edits constantPaceKmh via devtools or a future form
+    // regression) and returns a friendly French message instead of a 422.
+    const calcConfig =
+      calcMode === 'naismith'
+        ? { calc_mode: 'naismith' as const }
+        : calcMode === 'constant_pace'
+          ? { calc_mode: 'constant_pace' as const, constant_pace_kmh: base.constant_pace_kmh! }
+          : { calc_mode: 'trail_planner' as const, trail_planner_config: base.trail_planner_config! };
+
+    const zodResult = CalcConfigSchema.safeParse(calcConfig);
+    if (!zodResult.success) {
+      return { error: getFirstZodError(zodResult.error) };
+    }
+
+    return base;
+  };
+
+  const isSubmitDisabled = (() => {
+    if (aidStations.length < 2) return true;
+    if (isGenerating) return true;
+    if (calcMode === 'constant_pace') {
+      return (
+        constantPaceKmh === null ||
+        !Number.isFinite(constantPaceKmh) ||
+        constantPaceKmh <= 0 ||
+        constantPaceKmh > 30
+      );
+    }
+    if (calcMode === 'trail_planner') {
+      return !isTrailPlannerConfigValid(trailPlannerConfig);
+    }
+    return false;
+  })();
+
+  const handleGenerate = async () => {
+    const built = buildRequest();
+    if ('error' in built) {
+      alert(built.error);
       return;
     }
 
     setIsGenerating(true);
 
     try {
-      const request: AidStationTableRequest = {
-        track_points: track.points,
-        aid_stations: aidStations,
-        use_naismith: useNaismith,
-        custom_pace_kmh: useNaismith ? undefined : parseFloat(customPace),
-      };
-
-      const result = await gpxApi.generateAidStationTable(request);
+      const result = await gpxApi.generateAidStationTable(built);
       setTableResult(result);
     } catch (error) {
       console.error('Generate error:', error);
-      alert(error instanceof Error ? error.message : 'Erreur lors de la génération');
+      alert(
+        error instanceof Error ? error.message : 'Erreur lors de la génération',
+      );
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleConstantPaceChange = (raw: string) => {
+    setConstantPaceInput(raw);
+    const parsed = parseFloat(raw);
+    setConstantPaceKmh(Number.isFinite(parsed) ? parsed : null);
   };
 
   const formatTime = (minutes?: number) => {
@@ -276,19 +368,20 @@ export function AidStationTable({
       <Card className="p-4">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="font-semibold">Options de calcul</h3>
-          <Tooltip content="Choisissez entre la formule de Naismith (adaptée au trail avec dénivelé) ou une allure constante personnalisée pour calculer les temps estimés." />
+          <Tooltip content="3 modes disponibles — voir la FAQ pour le détail. Naismith est automatique ; Allure constante utilise une vitesse unique ; Trail Planner laisse ajuster plat, montée, descente et fatigue." />
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3" role="radiogroup" aria-label="Mode de calcul">
           <div className="flex items-center gap-2">
             <input
               type="radio"
-              id="naismith"
-              checked={useNaismith}
-              onChange={() => setUseNaismith(true)}
+              id="calc-mode-naismith"
+              name="calc-mode"
+              checked={calcMode === 'naismith'}
+              onChange={() => setCalcMode('naismith')}
               className="w-4 h-4"
             />
-            <label htmlFor="naismith" className="text-sm flex-1">
+            <label htmlFor="calc-mode-naismith" className="text-sm flex-1">
               <strong>Formule de Naismith</strong> (recommandée)
               <span className="block text-xs text-muted-foreground mt-1">
                 12 km/h plat + 5 min par 100m D+ - 5 min par 100m D- (pente &gt; 12%)
@@ -300,35 +393,92 @@ export function AidStationTable({
           <div className="flex items-center gap-2">
             <input
               type="radio"
-              id="custom-pace"
-              checked={!useNaismith}
-              onChange={() => setUseNaismith(false)}
+              id="calc-mode-constant"
+              name="calc-mode"
+              checked={calcMode === 'constant_pace'}
+              onChange={() => setCalcMode('constant_pace')}
               className="w-4 h-4"
             />
-            <label htmlFor="custom-pace" className="text-sm flex-1">
-              <strong>Allure personnalisée</strong>
+            <label htmlFor="calc-mode-constant" className="text-sm flex-1">
+              <strong>Allure constante</strong>
+              <span className="block text-xs text-muted-foreground mt-1">
+                Une seule vitesse moyenne, sans ajustement dénivelé
+              </span>
             </label>
-            {!useNaismith && (
+            {calcMode === 'constant_pace' && (
+              <>
+                <input
+                  type="number"
+                  step="0.1"
+                  min={0.1}
+                  max={30}
+                  value={constantPaceInput}
+                  onChange={(e) => handleConstantPaceChange(e.target.value)}
+                  placeholder="ex. 10"
+                  aria-label="Allure en km/h"
+                  aria-invalid={
+                    constantPaceKmh === null ||
+                    !Number.isFinite(constantPaceKmh) ||
+                    constantPaceKmh <= 0 ||
+                    constantPaceKmh > 30
+                  }
+                  className={`w-20 px-2 py-1 bg-background border rounded text-sm ${
+                    constantPaceKmh === null ||
+                    !Number.isFinite(constantPaceKmh) ||
+                    constantPaceKmh <= 0 ||
+                    constantPaceKmh > 30
+                      ? 'border-destructive'
+                      : 'border-border'
+                  }`}
+                />
+                <span className="text-sm">km/h</span>
+              </>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
               <input
-                type="number"
-                step="0.1"
-                value={customPace}
-                onChange={(e) => setCustomPace(e.target.value)}
-                className="w-20 px-2 py-1 bg-background border border-border rounded text-sm"
+                type="radio"
+                id="calc-mode-trail-planner"
+                name="calc-mode"
+                checked={calcMode === 'trail_planner'}
+                onChange={() => setCalcMode('trail_planner')}
+                className="w-4 h-4"
+              />
+              <label htmlFor="calc-mode-trail-planner" className="text-sm flex-1">
+                <strong>Trail Planner</strong>
+                <span className="block text-xs text-muted-foreground mt-1">
+                  Allure plat + pénalité montée + bonus descente + fatigue progressive
+                </span>
+              </label>
+              <Tooltip content="Mode avancé : réglez séparément votre vitesse sur plat, la pénalité par 100m de D+, le bonus par 100m de D-, et un facteur de fatigue progressif. Un preset 'Trail moyen' est fourni." />
+            </div>
+            {calcMode === 'trail_planner' && (
+              <TrailPlannerForm
+                value={trailPlannerConfig}
+                onChange={setTrailPlannerConfig}
               />
             )}
-            {!useNaismith && <span className="text-sm">km/h</span>}
           </div>
         </div>
 
         <Button
           onClick={handleGenerate}
-          disabled={aidStations.length < 2 || isGenerating}
+          disabled={isSubmitDisabled}
           className="w-full mt-4 gap-2"
         >
           <TableIcon className="w-4 h-4" />
           {isGenerating ? 'Génération...' : 'Générer le tableau'}
         </Button>
+        {aidStations.length >= 2 &&
+          calcMode === 'trail_planner' &&
+          !isTrailPlannerConfigValid(trailPlannerConfig) && (
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Remplissez les paramètres Trail Planner ou appliquez le preset pour
+              activer le calcul.
+            </p>
+          )}
       </Card>
 
       {/* Map with colored segments */}

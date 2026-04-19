@@ -118,11 +118,22 @@ export interface AidStationSegment {
   avg_gradient: number;
 }
 
+export type CalcMode = 'naismith' | 'constant_pace' | 'trail_planner';
+
+export interface TrailPlannerConfig {
+  flat_pace_kmh: number;
+  climb_penalty_min_per_100m: number;
+  descent_bonus_min_per_100m: number;
+  fatigue_percent_per_interval: number;
+  fatigue_interval_km: number;
+}
+
 export interface AidStationTableRequest {
   track_points: TrackPoint[];
   aid_stations: AidStation[];
-  use_naismith: boolean;
-  custom_pace_kmh?: number;
+  calc_mode: CalcMode;
+  constant_pace_kmh?: number;
+  trail_planner_config?: TrailPlannerConfig;
 }
 
 export interface AidStationTableResponse {
