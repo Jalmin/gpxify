@@ -1,25 +1,52 @@
 {
-  "runId": "run-2026-07-10-001",
+  "runId": "run-2026-07-10-002",
   "projectId": "GPXIFY",
-  "status": "completed",
-  "startedAt": "2026-07-10T18:00:00.000Z",
-  "updatedAt": "2026-07-10T18:00:00.000Z",
-  "baseCommit": "21fa8cc",
+  "status": "in_progress",
+  "startedAt": "2026-07-10T20:30:00.000Z",
+  "updatedAt": "2026-07-10T20:45:00.000Z",
+  "baseCommit": "052a1db",
+  "note": "Post-review follow-up run. run-intent.json stale (points to completed run-001). Scope chosen interactively: T24 + all ready. T25/T26 blocked (depend on unmerged draft PRs #10/#11).",
   "environment": {
     "docker": false,
     "postgresLocal": true,
     "backendVenv": true,
     "gh": true,
     "codex": true,
-    "baselineCoveragePct": 35
+    "sentrySdkInstalled": false,
+    "sentryReactInstalled": false
   },
   "taskStates": {
-    "T19": { "status": "needs-review", "reviewLevel": "standard", "tier": "S", "branch": "shika/T19", "commit": "f15372a", "pr": "https://github.com/Jalmin/gpxify/pull/7", "reviewVerdict": "clean (codex unavailable, self-review)", "smokeVerdict": "blocked-by-env (docker down)" },
-    "T20": { "status": "done", "reviewLevel": "standard", "tier": "S", "branch": "shika/T20", "commit": "9bb0e03", "pr": "https://github.com/Jalmin/gpxify/pull/8", "reviewVerdict": "clean (self-review; counts verified 28/7/12/6/3)" },
-    "T21": { "status": "done", "reviewLevel": "standard", "tier": "M", "branch": "shika/T21", "commit": "6ec7c45", "pr": "https://github.com/Jalmin/gpxify/pull/9", "reviewVerdict": "clean (self-review)", "smokeVerdict": "PASS (live curl on uvicorn under sqlite override, HTTP 200 byte-identical GPX)", "notes": "router 387->69 lines; golden byte-identical; latent dead-code + stale comment noted, not fixed" },
-    "T22": { "status": "done", "reviewLevel": "standard", "tier": "M", "branch": "shika/T22", "commit": "6a6f6b0", "pr": "https://github.com/Jalmin/gpxify/pull/10", "reviewVerdict": "clean (self-review)", "smokeVerdict": "PASS (live /gpx/merge returned spatial warning)", "followUp": "spatial_gap_threshold_m not plumbed from API endpoint into service (out of file scope) — needs wiring task" },
-    "T23": { "status": "done", "reviewLevel": "standard", "tier": "M", "dependsOn": ["T22"], "branch": "shika/T23", "base": "shika/T22", "commit": "cf4ab6c", "pr": "https://github.com/Jalmin/gpxify/pull/11", "reviewVerdict": "clean (self-review)", "smokeVerdict": "PASS (19 out vs 10 in pts + interpolated warning)", "notes": "STACKED PR — merge T22 before T23" },
-    "T1": { "status": "done", "reviewLevel": "standard", "tier": "M", "branch": "shika/T1", "commit": "61759e3", "pr": "https://github.com/Jalmin/gpxify/pull/12", "reviewVerdict": "clean (self-review)", "notes": "coverage 35%->79%; gpx_parser 97%, statistics 100%, ptp 100%, race 99%; found share.py request-param bug" }
+    "T24": {
+      "status": "done",
+      "reviewLevel": "standard",
+      "tier": "S",
+      "branch": "shika/T24",
+      "commit": "faa25c1",
+      "pr": "https://github.com/Jalmin/gpxify/pull/13",
+      "reviewVerdict": "clean (codex --base main: Starlette Request correctly exposed; test fixture prod-safe)",
+      "smokeVerdict": "PASS (live uvicorn+sqlite: valid body 200 not 500; old-shape body 422 not 500; no server traceback)",
+      "notes": "Root cause: SlowAPI looks up arg named `request`; it was the Pydantic body. Renamed body->payload, request:Request first. 17/17 tests pass. Spec smoke payload used {track_data} (wrong field) -> used {state_json} to prove 200."
+    },
+    "T25": {
+      "status": "blocked",
+      "reason": "depends_on T22 (PR #10) still DRAFT/unmerged — spatial_gap_threshold_m plumbing not on main"
+    },
+    "T26": {
+      "status": "blocked",
+      "reason": "depends_on T23 (PR #11) still DRAFT/unmerged (stacked on #10) — target code not on main"
+    },
+    "T2": { "status": "pending", "reason": "ready, fully autonomous, deferred (large ~3h; context budget)" },
+    "T3.1": { "status": "pending", "reason": "ready; Sentry account creation external (needs_user_validation), code writable" },
+    "T3.2": { "status": "pending", "reason": "depends_on T3.1; needs sentry-sdk install (network) to smoke-validate" },
+    "T3.3": { "status": "pending", "reason": "depends_on T3.1; needs @sentry/react install (network) + build" },
+    "T3.4": { "status": "pending", "reason": "depends_on T3.2/T3.3; live prod Sentry E2E external (needs_user_validation)" }
   },
-  "summary": { "done": 5, "needsReview": 1, "blocked": 0, "prs": 6, "prRange": "#7-#12", "note": "T23 PR#11 stacked on shika/T22 — merge T22 first" }
+  "summary": {
+    "done": 1,
+    "blocked": 2,
+    "pending": 5,
+    "prs": 1,
+    "prRange": "#13",
+    "note": "T24 delivered + validated. Sentry epic (T3.x) and T2 deferred — see checkpoint."
+  }
 }

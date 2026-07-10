@@ -454,7 +454,8 @@ lastUpdated: 2026-04-18
 ## Review follow-ups (issu de /shika-review 2026-07-10 sur PRs #7-#12)
 
 ### T24: [fix] /share/save renvoie HTTP 500 quand le limiter SlowAPI est actif
-**status:** ready
+**status:** done
+**Completed:** 2026-07-10 · **PR:** https://github.com/Jalmin/gpxify/pull/13 · tests 17/17 · smoke live PASS (200 not 500) · Codex clean
 **type:** fix
 **priority:** high
 **Review:** standard
