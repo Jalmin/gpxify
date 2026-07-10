@@ -6,6 +6,23 @@ from datetime import datetime, timedelta, timezone
 from fastapi import status
 from sqlalchemy.orm import Session
 from app.db.models import SharedState
+from app.middleware.rate_limit import limiter
+
+
+@pytest.fixture(autouse=True)
+def disable_rate_limit():
+    """Disable the SlowAPI limiter for the share suite.
+
+    ``/share/save`` carries a ``10/minute`` limit keyed by remote address.
+    Under the TestClient every request shares one address, so suites that
+    POST many times (uniqueness, concurrency, metadata) would otherwise trip
+    the limit and get 429s. Rate limiting is an infra concern validated
+    separately; business-logic tests must not be throttled.
+    """
+    previous = limiter.enabled
+    limiter.enabled = False
+    yield
+    limiter.enabled = previous
 
 
 def test_save_state_success(client):
