@@ -451,6 +451,119 @@ lastUpdated: 2026-04-18
 
 ---
 
+## Review follow-ups (issu de /shika-review 2026-07-10 sur PRs #7-#12)
+
+### T24: [fix] /share/save renvoie HTTP 500 quand le limiter SlowAPI est actif
+**status:** ready
+**type:** fix
+**priority:** high
+**Review:** standard
+**origin:** /shika-review 2026-07-10 (F2, P1 — bug prod, root cause des 13 échecs test_share.py)
+
+**Goal:** Corriger le 500 sur `POST /api/v1/share/save` causé par la collision du nom de paramètre `request`.
+
+**Context:** `share.py:19` nomme le body Pydantic `request`, ce qui entre en collision avec l'exigence SlowAPI (`request` doit être une `starlette.requests.Request`) quand `@limiter.limit` est actif → `parameter 'request' must be an instance of starlette.requests.Request` → HTTP 500. C'est la root cause des 13 échecs préexistants de `tests/test_share.py`. Détecté par T1 (coverage).
+
+**Files:**
+- `backend/app/api/share.py`
+- `backend/tests/test_share.py`
+
+**Prompt Claude Code:**
+```
+1. Renommer le paramètre body Pydantic `request` -> `payload` (ou `body`) dans save_state.
+2. Ajouter `request: Request` (starlette) comme PREMIER paramètre de la fonction pour satisfaire SlowAPI.
+3. Réactiver le rate limit sur /share/save si pertinent (voir share.py:18, actuellement désactivé).
+4. Vérifier que les 13 tests test_share.py passent désormais.
+```
+
+**Acceptance tests:**
+- [ ] `POST /api/v1/share/save` renvoie 200 (pas 500) avec le limiter actif
+- [ ] `pytest tests/test_share.py` : 0 échec
+- [ ] Pas de régression sur les autres endpoints share (GET/DELETE)
+
+**Smoke:** (backend)
+- start_cmd: `cd backend && DATABASE_URL="sqlite:///./smoke.db" uvicorn app.main:app --port 8000`
+- assert: `curl -sf -X POST localhost:8000/api/v1/share/save -H "Content-Type: application/json" -d '{"track_data":{"t":1}}'` → HTTP 200 (pas 500)
+
+**Rollback:** `git revert`.
+**Durée:** 20 min · **Timeout:** 30m
+
+---
+
+### T25: [core] Câbler spatial_gap_threshold_m de l'endpoint /gpx/merge jusqu'au service
+**status:** ready
+**type:** core
+**priority:** medium
+**Review:** standard
+**origin:** /shika-review 2026-07-10 (F1, P2 — option cliente morte)
+
+**Goal:** Propager `MergeOptions.spatial_gap_threshold_m` depuis le body de `/gpx/merge` jusqu'à `GPXMergeService`, aujourd'hui seul le défaut 500 m tourne en prod.
+
+**Context:** T22 a ajouté `spatial_gap_threshold_m` (validé ge=10/le=100000) à MergeOptions, mais ni `GPXParser.merge_gpx_files` (wrapper, appel positionnel) ni l'endpoint `/gpx/merge` ne forwarde la valeur → l'option cliente est silencieusement ignorée. Masqué parce que les tests appellent le service directement. Dépend du merge de T22 (#10).
+
+**Files:**
+- `backend/app/services/gpx_parser.py`
+- `backend/app/api/gpx.py`
+- `backend/tests/test_merge.py`
+
+**Prompt Claude Code:**
+```
+1. Ajouter spatial_gap_threshold_m à la signature de GPXParser.merge_gpx_files et le
+   forwarder à GPXMergeService (garder le défaut 500 pour la rétrocompat).
+2. Dans l'endpoint /gpx/merge (gpx.py), passer merge_request.options.spatial_gap_threshold_m.
+3. Ajouter 1 test API-level (via TestClient) : POST /gpx/merge avec options.spatial_gap_threshold_m=100
+   sur un gap de 150 m -> warning spatial présent (prouve que le knob traverse la stack).
+```
+
+**Acceptance tests:**
+- [ ] Un `spatial_gap_threshold_m` custom envoyé au endpoint change réellement la détection
+- [ ] Test API-level ajouté (pas seulement service-level)
+- [ ] Défaut 500 m inchangé si l'option n'est pas fournie
+
+**Smoke:** (backend)
+- start_cmd: `cd backend && DATABASE_URL="sqlite:///./smoke.db" uvicorn app.main:app --port 8000`
+- assert: `curl -sf -X POST localhost:8000/api/v1/gpx/merge` avec 2 GPX ~150 m d'écart + `options.spatial_gap_threshold_m=100` → réponse JSON contient un warning `spatial`
+
+**depends_on:** T22 (#10 mergée)
+**Rollback:** `git revert` (additif).
+**Durée:** 30 min · **Timeout:** 45m
+
+---
+
+### T26: [fix] Warning "capped at 500" trompeur sur les gros gaps non-cappés (T23)
+**status:** ready
+**type:** fix
+**priority:** low
+**Review:** standard
+**origin:** /shika-review 2026-07-10 (F3, P3 — trace de fabrication inexacte)
+
+**Goal:** Le warning de traçabilité ne doit annoncer "capped at 500 points" que lorsque le cap est réellement appliqué.
+
+**Context:** `gpx_merge_service.py:344` émet le warning "capped" sur `capped OR distance > LARGE_GAP_M`. Pour un gap de 50–50.1 km (499 points fabriqués, aucun cap), le message affirme faussement "interpolation capped at 500 points". Trace de données fabriquées inexacte, sensible RGPD. Sur la branche T23 (#11, stacked sur T22).
+
+**Files:**
+- `backend/app/services/gpx_merge_service.py`
+- `backend/tests/test_merge.py`
+
+**Prompt Claude Code:**
+```
+1. Séparer les deux cas : n'affirmer "capped at 500 points" que si `capped` est True ;
+   pour un grand gap non-cappé, utiliser un wording taille-seulement (sans "capped").
+2. (optionnel) Retirer la branche else morte à gpx_merge_service.py:293/214.
+3. Test : gap 50.05 km -> warning SANS "capped" ; gap 60 km -> warning AVEC "capped at 500".
+```
+
+**Acceptance tests:**
+- [ ] Gap non-cappé (50–50.1 km) → warning sans "capped"
+- [ ] Gap réellement cappé (>~50.1 km) → warning avec "capped at 500"
+- [ ] Tests T22/T23 existants toujours verts
+
+**depends_on:** T23 (#11)
+**Rollback:** `git revert`.
+**Durée:** 10 min · **Timeout:** 15m
+
+---
+
 ## Next (pas ready, besoin de specer ou dependances)
 
 ### T3: [EPIC] Integration Sentry frontend + backend
