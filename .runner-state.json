@@ -1,11 +1,11 @@
 {
   "runId": "run-2026-07-10-002",
   "projectId": "GPXIFY",
-  "status": "in_progress",
+  "status": "completed",
   "startedAt": "2026-07-10T20:30:00.000Z",
-  "updatedAt": "2026-07-10T20:45:00.000Z",
+  "updatedAt": "2026-07-10T20:55:00.000Z",
   "baseCommit": "052a1db",
-  "note": "Post-review follow-up run. run-intent.json stale (points to completed run-001). Scope chosen interactively: T24 + all ready. T25/T26 blocked (depend on unmerged draft PRs #10/#11).",
+  "note": "Post-review follow-up run. run-intent.json stale (points to completed run-001). Scope chosen interactively: T24 + all ready. Delivered T24 only; user chose to stop and handle T2 + Sentry epic as fresh runs after merging draft PRs. T25/T26 blocked (depend on unmerged draft PRs #10/#11).",
   "environment": {
     "docker": false,
     "postgresLocal": true,
