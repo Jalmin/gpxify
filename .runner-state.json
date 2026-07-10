@@ -1,0 +1,25 @@
+{
+  "runId": "run-2026-07-10-001",
+  "projectId": "GPXIFY",
+  "status": "completed",
+  "startedAt": "2026-07-10T18:00:00.000Z",
+  "updatedAt": "2026-07-10T18:00:00.000Z",
+  "baseCommit": "21fa8cc",
+  "environment": {
+    "docker": false,
+    "postgresLocal": true,
+    "backendVenv": true,
+    "gh": true,
+    "codex": true,
+    "baselineCoveragePct": 35
+  },
+  "taskStates": {
+    "T19": { "status": "needs-review", "reviewLevel": "standard", "tier": "S", "branch": "shika/T19", "commit": "f15372a", "pr": "https://github.com/Jalmin/gpxify/pull/7", "reviewVerdict": "clean (codex unavailable, self-review)", "smokeVerdict": "blocked-by-env (docker down)" },
+    "T20": { "status": "done", "reviewLevel": "standard", "tier": "S", "branch": "shika/T20", "commit": "9bb0e03", "pr": "https://github.com/Jalmin/gpxify/pull/8", "reviewVerdict": "clean (self-review; counts verified 28/7/12/6/3)" },
+    "T21": { "status": "done", "reviewLevel": "standard", "tier": "M", "branch": "shika/T21", "commit": "6ec7c45", "pr": "https://github.com/Jalmin/gpxify/pull/9", "reviewVerdict": "clean (self-review)", "smokeVerdict": "PASS (live curl on uvicorn under sqlite override, HTTP 200 byte-identical GPX)", "notes": "router 387->69 lines; golden byte-identical; latent dead-code + stale comment noted, not fixed" },
+    "T22": { "status": "done", "reviewLevel": "standard", "tier": "M", "branch": "shika/T22", "commit": "6a6f6b0", "pr": "https://github.com/Jalmin/gpxify/pull/10", "reviewVerdict": "clean (self-review)", "smokeVerdict": "PASS (live /gpx/merge returned spatial warning)", "followUp": "spatial_gap_threshold_m not plumbed from API endpoint into service (out of file scope) — needs wiring task" },
+    "T23": { "status": "done", "reviewLevel": "standard", "tier": "M", "dependsOn": ["T22"], "branch": "shika/T23", "base": "shika/T22", "commit": "cf4ab6c", "pr": "https://github.com/Jalmin/gpxify/pull/11", "reviewVerdict": "clean (self-review)", "smokeVerdict": "PASS (19 out vs 10 in pts + interpolated warning)", "notes": "STACKED PR — merge T22 before T23" },
+    "T1": { "status": "done", "reviewLevel": "standard", "tier": "M", "branch": "shika/T1", "commit": "61759e3", "pr": "https://github.com/Jalmin/gpxify/pull/12", "reviewVerdict": "clean (self-review)", "notes": "coverage 35%->79%; gpx_parser 97%, statistics 100%, ptp 100%, race 99%; found share.py request-param bug" }
+  },
+  "summary": { "done": 5, "needsReview": 1, "blocked": 0, "prs": 6, "prRange": "#7-#12", "note": "T23 PR#11 stacked on shika/T22 — merge T22 first" }
+}

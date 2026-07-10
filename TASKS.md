@@ -13,7 +13,8 @@ lastUpdated: 2026-04-18
 ## Ready
 
 ### T1: Augmenter coverage tests backend — services critiques
-**status:** ready
+**status:** done
+**Completed:** 2026-07-10 · **PR:** https://github.com/Jalmin/gpxify/pull/12 · coverage 35%→79% (gpx_parser 97%, statistics 100%)
 **type:** quality
 **priority:** high
 
@@ -188,7 +189,8 @@ lastUpdated: 2026-04-18
 ## Ready — Sprint Consolidation GPX-toolbox (specé 2026-07-10 via /shika-speccer)
 
 ### T19: [chore] Nettoyage repo — tooling hors-sujet, templates trackés, build Docker reproductible
-**status:** ready
+**status:** needs-review
+**Completed:** 2026-07-10 · **PR:** https://github.com/Jalmin/gpxify/pull/7 · code OK mais smoke Docker non exécutable (Docker absent de l'env) → needs-review
 **type:** cleanup
 **priority:** high
 **Tier:** S
@@ -223,7 +225,8 @@ lastUpdated: 2026-04-18
 ---
 
 ### T20: [docs] Resynchroniser CLAUDE.md et TASKS.md avec l'état réel du code
-**status:** ready
+**status:** done
+**Completed:** 2026-07-10 · **PR:** https://github.com/Jalmin/gpxify/pull/8 · comptages vérifiés 28/7/12/6/3
 **type:** cleanup
 **priority:** medium
 **Tier:** S
@@ -252,7 +255,8 @@ lastUpdated: 2026-04-18
 ---
 
 ### T21: [refactor] Extraire la logique race_recovery du router vers un service dédié
-**status:** ready
+**status:** done
+**Completed:** 2026-07-10 · **PR:** https://github.com/Jalmin/gpxify/pull/9 · router 387→69 lignes, golden byte-identique, smoke live PASS
 **type:** cleanup
 **priority:** high
 **Tier:** M
@@ -311,7 +315,8 @@ lastUpdated: 2026-04-18
 ---
 
 ### T22: [core] Détection spatiale des gaps dans le merge GPX
-**status:** ready
+**status:** done
+**Completed:** 2026-07-10 · **PR:** https://github.com/Jalmin/gpxify/pull/10 · smoke live PASS (warning "Spatial gap") · suivi: seuil non câblé endpoint→service
 **type:** core
 **priority:** high
 **Tier:** M
@@ -379,7 +384,8 @@ lastUpdated: 2026-04-18
 ---
 
 ### T23: [core] Interpolation réelle des gaps au merge (`interpolate_gaps=True`)
-**status:** ready
+**status:** done
+**Completed:** 2026-07-10 · **PR:** https://github.com/Jalmin/gpxify/pull/11 (stacked sur shika/T22 — merger T22 d'abord) · smoke live PASS (interpolated N points)
 **type:** core
 **priority:** high
 **depends_on:** T22
