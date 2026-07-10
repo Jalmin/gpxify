@@ -335,3 +335,74 @@ def test_recover_race_invalid_gpx_format(client):
 
     assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_500_INTERNAL_SERVER_ERROR]
     assert "detail" in response.json()
+
+
+# ---------------------------------------------------------------------------
+# GOLDEN test (behavior preservation for T21 refactor)
+#
+# The recovery algorithm is fully deterministic for a fixed input: the
+# reconstructed timestamps are derived from the (fixed) fixture timestamps and
+# a deterministic 50-iteration binary search on the base speed. This golden
+# snapshot pins the EXACT byte output of /recover for the standard fixtures so
+# any accidental algorithm change during the router->service extraction is
+# caught immediately. Captured against the pre-refactor code.
+# ---------------------------------------------------------------------------
+EXPECTED_GOLDEN_GPX = (
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    '<gpx xmlns="http://www.topografix.com/GPX/1/1" '
+    'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+    'xsi:schemaLocation="http://www.topografix.com/GPX/1/1 '
+    'http://www.topografix.com/GPX/1/1/gpx.xsd" version="1.1" '
+    'creator="GPX Ninja - Race Recovery">\n'
+    '  <trk>\n'
+    '    <trkseg>\n'
+    '      <trkpt lat="45.0" lon="6.0">\n'
+    '        <ele>1000.0</ele>\n'
+    '        <time>2024-01-01T10:00:00</time>\n'
+    '      </trkpt>\n'
+    '      <trkpt lat="45.005" lon="6.005">\n'
+    '        <ele>1100.0</ele>\n'
+    '        <time>2024-01-01T10:10:00</time>\n'
+    '      </trkpt>\n'
+    '      <trkpt lat="45.01" lon="6.01">\n'
+    '        <ele>1050.0</ele>\n'
+    '        <time>2024-01-01T10:20:00</time>\n'
+    '      </trkpt>\n'
+    '      <trkpt lat="45.015" lon="6.015">\n'
+    '        <ele>1200.0</ele>\n'
+    '        <time>2024-01-01T10:35:28.493264</time>\n'
+    '      </trkpt>\n'
+    '      <trkpt lat="45.02" lon="6.02">\n'
+    '        <ele>1300.0</ele>\n'
+    '        <time>2024-01-01T10:47:43.890939</time>\n'
+    '      </trkpt>\n'
+    '      <trkpt lat="45.025" lon="6.025">\n'
+    '        <ele>1400.0</ele>\n'
+    '        <time>2024-01-01T10:59:59.276116</time>\n'
+    '      </trkpt>\n'
+    '    </trkseg>\n'
+    '  </trk>\n'
+    '</gpx>'
+)
+
+
+def test_recover_race_golden_output_byte_identical(client, incomplete_gpx_with_time, complete_gpx_track):
+    """Golden: /recover output must be byte-for-byte identical to the snapshot.
+
+    Proves the router->service extraction preserves behavior exactly (same
+    speed model, 30-200% bounds, 50-iteration binary search).
+    """
+    incomplete_file = ("incomplete.gpx", BytesIO(incomplete_gpx_with_time.encode()), "application/gpx+xml")
+    complete_file = ("complete.gpx", BytesIO(complete_gpx_track.encode()), "application/gpx+xml")
+
+    response = client.post(
+        "/api/v1/race/recover",
+        files={
+            "incomplete_gpx": incomplete_file,
+            "complete_gpx": complete_file,
+        },
+        data={"official_time": "01:00:00"}
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.content.decode("utf-8") == EXPECTED_GOLDEN_GPX
