@@ -45,6 +45,48 @@ def client():
 
 
 @pytest.fixture
+def db_session():
+    """Raw SQLAlchemy session bound to the test engine.
+
+    Tables are created/dropped around each test by the autouse
+    ``setup_database`` fixture, so this session sees a clean schema.
+    """
+    session = TestingSessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+@pytest.fixture
+def sample_gpx_with_waypoints():
+    """GPX with an AS-prefixed waypoint (aid station) for race extraction."""
+    return """<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="GPX Ninja Test">
+  <wpt lat="45.01" lon="6.01">
+    <ele>1100</ele>
+    <name>AS1</name>
+    <desc>Ravito Refuge</desc>
+    <sym>Drinking Water</sym>
+  </wpt>
+  <wpt lat="45.02" lon="6.02">
+    <ele>1050</ele>
+    <name>Finish</name>
+    <desc>Arrivee</desc>
+    <sym>Flag</sym>
+  </wpt>
+  <trk>
+    <name>Waypoint Track</name>
+    <trkseg>
+      <trkpt lat="45.0" lon="6.0"><ele>1000</ele></trkpt>
+      <trkpt lat="45.01" lon="6.01"><ele>1100</ele></trkpt>
+      <trkpt lat="45.02" lon="6.02"><ele>1050</ele></trkpt>
+    </trkseg>
+  </trk>
+</gpx>"""
+
+
+@pytest.fixture
 def sample_gpx_simple():
     """Simple GPX file with 3 points for testing"""
     return """<?xml version="1.0" encoding="UTF-8"?>
