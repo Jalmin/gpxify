@@ -74,3 +74,4 @@ improvements/
 # Project templates (dev only)
 project-template/
 template-tailwind-css/
+.shikamaru/speccer-log.json

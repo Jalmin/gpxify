@@ -4,6 +4,8 @@ project: GPXIFY
 lastUpdated: 2026-04-18
 ---
 
+<!-- Archive: 10 tasks done/abandoned supprimées le 2026-05-12. Voir git history: git log -p -- TASKS.md -->
+
 > **Note 2026-04-18** : T3 (Sentry) a ete specee via `/shika-speccer` et decoupee en T3.1 -> T3.4 (section Ready). L'entree T3 originale est conservee comme parent epic en section "Next" pour traçabilite.
 
 # Tasks
@@ -183,238 +185,263 @@ lastUpdated: 2026-04-18
 
 ---
 
-### T9.1: [TDD] Backend TimeCalculator trail_planner + migration API enum `calc_mode`
-**status:** done
-**PR:** https://github.com/Jalmin/gpxify/pull/1
-**branch:** shika/T9.1-trail-planner-backend
-**type:** feature
-**priority:** medium
-**parent:** T9
-**origin:** Feedback Paul (user) — Naismith trop rapide pour son allure
+## Ready — Sprint Consolidation GPX-toolbox (specé 2026-07-10 via /shika-speccer)
 
-**Goal:** Ajouter un 3e mode de calcul `trail_planner` (allure plat + penalite montee + bonus descente + facteur fatigue lineaire) au `TimeCalculator`, migrer l'API de `use_naismith: bool` vers `calc_mode: CalcMode` (enum 3 valeurs).
+### T19: [chore] Nettoyage repo — tooling hors-sujet, templates trackés, build Docker reproductible
+**status:** ready
+**type:** cleanup
+**priority:** high
+**Tier:** S
 
-**Context:** Aujourd'hui `TimeCalculator` a 2 modes (Naismith fige a 12 km/h, ou allure constante). Paul (user) demande un mode "Trail Planner" avec 4 parametres ajustables. L'API est consommee uniquement par le frontend GPXIFY → migration cleaner en enum sans retrocompat.
+**Goal:** Sortir du repo les artefacts hors-sujet (arctic-tracker.ts), détracker les 89 fichiers de templates gitignorés, et rendre le build Docker backend reproductible (gunicorn épinglé dans requirements).
+
+**Context:** Audit 2026-07-10 : `scripts/arctic-tracker.ts` est du tooling Shikamaru sans rapport avec GPXIFY ; `improvements/`, `project-template/`, `template-tailwind-css/` sont trackés malgré le `.gitignore` (89 fichiers de poids mort) ; le Dockerfile fait `pip install gunicorn` au runtime dans le CMD (build non reproductible, accès réseau requis au boot) ; `httpx==0.27.2` est épinglé en double dans requirements.txt et requirements-dev.txt.
 
 **Files:**
-- `backend/app/services/time_calculator.py` (etendu)
-- `backend/app/models/gpx.py` (enum `CalcMode`, `TrailPlannerConfig`, `AidStationTableRequest` migre)
-- `backend/app/services/aid_station_service.py` (propager `cumulative_distance_km` pour fatigue)
-- `backend/app/services/gpx_parser.py` (signature mise a jour)
-- `backend/app/api/gpx.py` (endpoint reutilise le nouveau modele)
-- `backend/tests/test_time_calculator.py` (nouveau)
-- `backend/tests/test_api.py` (etendu — migration tests use_naismith)
+- `scripts/arctic-tracker.ts` (suppression)
+- `backend/requirements.txt`
+- `backend/requirements-dev.txt`
+- `backend/Dockerfile`
 
-**TDD — Red step (tests d'abord, doivent echouer) :**
-1. Regression : tests Naismith existants passent toujours avec `calc_mode=NAISMITH`
-2. Regression : tests constant_pace existants passent avec `calc_mode=CONSTANT_PACE`
-3. `trail_planner` baseline : 10km plat, 0 D+, 0 D-, fatigue=0 → 60min @ 10 km/h
-4. `trail_planner` climb : 10km + 500m D+, penalty 6min/100m → base 60 + 5*6 = 90min
-5. `trail_planner` descent : 10km + 500m D-, bonus 3min/100m → base 60 - 5*3 = 45min
-6. `trail_planner` fatigue : 40km, +5%/20km → temps raw * 1.10 (2 intervalles depasses)
-7. `trail_planner` fatigue partielle : cumulative 15km, interval 20km → multiplier = 1.0 (pas de palier)
-8. API 422 si `calc_mode=trail_planner` sans `trail_planner_config`
-9. API 422 si `calc_mode=constant_pace` sans `constant_pace_kmh`
-10. API 422 si `flat_pace_kmh <= 0` ou `> 30`
-11. API 422 si `fatigue_interval_km = 0`
-12. API 400 si ancien champ `use_naismith` present (deprecation stricte)
-13. Edge : segment distance=0 → return 0
-14. Edge : temps qui deviendrait negatif (gros bonus descente) → clamp `max(0, total)`
+**Done:**
+- [ ] `git ls-files improvements/ project-template/ template-tailwind-css/ | wc -l` retourne 0 (via `git rm -r --cached`, fichiers locaux préservés)
+- [ ] `scripts/arctic-tracker.ts` n'existe plus (après vérification qu'aucun skill `.claude/commands/*.md` ne le référence — sinon le déplacer vers `.claude/` au lieu de supprimer)
+- [ ] `gunicorn` épinglé dans `backend/requirements.txt` et le CMD du Dockerfile ne contient plus `pip install`
+- [ ] `httpx` n'apparaît que dans un seul des deux fichiers requirements
+- [ ] `docker compose build backend` réussit
 
-**TDD — Green step (impl minimale) :**
-- Enum `CalcMode(str, Enum)` : `NAISMITH = "naismith"`, `CONSTANT_PACE = "constant_pace"`, `TRAIL_PLANNER = "trail_planner"`
-- `TrailPlannerConfig(BaseModel)` avec contraintes Pydantic : `flat_pace_kmh: float = Field(gt=0, le=30)`, `climb_penalty_min_per_100m: float = Field(ge=0, le=30)`, `descent_bonus_min_per_100m: float = Field(ge=0, le=20)`, `fatigue_percent_per_interval: float = Field(default=0, ge=0, le=50)`, `fatigue_interval_km: float = Field(default=20, gt=0)`
-- `AidStationTableRequest` : remplacer `use_naismith` par `calc_mode: CalcMode = CalcMode.NAISMITH`, ajouter `constant_pace_kmh: Optional[float]`, `trail_planner_config: Optional[TrailPlannerConfig]` + `@model_validator(mode="after")` qui enforce la coherence
-- `TimeCalculator.estimate_segment_time()` : ajouter params `calc_mode`, `trail_planner_config`, `cumulative_distance_km: float = 0`
-- `_calculate_trail_planner_time()` : `base = distance_km / flat_pace * 60` + `climb = (D+/100) * penalty` - `descent = (D-/100) * bonus`, puis `multiplier = 1 + floor(cumulative_km / interval) * (fatigue_percent / 100)`, `total = raw * multiplier`, `return max(0, total)`
-- `AidStationService` : accumuler `cumulative_km` segment apres segment, passer au calculator
+**Boundaries:**
+- ✅ **Always:** `git rm --cached` uniquement pour les templates (les fichiers restent sur le disque)
+- 🚫 **Never:** toucher aux `.gpx` locaux, à `.claude/`, `.shikamaru/` (tooling actif) ni à `TASKS.md`
 
-**TDD — Refactor step :**
-- Extraire dataclass / methode privee pour eviter fonction a 10 args
-- Docstrings Google-style
-- mypy strict pass
+**Smoke:** (backend détecté — Dockerfile CMD modifié)
+- assert: `docker compose build backend && docker compose run --rm backend python -c "import gunicorn; print('OK')"` affiche `OK`
 
-**Conditions aux limites (edge cases) :**
-
-| Cas | Comportement attendu | Test |
-|-----|---------------------|------|
-| `calc_mode=trail_planner` sans config | HTTP 422 `trail_planner_config required` | test_api #8 |
-| `flat_pace_kmh = 0` | HTTP 422 Pydantic | test_api #10 |
-| `flat_pace_kmh = 31` | HTTP 422 (protection abuse) | test_api #10 |
-| `fatigue_interval_km = 0` | HTTP 422 | test_api #11 |
-| `fatigue_percent_per_interval = 0` | Fatigue desactivee (multiplier = 1.0) | test #6bis |
-| `cumulative_distance_km < 0` | `ValueError` (defensive, ne devrait jamais arriver) | test unitaire |
-| Temps final negatif (bonus descente enorme) | Clamp `max(0, total)` | test #14 |
-| Distance segment = 0 | `return 0` (no crash) | test #13 |
-| Ancien champ `use_naismith` dans payload | HTTP 400 avec message `deprecated, use calc_mode` | test #12 |
-
-**Fallbacks :**
-- Si `cumulative_distance_km` pas propage par `AidStationService` (bug regression) → default 0, fatigue ignoree (no crash, coverage test force la propagation)
-- Si validation Pydantic laisse passer une config invalide (hypothese defensive) → fallback silencieux `max(0, total)` + log warning
-
-**Acceptance — Definition of Done :**
-- [ ] 14+ tests unitaires `time_calculator` passent
-- [ ] 7+ tests API `aid-station-table` passent
-- [ ] Coverage `time_calculator.py` >= 95%
-- [ ] Coverage `aid_station_service.py` >= 90%
-- [ ] `grep -r "use_naismith" backend/app/` retourne vide
-- [ ] `grep -r "USE_NAISMITH" backend/app/` retourne vide
-- [ ] OpenAPI `/docs` montre `calc_mode: CalcMode` enum + `TrailPlannerConfig` schema
-- [ ] Aucun test existant n'a ete supprime (sauf remplacement explicite `use_naismith` → `calc_mode`)
-- [ ] `mypy backend/app/services/time_calculator.py` pass sans erreur
-- [ ] `pytest -v` : aucun skip non justifie
-
-**Rollback :**
-- `git revert <sha>` du commit backend
-- Si deploye et user envoie ancien payload `use_naismith` : erreur 400 claire avec message d'aide (pas de data loss — endpoint stateless)
-- Aucune migration DB impactee (aid station n'utilise pas la DB)
-
-**Timeout :** 2h30
+**Rollback:** `git revert` du commit + `git checkout` des fichiers détrackés si besoin.
+**Durée:** 30 min
 
 ---
 
-### T9.2: [TDD] Frontend UI AidStationTable + store + schema Zod (mode Trail Planner)
-**status:** done
-**PR:** https://github.com/Jalmin/gpxify/pull/2
-**branch:** shika/T9.2-trail-planner-frontend
-**type:** feature
+### T20: [docs] Resynchroniser CLAUDE.md et TASKS.md avec l'état réel du code
+**status:** ready
+**type:** cleanup
 **priority:** medium
-**parent:** T9
-**depends_on:** T9.1
+**Tier:** S
 
-**Goal:** Ajouter la 3e option "Trail Planner" au composant `AidStationTable.tsx` avec form 5 parametres + preset "Trail moyen", migrer le store Zustand et le schema Zod.
+**Goal:** Corriger dans `.claude/CLAUDE.md` les points rendus obsolètes depuis janvier (audit 2026-07-10) et dédupliquer l'epic T3 dans TASKS.md.
 
-**Context:** Paul demande un mode avec 4 parametres (flat pace, climb penalty, descent bonus, fatigue). Preset par defaut "Trail moyen" : 10 km/h, +6min/100m D+, -3min/100m D-, fatigue +5% / 20km. Scope V1 : Dashboard uniquement (pas PTP).
+**Context:** La doc pré-date la migration auto Alembic (Dockerfile:37) : la section 10 liste encore "migrations skippées en production" comme problème connu ET comme dette technique, alors que c'est résolu. Les comptages ont drifté (28 composants réels vs 33 documentés, 7 pages vs 5, 12 services vs 13, 3 migrations vs 1 citée). L'epic T3 apparaît en double dans TASKS.md (section Next, lignes ~190 et ~207).
 
 **Files:**
-- `frontend/src/store/useAppStore.ts` (migrer `useNaismith` → `calcMode` + `trailPlannerConfig`)
-- `frontend/src/types/gpx.ts` (ajouter `CalcMode`, `TrailPlannerConfig`)
-- `frontend/src/schemas/validation.ts` (Zod `discriminatedUnion` sur `calc_mode`)
-- `frontend/src/components/AidStationTable.tsx` (refactor radio 2→3 + form trail_planner)
-- `frontend/src/components/AidStationsTab.tsx` (propagation nouveau shape de state)
-- `frontend/src/components/TrailPlannerForm.tsx` (nouveau, extraction)
-- `frontend/src/constants/presets.ts` (nouveau, `TRAIL_PLANNER_PRESETS`)
-- `frontend/src/components/AidStationTable.test.tsx` (nouveau)
-- `frontend/src/store/useAppStore.test.ts` (etendu)
+- `.claude/CLAUDE.md`
+- `TASKS.md`
 
-**TDD — Red step :**
-1. Rendering 3 radio (Naismith, Constant pace, Trail Planner), Naismith selected par defaut
-2. Click radio "Trail Planner" → les 5 inputs apparaissent (flat_pace, climb_penalty, descent_bonus, fatigue_percent, fatigue_interval)
-3. Bouton "Appliquer preset Trail moyen" → pre-fill (10, 6, 3, 5, 20)
-4. Submit trail_planner avec preset → API payload egal a `{ calc_mode: "trail_planner", trail_planner_config: {...} }`
-5. Validation : `flat_pace = 0` → border rouge + message + submit disabled
-6. Validation : `fatigue_interval = 0` → error + submit disabled
-7. Toggle Trail Planner → Naismith → Trail Planner : values preservees (pas de reset)
-8. Migration localStorage : ancien state `{ useNaismith: true }` → new state `{ calcMode: "naismith", trailPlannerConfig: null }`
-9. Migration localStorage : ancien state `{ useNaismith: false, customPace: 10 }` → new state `{ calcMode: "constant_pace", constantPaceKmh: 10 }`
-10. Zod schema valide les 3 modes via `discriminatedUnion`
-11. Zod rejette `{ calc_mode: "trail_planner" }` sans config
+**Done:**
+- [ ] La section 10 ne mentionne plus "Migrations Alembic skippees" ni la dette "pas executees automatiquement au demarrage Docker" (déplacées en "Problemes Resolus" avec date)
+- [ ] Comptages corrigés partout : 28 composants, 7 pages, 12 services, 6 fichiers tests backend, 3 migrations Alembic
+- [ ] TASKS.md ne contient plus qu'une seule entrée epic T3 (celle avec le découpage T3.1→T3.4)
+- [ ] La ligne "Derniere mise a jour" du CLAUDE.md porte la date du commit
 
-**TDD — Green step :**
-- `useAppStore` : remplacer `useNaismith` par `calcMode: CalcMode`, ajouter `constantPaceKmh: number | null`, `trailPlannerConfig: TrailPlannerConfig | null`
-- Migration persist middleware Zustand : `version: 2, migrate: (state, version) => ...`
-- `types/gpx.ts` : aligner sur backend
-- `AidStationTable.tsx` : radio group controlled, conditional render du form trail_planner
-- `TrailPlannerForm.tsx` : 5 inputs number + bouton "Preset Trail moyen"
-- `presets.ts` : constante `TRAIL_PLANNER_PRESETS = { "trail-moyen": { flat_pace_kmh: 10, climb_penalty_min_per_100m: 6, descent_bonus_min_per_100m: 3, fatigue_percent_per_interval: 5, fatigue_interval_km: 20 } }`
-- Tooltip mise a jour : "3 modes disponibles — voir FAQ"
+**Boundaries:**
+- ✅ **Always:** ne corriger que les faits vérifiés par l'audit du 2026-07-10
+- 🚫 **Never:** réécrire des sections entières ni changer la structure du CLAUDE.md
 
-**TDD — Refactor step :**
-- Extraire `TrailPlannerForm.tsx` pour isolation
-- Extraire `usePaceForm` hook si le form grossit
-- Constantes centralisees dans `presets.ts`
-
-**Conditions aux limites :**
-
-| Cas | Comportement attendu | Test |
-|-----|---------------------|------|
-| User clique Trail Planner mais ne remplit rien | Submit disabled + message "Remplissez les parametres ou chargez un preset" | test #5 |
-| Input `flat_pace = 0` ou vide | Border rouge + message "Valeur > 0 requise" | test #5 |
-| Input `flat_pace = 50` (> 30 max) | Border rouge + message "Max 30 km/h" | test supplementaire |
-| `fatigue_percent = 0` | OK (fatigue desactivee, submit enabled) | test dedie |
-| User toggle mode puis revient | Values preservees via state local | test #7 |
-| API 422 (backend rejette config) | Toast erreur "Parametres invalides" + form reste rempli | test integration |
-| Network error (fetch reject) | Toast "Erreur reseau" + bouton retry | existant, a preserver |
-| localStorage ancien format (`useNaismith`) | Migration silencieuse au load | test #8, #9 |
-| localStorage corrompu (JSON invalide) | Reset store au default (pas de crash) | test dedie |
-
-**Fallbacks :**
-- Si preset JSON parse echoue (impossible car constante TS, defensive) → fallback hardcode "Trail moyen"
-- Si backend renvoie calcul incoherent (temps < 0) → afficher "--" et logger Sentry (T3)
-- Si Zustand migration fonction throw → reset store au default + toast "Preferences reinitialisees"
-
-**Acceptance — Definition of Done :**
-- [ ] 11+ tests Vitest passent (`AidStationTable.test.tsx`, `useAppStore.test.ts`, `validation.test.ts`)
-- [ ] Coverage `AidStationTable.tsx` >= 70%
-- [ ] Coverage `TrailPlannerForm.tsx` >= 80%
-- [ ] `grep -r "useNaismith" frontend/src/` retourne vide (sauf backup `App.tsx.backup` ignore)
-- [ ] `grep -r "USE_NAISMITH" frontend/src/` retourne vide
-- [ ] `npm run build` reussit sans warning TypeScript
-- [ ] Manual test : upload GPX + Trail Planner preset → table aid stations avec temps plus lents que Naismith
-- [ ] Manual test : user existant (localStorage v1) voit son choix preserve au premier load
-- [ ] Accessibility : radios ont `aria-labelledby`, form inputs ont `<label htmlFor>` ou `aria-label`
-
-**Rollback :**
-- `git revert` + bump `useAppStore` persist version a v3 pour invalider les states v2
-- Si deploye : toast informatif "Options de calcul mises a jour" pour les users ayant l'ancien state
-
-**Timeout :** 2h
+**Rollback:** `git revert` (doc uniquement).
+**Durée:** 15-20 min
 
 ---
 
-### T9.3: Doc FAQ + tooltip + reponse a Paul
-**status:** done
-**PR:** https://github.com/Jalmin/gpxify/pull/3
-**branch:** shika/T9.3-faq-doc
-**type:** doc
-**priority:** low
-**parent:** T9
-**depends_on:** T9.2
+### T21: [refactor] Extraire la logique race_recovery du router vers un service dédié
+**status:** ready
+**type:** cleanup
+**priority:** high
+**Tier:** M
 
-**Goal:** Ajouter une entree FAQ expliquant le nouveau mode Trail Planner, mettre a jour le tooltip du composant, et envoyer la reponse a Paul.
+**Goal:** Déplacer les ~350 lignes de logique métier de `backend/app/api/race_recovery.py` vers un nouveau `race_recovery_service.py`, le router ne gardant que validation d'upload et mapping HTTP — comportement strictement identique.
 
-**Context:** Paul a pris le temps d'ecrire un feedback construit — boucle de retour importante (validation sociale + engagement futur). La FAQ centralise les explications pour les autres users qui se poseront la question.
+**Context:** Le router race_recovery (387 lignes) contient 100% de la logique inline (find_closest_point_index, modèle de vitesse ajustée pente, recherche binaire des timestamps), ce qui viole la règle projet "pas de logique métier dans les routes" (CLAUDE.md §7). C'est le préalable à toute évolution de l'outil de sauvetage de trace, axe produit prioritaire.
 
 **Files:**
-- `frontend/src/pages/FAQ.tsx` (nouvelle entree)
-- `frontend/src/components/AidStationTable.tsx` (tooltip mis a jour)
+- `backend/app/api/race_recovery.py`
+- `backend/app/services/race_recovery_service.py` (nouveau)
+- `backend/tests/test_race_recovery.py`
 
-**Action manuelle (hors code) :**
-- Envoyer la reponse a Paul (email / message — canal depuis lequel il a ecrit)
-
-**Contenu FAQ a ajouter :**
+**Prompt Claude Code:**
 ```
-Q: Quelle est la difference entre Naismith, Allure constante et Trail Planner ?
-R: Trois modes de calcul des temps de passage :
-
-1. **Formule de Naismith (par defaut)** — adaptee au trail running. Vitesse
-   de base 12 km/h + 5 min par 100m de D+ + bonus 5 min par 100m de D- en
-   pente raide (>12%). Estimation dite "conservative" mais souvent trop
-   rapide pour les allures rando ou ultra.
-
-2. **Allure constante** — vitesse moyenne unique en km/h. Utile si vous
-   avez deja votre allure cible sans tenir compte du denivele.
-
-3. **Trail Planner** — 4 parametres ajustables pour coller au plus pres a
-   votre profil :
-   • Allure sur plat (km/h)
-   • Penalite de montee (min par 100m D+)
-   • Bonus descente (min par 100m D-)
-   • Facteur de fatigue progressif (+X% toutes les N km)
-
-   Preset "Trail moyen" fourni (10 km/h, +6/100m, -3/100m, +5%/20km).
-   Ajustez selon vos sensations et votre experience.
+1. Lire race_recovery.py en entier et lister les fonctions pures (parse_time_duration,
+   find_closest_point_index, calculs vitesse/pente, reconstruction timestamps).
+2. AVANT tout déplacement : ajouter un test golden dans test_race_recovery.py —
+   appeler l'endpoint /recover avec les fixtures existantes, sauvegarder le GPX
+   résultat, l'assert byte-à-byte (l'algo est déterministe).
+3. Créer race_recovery_service.py : déplacer toutes les fonctions + la logique
+   d'orchestration dans une fonction recover_race_track(...) avec type hints
+   et docstrings Google style. Aucun changement d'algorithme.
+4. Réduire le router : parsing UploadFile/Form, appel du service, mapping des
+   ValueError du service vers HTTPException 400 avec les MÊMES messages qu'avant.
+5. Lancer pytest : tests existants + golden passent sans modification de leurs asserts.
 ```
 
-**Acceptance — Definition of Done :**
-- [ ] FAQ.tsx contient la nouvelle entree, rendue correctement (verif visuelle)
-- [ ] Tooltip `AidStationTable.tsx:279` reference la FAQ ("3 modes disponibles — voir FAQ")
-- [ ] Email / message envoye a Paul (capture d'ecran ou confirmation)
-- [ ] Optionnel : mention dans `Marketing.tsx:65` (actuellement parle de Naismith uniquement)
+**Done:**
+- [ ] `race_recovery.py` (router) ne contient plus aucune fonction de calcul (uniquement I/O HTTP), < 100 lignes
+- [ ] Toutes les fonctions déplacées dans `race_recovery_service.py` avec type hints complets
+- [ ] Test golden ajouté : même GPX d'entrée → GPX de sortie identique avant/après refactor
+- [ ] `pytest backend/tests/test_race_recovery.py` passe sans modification des asserts existants
 
-**Rollback :** N/A (ajout de texte uniquement).
+**Edge cases:**
+| Situation | Comportement |
+|-----------|-------------|
+| Messages d'erreur 400 (GPX invalide, format temps) | Identiques au caractère près (contrat API public) |
+| Creator string "GPX Ninja - Race Recovery" | Inchangé dans le GPX exporté |
+| Import circulaire service ↔ utils/elevation_quality | Le service importe utils, jamais l'inverse |
 
-**Timeout :** 45min
+**Boundaries:**
+- ✅ **Always:** préserver la signature de l'endpoint (noms des champs Form/File) et les messages d'erreur
+- ⚠️ **Ask first:** si un comportement actuel semble être un bug pendant le déplacement — le noter, ne PAS le corriger dans cette task
+- 🚫 **Never:** modifier l'algorithme (modèle vitesse, bornes 30-200%, recherche binaire 50 itérations)
+
+**Fallback:** si le test golden diffère après extraction → bisecter fonction par fonction, ne pas merger tant que non-identique.
+
+**Smoke:** (backend détecté)
+- start_cmd: `cd backend && uvicorn app.main:app --port 8000`
+- assert: `curl -sf -X POST localhost:8000/api/v1/race/recover -F "incomplete_gpx=@tests/fixtures ou GPX généré" -F "complete_gpx=@..." -F "official_time=05:30:00" -o /tmp/rec.gpx && python -c "import gpxpy; gpxpy.parse(open('/tmp/rec.gpx'))"` — HTTP 200 + GPX parsable (réutiliser les GPX générés par les fixtures de test_race_recovery.py)
+
+**Rollback:** `git revert` (1 commit atomique).
+**Durée:** 60 min
+
+---
+
+### T22: [core] Détection spatiale des gaps dans le merge GPX
+**status:** ready
+**type:** core
+**priority:** high
+**Tier:** M
+
+**Goal:** Ajouter dans `GPXMergeService` la détection des gaps **spatiaux** (distance haversine entre le dernier point d'un fichier et le premier du suivant) en complément de la détection temporelle existante.
+
+**Context:** Aujourd'hui la détection de gaps est purement temporelle (`time_gap > 300s`) : deux traces distantes de 10 km mais proches en temps fusionnent silencieusement, et les traces **sans timestamps** ne déclenchent aucune détection. Pour un outil de soudure fiable (axe produit), le gap spatial doit être détecté même sans horodatage.
+
+**Files:**
+- `backend/app/services/gpx_merge_service.py`
+- `backend/app/models/gpx.py` (MergeOptions : ajout `spatial_gap_threshold_m`)
+- `backend/tests/test_merge.py`
+
+**TDD Tests d'abord:**
+1. Deux fichiers séparés de ~10 km sans timestamps → warning "spatial gap" avec distance + coords, et split en 2 segments → attendu : warning présent, 2 segments
+2. Deux fichiers contigus (< seuil) sans timestamps → aucun warning spatial → attendu : 1 segment, 0 warning
+3. Gap à la fois temporel ET spatial → un seul split, les deux warnings émis (pas de double split) → attendu : 2 segments, 2 warnings
+4. Seuil custom `spatial_gap_threshold_m=50` sur un gap de 100 m → warning émis → attendu : détection au seuil configuré
+
+**Prompt Claude Code:**
+```
+1. Écrire les 4 tests TDD ci-dessus dans test_merge.py (rouge).
+2. Ajouter spatial_gap_threshold_m: int = 500 dans MergeOptions (modèle Pydantic,
+   ge=10, le=100000).
+3. Dans gpx_merge_service.py, au point de jonction entre fichiers (là où le
+   time_gap est déjà calculé) : calculer la distance haversine entre dernier
+   point du fichier N et premier du fichier N+1. Réutiliser la fonction
+   haversine existante du projet (chercher dans services/ ou utils/ — ne pas
+   en recréer une).
+4. Si distance > seuil : émettre warning f"Spatial gap: {distance:.0f}m between
+   {file_a} and {file_b} at ({lat},{lon})" et splitter le segment (même
+   mécanique que le gap temporel, en respectant interpolate_gaps).
+5. Si gap temporel ET spatial au même point : un seul split, deux warnings.
+6. pytest vert, puis vérifier qu'aucun test existant ne casse.
+```
+
+**Done:**
+- [ ] Les 4 tests TDD passent
+- [ ] Un merge de 2 traces sans timestamps séparées de 10 km produit un warning contenant la distance
+- [ ] `spatial_gap_threshold_m` exposé dans MergeOptions avec défaut 500 et bornes validées Pydantic
+- [ ] Les tests merge existants passent sans modification (comportement temporel inchangé)
+
+**Edge cases:**
+| Situation | Comportement |
+|-----------|-------------|
+| Fichier d'un seul point | Distance calculée sur ce point unique, pas de crash |
+| Gap spatial ET temporel simultanés | 1 seul split, 2 warnings distincts |
+| Traces sans timestamps (tri impossible) | Ordre d'upload préservé + détection spatiale active quand même |
+| Seuil aberrant (0 ou négatif) | Rejeté par validation Pydantic (ge=10), 422 |
+
+**Boundaries:**
+- ✅ **Always:** réutiliser la fonction haversine existante du projet (distance_calculator)
+- ⚠️ **Ask first:** avant de changer le seuil temporel existant (300 s) — hors scope
+- 🚫 **Never:** modifier le comportement du merge quand aucun gap spatial n'existe (zéro régression)
+
+**Fallback:** si le calcul de distance échoue sur un point (coords manquantes/aberrantes) → log warning + skip la détection spatiale pour cette jonction, le merge continue (ne jamais faire échouer un merge à cause de la détection).
+
+**Smoke:** (backend détecté)
+- start_cmd: `cd backend && uvicorn app.main:app --port 8000`
+- assert: `curl -sf -X POST localhost:8000/api/v1/gpx/merge` avec 2 GPX de test séparés de >1 km (générés par script inline) → la réponse JSON contient un warning matchant `grep -i "spatial"`
+
+**Rollback:** `git revert` ; le champ MergeOptions est additif (défaut = comportement qui préserve l'API).
+**Durée:** 60-90 min
+
+---
+
+### T23: [core] Interpolation réelle des gaps au merge (`interpolate_gaps=True`)
+**status:** ready
+**type:** core
+**priority:** high
+**depends_on:** T22
+**Tier:** M
+
+**Goal:** Implémenter la vraie interpolation de points dans les gaps détectés quand `interpolate_gaps=True` : aujourd'hui le flag ne fait qu'éviter le split de segment, alors que l'UI promet "ligne droite entre les gaps" (checkbox cochée par défaut).
+
+**Context:** [GPXMerge.tsx:26] expose `interpolate_gaps: true` par défaut avec la promesse "ligne droite entre les gaps", mais `gpx_merge_service.py:137` se contente de ne pas splitter — aucun point n'est généré. La promesse UI est cassée depuis le début. Dépend de T22 (mêmes fichiers, la détection spatiale définit les gaps à combler).
+
+**Files:**
+- `backend/app/services/gpx_merge_service.py`
+- `backend/tests/test_merge.py`
+
+**TDD Tests d'abord:**
+1. Gap de 1 km avec timestamps des deux côtés + `interpolate_gaps=True` → points intermédiaires tous les ~100 m, timestamps strictement croissants entre les deux bornes → attendu : ≥8 points insérés, temps monotones
+2. Gap sans timestamps + `interpolate_gaps=True` → points interpolés sans attribut time → attendu : points présents, time=None
+3. `interpolate_gaps=False` sur le même gap → aucun point inséré, segment splitté (comportement T22 inchangé)
+4. Warning de traçabilité : la réponse contient "interpolated N points" pour chaque gap comblé
+
+**Prompt Claude Code:**
+```
+1. Écrire les 4 tests TDD (rouge).
+2. Dans gpx_merge_service.py, quand un gap (temporel OU spatial, cf. T22) est
+   détecté ET interpolate_gaps=True : générer des points en interpolation
+   linéaire lat/lon/élévation entre les deux points frontière, espacement
+   cible 100 m (min 1 point, cap 500 points par gap).
+3. Timestamps : interpolation linéaire si les deux bornes sont horodatées,
+   sinon time=None sur les points générés.
+4. Élévation : linéaire si les deux bornes en ont une, sinon None (ne pas
+   inventer une altitude d'un seul côté).
+5. Émettre un warning par gap comblé : "interpolated {n} points over {d:.0f}m
+   between {file_a} and {file_b}".
+6. pytest vert + tests T22 et existants inchangés.
+```
+
+**Done:**
+- [ ] Les 4 tests TDD passent
+- [ ] `interpolate_gaps=True` génère des points intermédiaires (espacement ~100 m, cap 500/gap) au lieu de simplement ne pas splitter
+- [ ] Chaque gap comblé produit un warning "interpolated N points" (traçabilité des données fabriquées)
+- [ ] `interpolate_gaps=False` conserve exactement le comportement split de T22
+
+**Edge cases:**
+| Situation | Comportement |
+|-----------|-------------|
+| Gap énorme (>50 km) | Interpolation cappée à 500 points + warning explicite sur la taille du gap |
+| Élévation présente d'un seul côté | Points générés avec ele=None (jamais extrapoler) |
+| Timestamps incohérents (borne B antérieure à A) | Pas d'interpolation de temps (time=None) + warning |
+| Gap sous le seuil de détection | Aucune interpolation (rien à combler) |
+
+**Boundaries:**
+- ✅ **Always:** tracer chaque interpolation dans les warnings de la réponse (l'utilisateur doit savoir que des points sont fabriqués)
+- ⚠️ **Ask first:** avant de toucher au label de la checkbox frontend (hors scope, backend only)
+- 🚫 **Never:** interpoler sans warning, ni générer des timestamps non-monotones
+
+**Fallback:** si l'interpolation échoue sur un gap (données aberrantes) → retomber sur le comportement split (T22) + warning, ne jamais faire échouer le merge.
+
+**Smoke:** (backend détecté)
+- start_cmd: `cd backend && uvicorn app.main:app --port 8000`
+- assert: `curl -sf -X POST localhost:8000/api/v1/gpx/merge` avec 2 GPX séparés de ~1 km et `interpolate_gaps=true` → le GPX résultat contient plus de points que la somme des 2 entrées ET la réponse contient un warning `grep -i "interpolated"`
+
+**Rollback:** `git revert` ; aucun changement de schéma API (le flag existait déjà).
+**Durée:** 90 min
 
 ---
 
@@ -507,177 +534,6 @@ R: Trois modes de calcul des temps de passage :
 ---
 
 ## Review follow-ups (issu de /shika-review 2026-04-19 sur PRs #1-3)
-
-### T10: [infra] Fix conftest SQLite ARRAY — debloquer les tests API
-**status:** done
-**PR:** https://github.com/Jalmin/gpxify/pull/4
-**branch:** shika/T10-fix-conftest-sqlite-array
-**type:** infra
-**priority:** high
-**origin:** /shika-review 2026-04-19 (Issue 1 + Issue 8, P1 + P2)
-
-**Goal:** Permettre aux tests de `test_api.py` et `test_gpx_parser.py` de s'executer via pytest. Actuellement bloques par la colonne `race_aid_stations.services` en PostgreSQL `ARRAY` qui ne rend pas sur SQLite.
-
-**Context:** Reviewer independant a flag que les 6 nouveaux tests API de T9.1 ne s'executent pas en CI — ils ERRORent au setup du fixture autouse `setup_database`. La PR #1 annonce "6 tests API" alors qu'en realite 0 passent. Bug preexistant du sprint PTP, maintenant critique.
-
-**Files (preview):**
-- `backend/app/db/models.py` (column `race_aid_stations.services` — `TypeDecorator` conditionnel)
-- `backend/tests/conftest.py` (idealement retirer l'override ARRAY→JSON)
-- `backend/tests/test_time_calculator.py` (retirer le hack autouse override)
-
-**Options:**
-1. `TypeDecorator` qui serialize ARRAY en JSON sur SQLite, garde ARRAY sur PostgreSQL (propre)
-2. `pytest.mark.skip` explicite sur test_api.py + note DECISIONS (pire, tests dormants)
-3. Basculer conftest sur une DB de test PostgreSQL (lourd)
-
-**Acceptance tests:**
-- [ ] `pytest backend/tests/test_api.py` s'execute sans ERROR au setup
-- [ ] `pytest backend/tests/test_gpx_parser.py` s'execute sans ERROR
-- [ ] Les 6 tests `TestAidStationCalcMode` s'executent et passent (valider la deprecation 400, trail_planner payload, etc.)
-- [ ] Les migrations Alembic restent inchangees (pas de breaking prod)
-- [ ] Override autouse dans `test_time_calculator.py` peut etre supprime
-
-**Rollback:** `git revert` si SQLAlchemy flag un comportement imprevu.
-**Timeout:** 1h30
-
----
-
-### T11: [doc] Documenter le fix incident `total_time_minutes` dans PR #1
-**status:** done
-**Completed:** 2026-04-19
-**type:** doc
-**priority:** high
-**origin:** /shika-review 2026-04-19 (Issue 2, P1)
-
-**Goal:** Editer la description de PR #1 pour signaler que T9.1 corrige incidemment un silent drop (`total_estimated_time_minutes` → `total_time_minutes`) qui rendra le Total visible dans le tableau + CSV alors qu'il etait `-` avant.
-
-**Context:** Le bug etait silencieux (Pydantic ignore les extra fields en mode `extra="ignore"`). Apres T9.1, les users verront une ligne Total avec le temps — changement UX positif mais non annonce dans la PR.
-
-**Files:**
-- PR #1 description (GitHub, hors code)
-- Eventuellement ajouter une entree courte dans un CHANGELOG ou release notes si cree plus tard
-
-**Acceptance tests:**
-- [ ] PR #1 body mentionne le fix collateral (section "Side effects")
-- [ ] Utiliser le bon intitule : "Now displays total time in aid station table footer + CSV export (previously silently dropped)"
-
-**Rollback:** N/A (edition description PR)
-**Timeout:** 10min
-
----
-
-### T12: [backend] Ajouter borne superieure a `constant_pace_kmh` (parite frontend)
-**status:** done
-**PR:** https://github.com/Jalmin/gpxify/pull/1 (commit d2dd58f)
-**type:** quality
-**priority:** medium
-**origin:** /shika-review 2026-04-19 (Issue 3, P2)
-
-**Goal:** Remplacer `Field(default=None, gt=0)` par `Field(default=None, gt=0, le=30)` sur `AidStationTableRequest.constant_pace_kmh` pour parite avec la validation Zod frontend et coherence avec `TrailPlannerConfig.flat_pace_kmh`.
-
-**Files:**
-- `backend/app/models/gpx.py:164` (et verifier test_api.py pour ajouter un cas `constant_pace_kmh=50 → 422`)
-
-**Acceptance tests:**
-- [ ] `Field(default=None, gt=0, le=30)` sur `constant_pace_kmh`
-- [ ] Nouveau test `test_constant_pace_too_high_returns_422` dans `TestAidStationCalcMode`
-- [ ] Depend de T10 pour que le test puisse s'executer
-
-**Timeout:** 20min
-
----
-
-### T13: [frontend] Fix UX `constantPaceInput` quand legacy value est null
-**status:** done
-**PR:** https://github.com/Jalmin/gpxify/pull/2 (commit d4ca9b1)
-**type:** ux
-**priority:** medium
-**origin:** /shika-review 2026-04-19 (Issue 4, P2)
-
-**Goal:** Eviter le fallback silencieux `constantPaceInput='12'` quand `initialConstantPaceKmh === null`. L'utilisateur voit un "12" valide et un bouton disabled sans comprendre.
-
-**Context:** Happens sur un shared link legacy ou un state localStorage corrompu. Le champ doit montrer qu'il est vide.
-
-**Files:**
-- `frontend/src/components/AidStationTable.tsx:39-41`
-
-**Acceptance tests:**
-- [ ] Si `initialConstantPaceKmh === null` alors `constantPaceInput === ''`
-- [ ] Ajouter `placeholder="ex. 10"` sur l'input
-- [ ] Nouveau test Vitest : legacy state null → input vide + aria-invalid
-- [ ] Submit reste disabled (pas de regression)
-
-**Timeout:** 30min
-
----
-
-### T14: [frontend] Wire `CalcConfigSchema.parse()` dans buildRequest (belt-and-braces)
-**status:** done
-**PR:** https://github.com/Jalmin/gpxify/pull/2 (commit d4ca9b1)
-**type:** quality
-**priority:** medium
-**origin:** /shika-review 2026-04-19 (Issue 5, P2)
-
-**Goal:** Utiliser le schema Zod `CalcConfigSchema` (actuellement exporte mais unused) dans `AidStationTable.buildRequest()` pour valider le payload avant envoi API.
-
-**Context:** Defense en profondeur — si le form UI laisse passer un invariant, Zod le rattrape avant le backend. Aligne aussi avec le pattern deja utilise pour AidStationSchema.
-
-**Files:**
-- `frontend/src/components/AidStationTable.tsx` (buildRequest)
-- Option alternative : si pas voulu, supprimer les exports unused dans `schemas/validation.ts`
-
-**Acceptance tests:**
-- [ ] `CalcConfigSchema.parse(...)` appele dans buildRequest
-- [ ] Erreur Zod renvoyee sous forme de toast utilisateur (via `formatZodError`)
-- [ ] Nouveau test Vitest : payload invalide rejete cote frontend
-
-**Timeout:** 45min
-
----
-
-### T15: [cleanup] `git rm frontend/src/App.tsx.backup`
-**status:** done
-**PR:** https://github.com/Jalmin/gpxify/pull/5
-**branch:** shika/T15-rm-app-backup
-**type:** cleanup
-**priority:** low
-**origin:** /shika-review 2026-04-19 (Issue 6, P2)
-
-**Goal:** Supprimer le fichier backup commite qui contient des references a `useNaismith`.
-
-**Context:** Pollue grep/audit/security scans. Dead weight.
-
-**Files:**
-- `frontend/src/App.tsx.backup` (delete)
-
-**Acceptance tests:**
-- [ ] Fichier supprime du repo
-- [ ] `grep -r "useNaismith" frontend/src/` retourne uniquement les references migration legitimes
-
-**Timeout:** 5min
-
----
-
-### T16: [backend] Commentaire inline sur le modele fatigue km-debut-segment
-**status:** done
-**PR:** https://github.com/Jalmin/gpxify/pull/1 (commit d2dd58f)
-**type:** doc
-**priority:** low
-**origin:** /shika-review 2026-04-19 (Issue 7, P2)
-
-**Goal:** Ajouter un commentaire explicatif sur `aid_station_service.py:131` pour eviter qu'un futur developpeur "corrige" la ligne `cumulative_distance_km += segment_distance` (qui incremente apres calcul du segment, donc fatigue au debut de segment — intentionnel, matche TDD).
-
-**Files:**
-- `backend/app/services/aid_station_service.py:131` (commentaire)
-- Eventuellement une mention dans la FAQ (pas requis)
-
-**Acceptance tests:**
-- [ ] Commentaire 1-2 lignes explique que fatigue est coarse (start-of-segment)
-- [ ] Aucun changement de comportement
-
-**Timeout:** 10min
-
----
 
 ### T17: [frontend] Refactor AidStationTable props → internal state (later)
 **status:** later

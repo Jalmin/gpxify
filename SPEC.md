@@ -43,6 +43,29 @@ Application full-stack (SPA React + REST API FastAPI), deployable en Docker sur 
 - Nginx Alpine (reverse proxy, security headers)
 - Coolify-compatible
 
+## Architecture
+
+Monorepo deux dossiers :
+
+```
+GPXIFY/
+├── frontend/src/          # SPA React
+│   ├── components/        # 28 composants (ui/, Dashboard/, Map/)
+│   ├── pages/             # 7 pages
+│   ├── store/             # Zustand (useAppStore.ts)
+│   ├── services/          # Client API (api.ts)
+│   ├── hooks/ types/ schemas/
+├── backend/app/           # API FastAPI
+│   ├── api/               # 7 routers (gpx, share, contact, race_recovery, admin, races, ptp)
+│   ├── services/          # 12 services metier (logique — jamais dans les routers)
+│   ├── models/            # Schemas Pydantic
+│   ├── db/ core/ middleware/ utils/
+│   └── tests/             # pytest
+└── docker-compose.yml
+```
+
+Regle structurante : logique metier dans `services/`, les routers ne font que I/O HTTP + validation (CLAUDE.md §7).
+
 ## Fonctionnalites
 
 ### Analyse GPX (core)
