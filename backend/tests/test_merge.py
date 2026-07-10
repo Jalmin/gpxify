@@ -78,8 +78,20 @@ def _temporal_warnings(warnings: List[str]) -> List[str]:
     return [w for w in warnings if "gap detected" in w.lower()]
 
 
+def _interpolated_warnings(warnings: List[str]) -> List[str]:
+    return [w for w in warnings if re.search(r"interpolated \d+ points", w)]
+
+
 def _segment_count(merged_gpx) -> int:
     return sum(len(t.segments) for t in merged_gpx.tracks)
+
+
+def _all_points(merged_gpx):
+    return [p for t in merged_gpx.tracks for seg in t.segments for p in seg.points]
+
+
+def _total_points(merged_gpx) -> int:
+    return len(_all_points(merged_gpx))
 
 
 # ---------------------------------------------------------------------------
@@ -217,3 +229,167 @@ class TestMergeEdgeCases:
             MergeOptions(spatial_gap_threshold_m=100000).spatial_gap_threshold_m
             == 100000
         )
+
+
+# ---------------------------------------------------------------------------
+# T23 — Real gap interpolation at merge (interpolate_gaps=True)
+# ---------------------------------------------------------------------------
+
+class TestGapInterpolation:
+    """When ``interpolate_gaps=True`` GPXIFY must FABRICATE intermediate points
+    inside a detected gap (linear lat/lon/ele/time), ~100 m apart, capped at
+    500 per gap, and trace every fabrication in the warnings."""
+
+    def test_1km_gap_with_timestamps_inserts_points_monotonic_time(self):
+        """1 km gap, timestamps both sides -> >=8 inserted points, strictly
+        increasing timestamps between the two boundaries."""
+        t0 = datetime(2026, 1, 1, 8, 0, 0, tzinfo=timezone.utc)
+        # file_a last point at lat 45.0004; file_b first point at 45.0094
+        # -> ~1001 m north => spatial gap (> 500 m default) detected.
+        file_a = _build_gpx_content(
+            _line(45.0000, 6.0, start_time=t0, time_step_s=10), filename="a.gpx"
+        )
+        # file_b starts 600 s after t0 (after file_a's last time t0+40s).
+        t1 = t0 + timedelta(seconds=600)
+        file_b = _build_gpx_content(
+            _line(45.0094, 6.0, start_time=t1, time_step_s=10), filename="b.gpx"
+        )
+
+        merged_gpx, warnings = GPXMergeService.merge_gpx_files(
+            [file_a, file_b],
+            interpolate_gaps=True,
+        )
+
+        # interpolate_gaps=True never splits: everything in a single segment.
+        assert _segment_count(merged_gpx) == 1
+        # 5 (a) + 5 (b) inputs => any extra points are fabricated.
+        inserted = _total_points(merged_gpx) - 10
+        assert inserted >= 8, f"expected >=8 inserted, got {inserted}"
+
+        # Every timestamp present must be strictly increasing.
+        times = [p.time for p in _all_points(merged_gpx) if p.time is not None]
+        assert times == sorted(times)
+        assert all(b > a for a, b in zip(times, times[1:])), times
+
+    def test_gap_without_timestamps_inserts_points_time_none(self):
+        """Gap without timestamps -> points fabricated with time=None."""
+        file_a = _build_gpx_content(_line(45.0000, 6.0), filename="a.gpx")
+        file_b = _build_gpx_content(_line(45.0094, 6.0), filename="b.gpx")
+
+        merged_gpx, warnings = GPXMergeService.merge_gpx_files(
+            [file_a, file_b],
+            sort_by_time=False,
+            interpolate_gaps=True,
+        )
+
+        assert _segment_count(merged_gpx) == 1
+        assert _total_points(merged_gpx) > 10  # points were fabricated
+        # No source point carried a time, so nothing may be fabricated with one.
+        assert all(p.time is None for p in _all_points(merged_gpx))
+
+    def test_interpolate_false_keeps_split_no_points_inserted(self):
+        """interpolate_gaps=False on the same gap -> T22 split, no fabrication."""
+        file_a = _build_gpx_content(_line(45.0000, 6.0), filename="a.gpx")
+        file_b = _build_gpx_content(_line(45.0094, 6.0), filename="b.gpx")
+
+        merged_gpx, warnings = GPXMergeService.merge_gpx_files(
+            [file_a, file_b],
+            sort_by_time=False,
+            interpolate_gaps=False,
+        )
+
+        assert _segment_count(merged_gpx) == 2  # split preserved (T22)
+        assert _total_points(merged_gpx) == 10  # nothing fabricated
+        assert _interpolated_warnings(warnings) == []
+
+    def test_filled_gap_emits_interpolated_warning(self):
+        """Each filled gap must be traced with an 'interpolated N points' warning."""
+        file_a = _build_gpx_content(_line(45.0000, 6.0), filename="a.gpx")
+        file_b = _build_gpx_content(_line(45.0094, 6.0), filename="b.gpx")
+
+        _, warnings = GPXMergeService.merge_gpx_files(
+            [file_a, file_b],
+            sort_by_time=False,
+            interpolate_gaps=True,
+        )
+
+        interp = _interpolated_warnings(warnings)
+        assert len(interp) == 1, warnings
+        # Warning carries the count and the distance (metres).
+        assert re.search(r"interpolated \d+ points over \d+m", interp[0]), interp[0]
+
+
+class TestGapInterpolationEdgeCases:
+    def test_elevation_one_side_only_yields_none_elevation(self):
+        """Elevation on one boundary only -> fabricated points have ele=None
+        (never extrapolate a one-sided altitude)."""
+        # file_a has elevation, file_b has none.
+        file_a = _build_gpx_content(
+            [(45.0000, 6.0, 100.0, None), (45.0004, 6.0, 120.0, None)],
+            filename="a.gpx",
+        )
+        file_b = _build_gpx_content(
+            [(45.0094, 6.0, None, None), (45.0098, 6.0, None, None)],
+            filename="b.gpx",
+        )
+
+        merged_gpx, warnings = GPXMergeService.merge_gpx_files(
+            [file_a, file_b],
+            sort_by_time=False,
+            interpolate_gaps=True,
+        )
+
+        # Fabricated points = total - 4 inputs.
+        assert _total_points(merged_gpx) > 4
+        # The boundary between a's last (ele set) and b's first (ele None):
+        # inserted points must NOT extrapolate -> ele is None.
+        inserted = _all_points(merged_gpx)[2:-2]  # strip the 2+2 source points
+        assert inserted, "expected fabricated points"
+        assert all(p.elevation is None for p in inserted), inserted
+
+    def test_non_monotonic_timestamps_no_time_and_warns(self):
+        """Boundary B time precedes A -> do NOT fabricate time (None) + warn."""
+        t0 = datetime(2026, 1, 1, 8, 0, 0, tzinfo=timezone.utc)
+        # file_a last time = t0 + 40s.
+        file_a = _build_gpx_content(
+            _line(45.0000, 6.0, start_time=t0, time_step_s=10), filename="a.gpx"
+        )
+        # file_b first time is BEFORE file_a's last time -> non-monotonic.
+        earlier = t0 - timedelta(seconds=600)
+        file_b = _build_gpx_content(
+            _line(45.0094, 6.0, start_time=earlier, time_step_s=10), filename="b.gpx"
+        )
+
+        merged_gpx, warnings = GPXMergeService.merge_gpx_files(
+            [file_a, file_b],
+            sort_by_time=False,  # keep manual order to preserve inversion
+            interpolate_gaps=True,
+        )
+
+        # A gap was still filled (spatial 1 km), so points exist...
+        assert _interpolated_warnings(warnings), warnings
+        # ...but the fabricated points must have time=None (no bogus times).
+        inserted = _all_points(merged_gpx)[5:-5]  # strip 5+5 source points
+        assert inserted, "expected fabricated points"
+        assert all(p.time is None for p in inserted), inserted
+        # Traceability of the non-monotonic decision.
+        assert any("non-monotonic" in w.lower() for w in warnings), warnings
+
+    def test_huge_gap_caps_at_500_points_with_size_warning(self):
+        """Gap > 50 km -> fabrication capped at 500 points + explicit size warning."""
+        file_a = _build_gpx_content(_line(45.0000, 6.0), filename="a.gpx")
+        # ~60 km north (0.54 deg lat) -> well over the 50 km cap trigger.
+        file_b = _build_gpx_content(_line(45.5400, 6.0), filename="b.gpx")
+
+        merged_gpx, warnings = GPXMergeService.merge_gpx_files(
+            [file_a, file_b],
+            sort_by_time=False,
+            interpolate_gaps=True,
+        )
+
+        inserted = _total_points(merged_gpx) - 10
+        assert inserted == 500, f"expected cap at 500, got {inserted}"
+        # Explicit warning about the large gap size.
+        assert any(
+            "large gap" in w.lower() or "capped" in w.lower() for w in warnings
+        ), warnings
