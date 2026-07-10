@@ -5,7 +5,7 @@ Handles merging of multiple GPX files into a single track
 import gpxpy
 import gpxpy.gpx
 from typing import List, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from app.utils.elevation_quality import process_elevation_data
@@ -16,6 +16,13 @@ logger = logging.getLogger(__name__)
 
 class GPXMergeService:
     """Service for merging GPX files"""
+
+    # Target spacing (metres) between fabricated points inside a filled gap.
+    INTERPOLATION_SPACING_M = 100
+    # Hard cap on fabricated points per gap (guards against absurd gaps).
+    MAX_INTERPOLATED_POINTS = 500
+    # Above this size (metres) a filled gap gets an explicit size warning.
+    LARGE_GAP_M = 50000
 
     @staticmethod
     def merge_gpx_files(
@@ -171,11 +178,47 @@ class GPXMergeService:
                         f"{last_filename} and {filename}: {e}"
                     )
 
-                # Single split honouring interpolate_gaps (straight line drawn
-                # instead of a new segment when interpolation is requested).
-                if should_split and not interpolate_gaps:
-                    current_segment = gpxpy.gpx.GPXTrackSegment()
-                    merged_track.segments.append(current_segment)
+                # Single split honouring interpolate_gaps. When interpolation
+                # is requested we FABRICATE points inside the gap (linear
+                # lat/lon/ele/time) instead of splitting into a new segment.
+                if should_split:
+                    if interpolate_gaps:
+                        try:
+                            interp_points, interp_warnings = (
+                                GPXMergeService._interpolate_gap(
+                                    last_point,
+                                    first_point,
+                                    last_filename,
+                                    filename,
+                                )
+                            )
+                        except Exception as e:
+                            # Aberrant data: never fail the merge. Fall back to
+                            # the T22 split behaviour and trace the decision.
+                            logger.warning(
+                                f"Gap interpolation failed between "
+                                f"{last_filename} and {filename}: {e}. "
+                                "Falling back to split."
+                            )
+                            warnings.append(
+                                f"Gap interpolation failed between "
+                                f"{last_filename} and {filename}: fell back to "
+                                "splitting into a new segment"
+                            )
+                            current_segment = gpxpy.gpx.GPXTrackSegment()
+                            merged_track.segments.append(current_segment)
+                        else:
+                            if interp_points:
+                                current_segment.points.extend(interp_points)
+                                warnings.extend(interp_warnings)
+                            else:
+                                # Nothing to fabricate: fall back to a split so
+                                # the visual gap is still honoured.
+                                current_segment = gpxpy.gpx.GPXTrackSegment()
+                                merged_track.segments.append(current_segment)
+                    else:
+                        current_segment = gpxpy.gpx.GPXTrackSegment()
+                        merged_track.segments.append(current_segment)
 
             # Add all points from this segment
             for point in segment.points:
@@ -208,3 +251,103 @@ class GPXMergeService:
         )
 
         return merged_gpx, warnings
+
+    @staticmethod
+    def _interpolate_gap(
+        start_point: gpxpy.gpx.GPXTrackPoint,
+        end_point: gpxpy.gpx.GPXTrackPoint,
+        file_a: str,
+        file_b: str,
+    ) -> Tuple[List[gpxpy.gpx.GPXTrackPoint], List[str]]:
+        """Fabricate intermediate points linearly across a detected gap.
+
+        Generates points every ~``INTERPOLATION_SPACING_M`` metres (min 1,
+        capped at ``MAX_INTERPOLATED_POINTS``) between ``start_point`` (tail of
+        the previous segment) and ``end_point`` (head of the next). Latitude,
+        longitude and — when available on BOTH boundaries — elevation and time
+        are linearly interpolated. A one-sided elevation is never extrapolated
+        (``elevation=None``); non-monotonic timestamps never produce a bogus
+        time (``time=None`` + warning).
+
+        Returns:
+            Tuple of (fabricated points, warnings). Every filled gap yields an
+            ``"interpolated N points"`` warning for full traceability.
+        """
+        warnings: List[str] = []
+
+        distance = DistanceCalculator.haversine_distance(
+            start_point.latitude,
+            start_point.longitude,
+            end_point.latitude,
+            end_point.longitude,
+        )
+
+        # Number of points to insert BETWEEN the two (existing) boundaries.
+        # e.g. a 1000 m gap at 100 m spacing => 10 intervals => 9 inserted.
+        num_intervals = round(distance / GPXMergeService.INTERPOLATION_SPACING_M)
+        num_points = max(1, num_intervals - 1)
+
+        capped = False
+        if num_points > GPXMergeService.MAX_INTERPOLATED_POINTS:
+            num_points = GPXMergeService.MAX_INTERPOLATED_POINTS
+            capped = True
+
+        # Decide whether time can be safely interpolated (both present AND
+        # strictly monotonic: B after A).
+        interp_time = False
+        if start_point.time is not None and end_point.time is not None:
+            if end_point.time > start_point.time:
+                interp_time = True
+            else:
+                warnings.append(
+                    f"Non-monotonic timestamps between {file_a} and {file_b}: "
+                    "fabricated points left without time"
+                )
+
+        # Elevation interpolated only when BOTH boundaries carry one.
+        interp_ele = (
+            start_point.elevation is not None and end_point.elevation is not None
+        )
+
+        new_points: List[gpxpy.gpx.GPXTrackPoint] = []
+        for i in range(1, num_points + 1):
+            fraction = i / (num_points + 1)
+
+            lat = start_point.latitude + fraction * (
+                end_point.latitude - start_point.latitude
+            )
+            lon = start_point.longitude + fraction * (
+                end_point.longitude - start_point.longitude
+            )
+
+            ele = None
+            if interp_ele:
+                ele = start_point.elevation + fraction * (
+                    end_point.elevation - start_point.elevation
+                )
+
+            t = None
+            if interp_time:
+                delta_s = (end_point.time - start_point.time).total_seconds()
+                t = start_point.time + timedelta(seconds=fraction * delta_s)
+
+            new_points.append(
+                gpxpy.gpx.GPXTrackPoint(
+                    latitude=lat, longitude=lon, elevation=ele, time=t
+                )
+            )
+
+        # Traceability: every fabricated gap is announced.
+        warnings.append(
+            f"interpolated {len(new_points)} points over {distance:.0f}m "
+            f"between {file_a} and {file_b}"
+        )
+
+        if capped or distance > GPXMergeService.LARGE_GAP_M:
+            warnings.append(
+                f"Large gap of {distance:.0f}m between {file_a} and {file_b}: "
+                f"interpolation capped at {GPXMergeService.MAX_INTERPOLATED_POINTS} "
+                "points"
+            )
+
+        return new_points, warnings
