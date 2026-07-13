@@ -584,25 +584,6 @@ lastUpdated: 2026-04-18
 
 ---
 
-### T3: Integration Sentry frontend + backend
-**status:** next
-**type:** observability
-**priority:** medium
-
-**Goal:** Monitoring erreurs prod via Sentry sur les deux stacks.
-
-**Context:** TODO documente dans `ErrorBoundary.tsx:33`. Sprint PTP termine = application complexifiee = besoin de visibilite prod. A specer : plan gratuit suffisant, sampling, PII scrubbing (GDPR).
-
-**Files (preview):**
-- `frontend/src/components/ErrorBoundary.tsx`
-- `frontend/src/main.tsx` (init Sentry)
-- `backend/app/main.py` (init Sentry SDK)
-- `.env.example` (SENTRY_DSN)
-
-**Pre-requis:** Specer via `/shika-speccer` (cout, config, scrubbing GDPR).
-
----
-
 ### T4: Pipeline CI GitHub Actions
 **status:** next
 **type:** devops
