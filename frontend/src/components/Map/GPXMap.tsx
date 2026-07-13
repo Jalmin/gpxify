@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Track } from '@/types/gpx';
+import { getSegmentColor } from '@/constants/colors';
 
 // Fix Leaflet default icon issue with Vite
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -67,8 +68,6 @@ export function GPXMap({ tracks, onMapReady }: GPXMapProps) {
     });
     polylineLayersRef.current = [];
 
-    // Vibrant colors that stand out on dark background (red first for better visibility)
-    const colors = ['#ef4444', '#a855f7', '#22c55e', '#f97316', '#ec4899'];
     const allBounds: L.LatLngBounds[] = [];
 
     // Add new tracks
@@ -77,7 +76,7 @@ export function GPXMap({ tracks, onMapReady }: GPXMapProps) {
 
       if (points.length === 0) return;
 
-      const color = colors[index % colors.length];
+      const color = getSegmentColor(index);
       const polyline = L.polyline(points, {
         color,
         weight: 4,
