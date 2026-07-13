@@ -110,6 +110,9 @@ class MergeOptions(BaseModel):
     gap_threshold_seconds: int = 300  # If gap > 5min, consider it a real gap
     interpolate_gaps: bool = False  # If True, draw straight line; if False, keep gap
     sort_by_time: bool = True  # Auto-sort by timestamp or keep manual order
+    # Spatial gap: haversine distance (metres) between the last point of one
+    # file and the first point of the next. Detected even without timestamps.
+    spatial_gap_threshold_m: int = Field(default=500, ge=10, le=100000)
 
 
 class GPXFileInput(BaseModel):

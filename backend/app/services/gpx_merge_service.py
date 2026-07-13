@@ -9,6 +9,7 @@ from datetime import datetime
 import logging
 
 from app.utils.elevation_quality import process_elevation_data
+from app.services.distance_calculator import DistanceCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,8 @@ class GPXMergeService:
         gap_threshold_seconds: int = 300,
         interpolate_gaps: bool = False,
         sort_by_time: bool = True,
-        merged_track_name: str = "Merged Track"
+        merged_track_name: str = "Merged Track",
+        spatial_gap_threshold_m: int = 500
     ) -> Tuple[gpxpy.gpx.GPX, List[str]]:
         """
         Merge multiple GPX files into a single GPX track
@@ -33,6 +35,9 @@ class GPXMergeService:
             interpolate_gaps: If True, interpolate missing points; if False, create new segment
             sort_by_time: Auto-sort by timestamp or keep manual order
             merged_track_name: Name for the merged track
+            spatial_gap_threshold_m: Haversine distance (metres) between the last
+                point of one file and the first of the next above which a spatial
+                gap is reported. Active even when tracks have no timestamps.
 
         Returns:
             Tuple of (merged GPX object, list of warnings)
@@ -106,16 +111,24 @@ class GPXMergeService:
 
         last_point = None
         last_time = None
+        last_filename = None
 
         for seg_info in all_segments:
             segment = seg_info['segment']
             filename = seg_info['filename']
 
-            # Check for gaps and overlaps with previous segment
-            if last_point and last_time and segment.points:
+            # Check for gaps and overlaps with previous segment.
+            # Gate only on last_point so spatial detection runs even when the
+            # tracks carry no timestamps.
+            if last_point and segment.points:
                 first_point = segment.points[0]
                 first_time = first_point.time
 
+                # True when a gap (temporal or spatial) warrants splitting into
+                # a new segment. A single split is created even if both fire.
+                should_split = False
+
+                # --- Temporal gap (unchanged behaviour) ---
                 if first_time and last_time:
                     time_gap = (first_time - last_time).total_seconds()
 
@@ -133,11 +146,36 @@ class GPXMergeService:
                             f"(from {last_point.latitude:.5f},{last_point.longitude:.5f} "
                             f"to {first_point.latitude:.5f},{first_point.longitude:.5f})"
                         )
+                        should_split = True
 
-                        if not interpolate_gaps:
-                            # Create new segment for visual gap on map
-                            current_segment = gpxpy.gpx.GPXTrackSegment()
-                            merged_track.segments.append(current_segment)
+                # --- Spatial gap (new) — active with or without timestamps ---
+                try:
+                    distance = DistanceCalculator.haversine_distance(
+                        last_point.latitude,
+                        last_point.longitude,
+                        first_point.latitude,
+                        first_point.longitude,
+                    )
+                    if distance > spatial_gap_threshold_m:
+                        warnings.append(
+                            f"Spatial gap: {distance:.0f}m between "
+                            f"{last_filename} and {filename} "
+                            f"at ({first_point.latitude},{first_point.longitude})"
+                        )
+                        should_split = True
+                except Exception as e:
+                    # Never let spatial detection break the merge: log & skip
+                    # this junction only.
+                    logger.warning(
+                        f"Spatial gap detection skipped between "
+                        f"{last_filename} and {filename}: {e}"
+                    )
+
+                # Single split honouring interpolate_gaps (straight line drawn
+                # instead of a new segment when interpolation is requested).
+                if should_split and not interpolate_gaps:
+                    current_segment = gpxpy.gpx.GPXTrackSegment()
+                    merged_track.segments.append(current_segment)
 
             # Add all points from this segment
             for point in segment.points:
@@ -152,6 +190,11 @@ class GPXMergeService:
                 if point.time:
                     last_time = point.time
                 last_point = point
+
+            # Remember which file provided the current tail, for the next
+            # junction's spatial/temporal gap message.
+            if segment.points:
+                last_filename = filename
 
         # Final validation
         total_points = sum(len(seg.points) for seg in merged_track.segments)
