@@ -758,10 +758,10 @@ async function runAssertion(step: SmokeStep): Promise<SmokeStep> {
         ? ''
         : (stderr || `exit ${outcome.code ?? `signal ${outcome.signal}`}`).slice(-2000);
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     step.success = false;
     step.stdout = stdout.slice(-2000);
-    step.stderr = (err?.message || String(err)).slice(-2000);
+    step.stderr = (err instanceof Error ? err.message : String(err)).slice(-2000);
   } finally {
     // TOUJOURS reaper le groupe — c'est CE geste qui rend le screening inutile.
     if (child) await reapGroup(child, 300);
@@ -970,10 +970,10 @@ async function main(): Promise<void> {
         message = message || 'start_cmd booted, no assertion to run';
       }
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Runner-internal crash → error verdict, never a silent pass.
     verdict = 'error';
-    message = `smoke internal error: ${err?.message || String(err)}`;
+    message = `smoke internal error: ${err instanceof Error ? err.message : String(err)}`;
     console.error(`❌ ${message}`);
   } finally {
     // ALWAYS reap the spawned process group (SIGTERM → SIGKILL), awaited so
