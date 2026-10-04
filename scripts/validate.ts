@@ -12,7 +12,7 @@ import { readFileSync, existsSync, readdirSync } from "fs";
 import { join, dirname, resolve, basename, relative } from "path";
 // `.js` obligatoire : package `"type": "module"` → Node ESM refuse l'import
 // sans extension sur le chemin compile-puis-node (AGENTS.md, sandbox Cowork).
-import { taskHeaderRegex, normalizeTaskId, FIELD_HEADING } from "./lib/task-dialect.js";
+import { taskHeaderRegex, normalizeTaskId, FIELD_HEADING, isTaskBoundary } from "./lib/task-dialect.js";
 
 // Toutes les règles de validation sont HARDCODÉES ci-dessous (v1) — le
 // chargement des JSON Schemas était du code mort (jamais consommé) dont le
@@ -198,11 +198,51 @@ function validateTasks(content: string): ValidationResult {
   // « 0 fichier lu ⇒ ROUGE » : sans lui, un TASKS.md que le parseur ne comprend
   // pas ressort VERT avec « All checks passed », la pire des sorties.
   if (headerMatches.length === 0) {
-    errors.push({
-      path: "/tasks",
-      message: "Aucune task lisible dans ce fichier — le validateur n'a RIEN validé (header attendu : `### T123 — titre` ou `## ABC-1 — titre`)",
-      severity: "error",
-    });
+    // ...SAUF si le fichier est un module ENTIÈREMENT ARCHIVÉ (T176, 2026-08-21).
+    // `archive-done-tasks.ts --apply` retire les tasks `done` et laisse une trace
+    // `<!-- Archive: N tasks… -->`. Un module dont TOUT est fait finit donc
+    // légitimement à zéro task — et l'invariant ci-dessus le refusait, ce qui
+    // bloquait le gate 0.1 de `/shika-run` pour le PROJET ENTIER, quel que soit
+    // le module visé (constaté sur `production-tool`, run du module `reporting`).
+    //
+    // Les deux cas ne doivent PAS être confondus, et c'est tout l'enjeu :
+    //   - « bien formé, tout archivé »        → OK + warning (rien à valider)
+    //   - « le parseur ne comprend plus rien » → ERREUR (la protection T159)
+    //
+    // Le discriminant est la présence d'un heading `##`/`###` NON reconnu : s'il
+    // en reste un, quelque chose ressemble à une task et le parseur passe à
+    // côté — c'est le dialecte cassé, pas l'archivage. La garde anti-silence
+    // ci-dessus n'attrape que ceux qui portent un champ statut ; ici on est plus
+    // strict, parce qu'on s'apprête à laisser passer un fichier VIDE.
+    //
+    // Avec une trace d'archivage, seul un heading qui RESSEMBLE à une task
+    // (frontière tolérante : `### T12 …`, `## ABC-1 …`) compte comme résidu :
+    // les titres de phase (`## Phase 41 — …`) survivent légitimement à
+    // l'archivage — faux rouge constaté sur shikamaru le 2026-09-28, 48 titres
+    // de phase, 0 task. Sans trace, la règle stricte d'origine s'applique.
+    const traceDArchivage = /<!--\s*Archive\s*:/i.test(content);
+    const headingsResiduels = [...content.matchAll(/^#{2,3}\s+\S[^\n]*$/gm)].filter(
+      (m) => !FIELD_HEADING.test(m[0]) && (!traceDArchivage || isTaskBoundary(m[0])),
+    );
+
+    if (traceDArchivage && headingsResiduels.length === 0) {
+      // Convention du fichier : warnings et erreurs vivent dans le MÊME tableau,
+      // discriminés par `severity` (cf. /type et /review plus bas).
+      errors.push({
+        path: "/tasks",
+        message:
+          "Module entièrement archivé : 0 task, et une trace `<!-- Archive: … -->` l'explique — rien à valider ici, ce n'est pas une erreur",
+        severity: "warning",
+      });
+    } else {
+      errors.push({
+        path: "/tasks",
+        message: headingsResiduels.length
+          ? `Aucune task lisible, mais ${headingsResiduels.length} heading(s) subsistent (ex. « ${headingsResiduels[0][0].trim()} ») — le parseur ne reconnaît plus le dialecte, les tasks seraient INVISIBLES au runner`
+          : "Aucune task lisible dans ce fichier — le validateur n'a RIEN validé (header attendu : `### T123 — titre` ou `## ABC-1 — titre`)",
+        severity: "error",
+      });
+    }
   }
 
   for (let i = 0; i < headerMatches.length; i++) {

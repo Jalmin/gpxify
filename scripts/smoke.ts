@@ -200,6 +200,10 @@ const START_TIMEOUT_MS = parseInt(process.env.SMOKE_START_TIMEOUT_MS || '30000',
 // par le rate-limit, a été mesuré à 15 002 ms puis 11 808 ms sur DEUX passages
 // consécutifs — à 15 s le gate passait à la loterie.
 const ASSERT_TIMEOUT_MS = parseInt(process.env.SMOKE_ASSERT_TIMEOUT_MS || '60000', 10);
+/** Défaut quand la task ne déclare rien — la valeur historique, inchangée. */
+const ASSERT_TIMEOUT_DEFAULT_MS = 60000;
+/** Plafond explicite d'un `**Timeout:**` déclaré par une task : 10 minutes. */
+const ASSERT_TIMEOUT_CAP_MS = 600000;
 // Plafond de ce qu'on RETIENT d'une sortie d'assertion (les pipes, eux, sont
 // toujours drainés). Le report n'en publie que les 2000 derniers caractères ;
 // 256 Ko laissent de la marge pour le diagnostic sans jamais menacer le heap.
@@ -330,6 +334,46 @@ function stripItalicNote(s: string): string {
  *
  * Returns null when no `**Smoke:**` field exists (→ skip).
  */
+/**
+ * Lit le champ `**Timeout:**` (SECONDES) d'une section de task.
+ *
+ * La sortie de secours `SMOKE_ASSERT_TIMEOUT_MS` existait déjà mais n'est
+ * actionnable que par l'opérateur du run : aucune task ne pouvait déclarer que
+ * son assertion est légitimement lente (import Prefect, requête BigQuery — 3
+ * occurrences). Elle reste l'override de plus haut rang, pour ne rien retirer
+ * au conseil que le message de timeout donne déjà.
+ *
+ * Précédence : `SMOKE_ASSERT_TIMEOUT_MS` > `**Timeout:**` borné > 60 s.
+ *
+ * Le motif est ANCRÉ et tolère les trois dialectes mesurés sur le portefeuille
+ * (canonique, en puce, deux-points hors gras) — même raisonnement que le champ
+ * `**Quest:**` : une mention en prose ne doit jamais être prise pour un champ.
+ * Valeur non entière ⇒ champ ignoré, défaut, aucun crash.
+ */
+function parseAssertTimeoutMs(taskSection: string): number {
+  if (process.env.SMOKE_ASSERT_TIMEOUT_MS) return ASSERT_TIMEOUT_MS;
+
+  const m = taskSection.match(/^(?:[-*]\s+)?\*\*Timeout\*?\*?:?\*{0,2}\s*(.+?)\s*$/im);
+  if (!m) return ASSERT_TIMEOUT_DEFAULT_MS;
+
+  const brut = m[1].trim();
+  const sec = /^(\d+)\s*s?$/i.exec(brut);
+  if (!sec) {
+    console.log(`   ⚠️  **Timeout:** « ${brut} » illisible — défaut ${ASSERT_TIMEOUT_DEFAULT_MS}ms retenu`);
+    return ASSERT_TIMEOUT_DEFAULT_MS;
+  }
+
+  const ms = parseInt(sec[1], 10) * 1000;
+  if (ms <= 0) return ASSERT_TIMEOUT_DEFAULT_MS;
+  if (ms > ASSERT_TIMEOUT_CAP_MS) {
+    console.log(
+      `   ⚠️  **Timeout:** ${sec[1]}s dépasse le plafond — borné à ${ASSERT_TIMEOUT_CAP_MS / 1000}s`
+    );
+    return ASSERT_TIMEOUT_CAP_MS;
+  }
+  return ms;
+}
+
 function parseSmoke(taskSection: string): SmokeConfig | null {
   // Grab everything after `**Smoke:**` (canonical) OR a `### Smoke` field
   // heading (tolerated client dialect) up to the next `**Field:**`, `---`,
@@ -598,9 +642,64 @@ async function waitForPort(port: number, timeoutMs: number): Promise<boolean> {
 }
 
 // ── process lifecycle ─────────────────────────────────────────────────────────
+/**
+ * Basenames d'interpréteurs autorisés en `start_cmd`. Exactement ceux qui
+ * vivaient déjà dans l'allowlist par préfixe — aucun ajout (Boundaries T183).
+ */
+const ALLOWED_START_BASENAMES = new Set([
+  'npm',
+  'pnpm',
+  'yarn',
+  'npx',
+  'node',
+  'python',
+  'python3',
+]);
+
+/**
+ * Un `start_cmd` est sûr si son interpréteur est dans l'allowlist ET qu'il ne
+ * peut pas lancer autre chose que lui.
+ *
+ * L'ancien filtre comparait des PRÉFIXES (`cmd.startsWith('python ')`), ce qui
+ * refusait tout interpréteur qualifié par un chemin — `venv/bin/python -m
+ * uvicorn`, `./venv/bin/python` — alors que c'est la forme normale d'un module
+ * à venv. Six occurrences au moins, dont trois dans un seul run.
+ *
+ * On raisonne désormais sur le BASENAME du premier mot, sous trois verrous qui
+ * ferment la porte que le préfixe fermait par accident :
+ *   • aucun chaînage ni substitution (`&&`, `;`, `|`, `&`, backtick, `$(`) —
+ *     sinon `python3 -m http.server && curl evil` passerait sur son seul
+ *     premier segment ;
+ *   • aucun chemin ABSOLU — un `start_cmd` boote le module du repo, pas un
+ *     binaire système ;
+ *   • aucun `..` — pas de remontée hors du repo pour aller chercher un
+ *     interpréteur homonyme.
+ *
+ * Le cas `PORT=…` reste accepté, mais n'est plus un laissez-passer : on retire
+ * l'affectation en tête et on valide la commande qui SUIT. Avant, `PORT=1
+ * ./bin/rm -rf /` passait parce que la chaîne commençait par `PORT=`.
+ */
 function isSafeStartCmd(cmd: string): boolean {
-  const allowed = ['npm ', 'pnpm ', 'yarn ', 'npx ', 'node ', 'python ', 'python3 ', 'PORT='];
-  return allowed.some((p) => cmd.startsWith(p));
+  let rest = cmd.trim();
+  if (!rest) return false;
+
+  // Chaînage / backgrounding / substitution : refus, quel que soit le premier
+  // segment. Le `&` final légitime a déjà été retiré par l'appelant.
+  if (/[;|&`]/.test(rest) || rest.includes('$(')) return false;
+
+  // Affectation d'env en tête (contrat historique : `PORT=`), puis on juge ce
+  // qui vient après.
+  if (rest.startsWith('PORT=')) {
+    rest = rest.slice(rest.indexOf('=') + 1).replace(/^\S*\s*/, '');
+    if (!rest) return false;
+  }
+
+  const first = rest.split(/\s+/)[0];
+  if (!first) return false;
+  if (path.isAbsolute(first)) return false;
+  if (first.split('/').includes('..')) return false;
+
+  return ALLOWED_START_BASENAMES.has(path.basename(first));
 }
 
 function signalProcess(child: ChildProcess, sig: NodeJS.Signals): void {
@@ -660,7 +759,18 @@ async function killProcess(child: ChildProcess): Promise<void> {
 /**
  * Exécute UNE assertion dans son propre groupe de processus.
  *
- * `detached: true` donne au `sh -c` un groupe à lui ; tout ce qu'il lance — y
+ * L'interpréteur est **`/bin/bash`**, et c'est un choix, pas un détail. Le champ
+ * `**Smoke:**` est spécifié « shell » (task-schema.md, §Disjonction Smoke ⟂
+ * Recettage) sans nommer de dialecte : le Speccer y écrit du bash, ce lecteur
+ * exécutait du `/bin/sh`, strictement plus pauvre. Une assertion PARFAITEMENT
+ * VALIDE échouait donc sur une erreur de syntaxe — pas sur la propriété qu'elle
+ * teste. Constaté sur T210 (2026-09-14) : `diff <(sed …) <(sed …)`, refusé par
+ * `/bin/sh` qui ne connaît pas la substitution de processus, alors que les trois
+ * critères que l'assertion vérifie étaient tenus. Un gate qui rougit sur son
+ * propre lecteur n'apprend rien à personne, et pousse à réécrire le test pour le
+ * faire verdir — exactement ce qu'on interdit par ailleurs.
+ *
+ * `detached: true` donne au shell un groupe à lui ; tout ce qu'il lance — y
  * compris un `cmd &` backgroundé — y reste. Le `finally` reape ce groupe
  * (SIGTERM → SIGKILL) : aucun process ne survit à l'assertion, quelle que soit
  * la syntaxe shell employée.
@@ -678,7 +788,7 @@ async function killProcess(child: ChildProcess): Promise<void> {
  * jamais avant le timeout. `exit` rend le code de sortie du shell dès qu'il se
  * termine, et le drain des sorties reste borné juste après.
  */
-async function runAssertion(step: SmokeStep): Promise<SmokeStep> {
+async function runAssertion(step: SmokeStep, timeoutMs: number = ASSERT_TIMEOUT_MS): Promise<SmokeStep> {
   const start = Date.now();
   // Puce déjà refusée au parsing (SMOKE_PARSE_AMBIGUOUS) : on n'exécute RIEN.
   if (step.errorCode) return step;
@@ -688,7 +798,7 @@ async function runAssertion(step: SmokeStep): Promise<SmokeStep> {
   let stderr = '';
 
   try {
-    child = spawn('/bin/sh', ['-c', step.cmd], {
+    child = spawn('/bin/bash', ['-c', step.cmd], {
       stdio: ['ignore', 'pipe', 'pipe'],
       detached: true,
       env: { ...process.env },
@@ -729,7 +839,7 @@ async function runAssertion(step: SmokeStep): Promise<SmokeStep> {
       };
       const timer = setTimeout(
         () => settle({ code: null, signal: null, timedOut: true }),
-        ASSERT_TIMEOUT_MS
+        timeoutMs
       );
       child!.on('error', (e) =>
         settle({ code: null, signal: null, timedOut: false, spawnError: e as Error })
@@ -750,7 +860,7 @@ async function runAssertion(step: SmokeStep): Promise<SmokeStep> {
       step.success = false;
       step.errorCode = 'SMOKE_ASSERT_TIMEOUT';
       step.stdout = stdout.slice(-2000);
-      step.stderr = `assert timeout after ${ASSERT_TIMEOUT_MS}ms (commande TUÉE, verdict d'assertion INCONNU — pas un échec) — relancer avec SMOKE_ASSERT_TIMEOUT_MS plus haut si la commande est légitimement lente`;
+      step.stderr = `assert timeout after ${timeoutMs}ms (commande TUÉE, verdict d'assertion INCONNU — pas un échec) — déclarer un `+"`**Timeout:** <secondes>`"+` sur la task (plafond ${ASSERT_TIMEOUT_CAP_MS / 1000}s) ou relancer avec SMOKE_ASSERT_TIMEOUT_MS plus haut si la commande est légitimement lente`;
     } else {
       step.success = outcome.code === 0;
       step.stdout = stdout.slice(-2000);
@@ -758,10 +868,10 @@ async function runAssertion(step: SmokeStep): Promise<SmokeStep> {
         ? ''
         : (stderr || `exit ${outcome.code ?? `signal ${outcome.signal}`}`).slice(-2000);
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     step.success = false;
     step.stdout = stdout.slice(-2000);
-    step.stderr = (err?.message || String(err)).slice(-2000);
+    step.stderr = (err instanceof Error ? err.message : String(err)).slice(-2000);
   } finally {
     // TOUJOURS reaper le groupe — c'est CE geste qui rend le screening inutile.
     if (child) await reapGroup(child, 300);
@@ -801,6 +911,25 @@ async function main(): Promise<void> {
     };
     writeReport(taskId, report);
     console.error(`❌ ${report.message}`);
+    // Modular monolith : le TASKS.md vit dans les sous-projets — guider au lieu
+    // d'échouer sur le seul chemin par défaut. Même contrat que
+    // archive-done-tasks.ts. Purement additif : le verdict reste `error` et le
+    // code de sortie reste 1 dans tous les cas.
+    if (fs.existsSync('subprojects')) {
+      const candidates = fs
+        .readdirSync('subprojects', { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .map((d) => path.join('subprojects', d.name, 'TASKS.md'))
+        .filter((c) => fs.existsSync(c));
+      if (candidates.length > 0) {
+        console.error(`   Modular monolith détecté — passer le fichier explicitement :`);
+        for (const c of candidates) {
+          console.error(`   npx tsx scripts/smoke.ts --task ${taskId} --tasks-file ${c}`);
+        }
+      } else {
+        console.error(`   subprojects/ présent mais aucun TASKS.md trouvé dedans — vérifier le chemin passé.`);
+      }
+    }
     process.exit(1);
   }
 
@@ -822,6 +951,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  const assertTimeoutMs = parseAssertTimeoutMs(section);
   const config = parseSmoke(section);
 
   // Deux « rien à jouer » distincts, jusqu'ici indiscernables — tous deux rendent
@@ -861,7 +991,7 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  console.log(`📋 Assertions: ${config.steps.length}${config.startCmd ? ` · start_cmd: ${config.startCmd}` : ''}`);
+  console.log(`📋 Assertions: ${config.steps.length}${config.startCmd ? ` · start_cmd: ${config.startCmd}` : ''} · timeout/assert: ${assertTimeoutMs}ms`);
   // Le refus est BRUYANT : une puce écartée en silence est indiscernable d'une
   // puce oubliée, et c'est ce silence-là qui a laissé 31 assertions dormir.
   for (const r of config.refus ?? []) console.log(`   ↷ ${r.motif} (ligne +${r.ligne})`);
@@ -879,11 +1009,17 @@ async function main(): Promise<void> {
 
       if (!isSafeStartCmd(cmd)) {
         throw new Error(
-          `Unsafe start_cmd: "${cmd}". Only npm/pnpm/yarn/npx/node/python(3)/PORT= prefixes allowed.`
+          `Unsafe start_cmd: "${cmd}". Interpréteur autorisé (basename) : ${[...ALLOWED_START_BASENAMES].join('/')}, éventuellement préfixé PORT=. Chemin absolu, "..", et tout chaînage (&& ; | & \` $()) sont refusés.`
         );
       }
 
       console.log(`🚀 start_cmd: ${cmd}`);
+      // `sh` et non `bash`, à l'inverse des assertions : `isSafeStartCmd` vient
+      // de refuser tout chaînage (`&& ; | & \` $()`) et n'a laissé passer qu'un
+      // interpréteur de la liste blanche, éventuellement préfixé `PORT=`. Il n'y
+      // a donc aucune syntaxe shell à interpréter ici — le shell n'est qu'un
+      // exec. Aligner ce site sur bash n'apporterait rien et élargirait la
+      // surface pour rien.
       child = spawn('sh', ['-c', cmd], {
         stdio: 'pipe',
         detached: true,
@@ -928,7 +1064,7 @@ async function main(): Promise<void> {
       for (let i = 0; i < config.steps.length; i++) {
         const step = config.steps[i];
         console.log(`\n⏳ [${i + 1}/${config.steps.length}] ${step.cmd}`);
-        await runAssertion(step);
+        await runAssertion(step, assertTimeoutMs);
         if (step.success) {
           console.log(`   ✅ PASS (${step.durationMs}ms)`);
         } else {
@@ -970,10 +1106,10 @@ async function main(): Promise<void> {
         message = message || 'start_cmd booted, no assertion to run';
       }
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Runner-internal crash → error verdict, never a silent pass.
     verdict = 'error';
-    message = `smoke internal error: ${err?.message || String(err)}`;
+    message = `smoke internal error: ${err instanceof Error ? err.message : String(err)}`;
     console.error(`❌ ${message}`);
   } finally {
     // ALWAYS reap the spawned process group (SIGTERM → SIGKILL), awaited so

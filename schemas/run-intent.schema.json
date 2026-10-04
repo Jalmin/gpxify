@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shikamaru.dev/schemas/run-intent.schema.json",
+  "title": "Shikamaru Run Intent",
+  "description": "Contract for orchestration between Cockpit and Runner",
+  "type": "object",
+  "required": ["schemaVersion", "projectId", "runId", "tasks", "createdAt"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version (always 1 for now)"
+    },
+    "projectId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the project (e.g., 'shikamaru', 'poool-pipeline')"
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^run-\\d{4}-\\d{2}-\\d{2}-\\d{3}$",
+      "description": "Unique run identifier (format: run-YYYY-MM-DD-NNN)"
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["taskId", "title", "reviewLevel"],
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9]*[-_]?\\d+[A-Za-z]?$|^\\d+[a-z]?$",
+            "description": "Task identifier. Trois dialectes en service : numerique/prefixe court (T42, 17, H3), prefixe-tiret (MTB-15, KLA-14, RAT-5, GRAN-4, FRESH-1), et prefixe-tiret a SUFFIXE MAJUSCULE (DA-0A, DA-5C, DA-8D) — celui que le speccer fabrique en atomisant une task tier L. Le pattern ^[A-Z]?\\d+[a-z]?$ refusait le deuxieme (corrige le 2026-09-12 sur run-2026-09-11-004) ; le suffixe [a-z]? refusait encore le troisieme, soit 11 des 37 taskId de Ziggy — corrige le 2026-09-12 au demarrage de run-2026-09-12-006, qui etait bloque dessus."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Short task title"
+          },
+          "reviewLevel": {
+            "type": "string",
+            "enum": ["skip", "standard", "opus"],
+            "description": "Review level for this task"
+          },
+          "timeout": {
+            "type": "string",
+            "pattern": "^\\d+[mh]$",
+            "default": "30m",
+            "description": "Max execution time (e.g., '30m', '1h')"
+          },
+          "dependsOn": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Task IDs this task depends on"
+          }
+        }
+      },
+      "description": "Ordered list of tasks to execute"
+    },
+    "reviewSource": {
+      "type": "string",
+      "enum": ["codex", "opus", "skip"],
+      "default": "codex",
+      "description": "Default review engine (can be overridden per-task)"
+    },
+    "codexDailyCap": {
+      "type": "number",
+      "minimum": 0,
+      "default": 10,
+      "description": "Max Codex API spend per day in USD"
+    },
+    "contextBudget": {
+      "type": "integer",
+      "minimum": 50000,
+      "maximum": 500000,
+      "default": 200000,
+      "description": "Max context tokens before auto-compaction (default 200k)"
+    },
+    "startedBy": {
+      "type": "string",
+      "enum": ["cockpit", "cli", "cron"],
+      "description": "Who initiated the run"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of intent creation"
+    }
+  },
+  "examples": [
+    {
+      "schemaVersion": 1,
+      "projectId": "shikamaru",
+      "runId": "run-2026-03-07-001",
+      "tasks": [
+        { "taskId": "T42", "title": "Task Compiler v2", "reviewLevel": "opus", "timeout": "30m" },
+        { "taskId": "T43", "title": "Run Intent contract", "reviewLevel": "opus", "timeout": "30m", "dependsOn": ["T42"] }
+      ],
+      "reviewSource": "codex",
+      "codexDailyCap": 10,
+      "startedBy": "cli",
+      "createdAt": "2026-03-07T08:00:00Z"
+    }
+  ]
+}

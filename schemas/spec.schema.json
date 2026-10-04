@@ -1,0 +1,385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shikamaru.carapacebleue.com/schemas/spec.schema.json",
+  "title": "Shikamaru SPEC Schema",
+  "description": "JSON Schema for SPEC.md validation (machine-readable contract)",
+  "type": "object",
+  "required": ["schemaVersion", "project", "overview", "stack", "architecture"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version - must be 1"
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Project name"
+    },
+    "author": {
+      "type": "string",
+      "description": "Author name"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Spec creation/update date"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["DRAFT", "VALIDATED", "ARCHIVED"],
+      "default": "DRAFT",
+      "description": "Spec validation status"
+    },
+    "overview": {
+      "type": "object",
+      "required": ["objective", "deliverable"],
+      "properties": {
+        "objective": {
+          "type": "string",
+          "minLength": 20,
+          "description": "Project objective in 1-2 sentences"
+        },
+        "deliverable": {
+          "type": "string",
+          "description": "What the client receives"
+        },
+        "users": {
+          "type": "object",
+          "properties": {
+            "target": { "type": "string" },
+            "count": { "type": "string" },
+            "profile": { "type": "string" }
+          }
+        }
+      }
+    },
+    "stack": {
+      "type": "object",
+      "required": ["language", "framework"],
+      "properties": {
+        "language": {
+          "type": "object",
+          "required": ["name", "justification"],
+          "properties": {
+            "name": { "type": "string" },
+            "version": { "type": "string" },
+            "justification": { "type": "string" }
+          }
+        },
+        "framework": {
+          "type": "object",
+          "required": ["name", "justification"],
+          "properties": {
+            "name": { "type": "string" },
+            "version": { "type": "string" },
+            "justification": { "type": "string" }
+          }
+        },
+        "database": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "justification": { "type": "string" }
+          }
+        },
+        "hosting": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "justification": { "type": "string" }
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "purpose"],
+            "properties": {
+              "name": { "type": "string" },
+              "version": { "type": "string" },
+              "purpose": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "architecture": {
+      "type": "object",
+      "required": ["structure"],
+      "properties": {
+        "structure": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "description"],
+            "properties": {
+              "path": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          },
+          "minItems": 1,
+          "description": "Directory structure with descriptions"
+        },
+        "patterns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "justification"],
+            "properties": {
+              "name": { "type": "string" },
+              "justification": { "type": "string" }
+            }
+          },
+          "description": "Applied design patterns"
+        }
+      }
+    },
+    "conventions": {
+      "type": "object",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Project-specific rules"
+        },
+        "antiPatterns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What NOT to do"
+        }
+      }
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["implemented", "planned", "deferred"]
+          }
+        }
+      }
+    },
+    "dataModel": {
+      "type": "object",
+      "properties": {
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "fields"],
+            "properties": {
+              "name": { "type": "string" },
+              "fields": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name", "type"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "required": { "type": "boolean" },
+                    "notes": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "integrations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "usage"],
+        "properties": {
+          "name": { "type": "string" },
+          "usage": { "type": "string" },
+          "baseUrl": { "type": "string", "format": "uri" },
+          "auth": { "type": "string" },
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["method", "path", "description"],
+              "properties": {
+                "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+                "path": { "type": "string" },
+                "description": { "type": "string" }
+              }
+            }
+          },
+          "rateLimit": { "type": "string" },
+          "envVar": { "type": "string" },
+          "gotchas": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "errorHandling": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["error", "strategy"],
+        "properties": {
+          "error": { "type": "string" },
+          "strategy": { "type": "string" }
+        }
+      }
+    },
+    "edgeCases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["case", "strategy"],
+        "properties": {
+          "case": { "type": "string" },
+          "strategy": { "type": "string" }
+        }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "properties": {
+        "environments": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "cicd": { "type": "string" },
+        "envVars": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "description"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "source": { "type": "string" }
+            }
+          }
+        },
+        "domain": { "type": "string" }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Budget, deadline, technical, legal constraints"
+    },
+    "successMetrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["metric", "target"],
+        "properties": {
+          "metric": { "type": "string" },
+          "target": { "type": "string" },
+          "measurement": { "type": "string" }
+        }
+      },
+      "description": "Project success metrics"
+    },
+    "uxui": {
+      "type": "object",
+      "properties": {
+        "approach": { "type": "string", "enum": ["mobile-first", "desktop-first", "responsive-both"] },
+        "designSystem": { "type": "string" },
+        "theme": { "type": "string" },
+        "accessibility": { "type": "string" },
+        "screens": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "description"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "states": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "designTokens": {
+          "type": "object",
+          "properties": {
+            "colors": { "type": "object" },
+            "fonts": { "type": "string" },
+            "spacing": { "type": "string" },
+            "borderRadius": { "type": "string" }
+          }
+        }
+      }
+    },
+    "testing": {
+      "type": "object",
+      "properties": {
+        "level": { "type": "string", "enum": ["light", "medium", "full"] },
+        "framework": { "type": "string" },
+        "unitCoverage": { "type": "string" },
+        "integrationTests": { "type": "string" },
+        "visualTests": { "type": "string" },
+        "performance": { "type": "object" },
+        "criticalPaths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "steps", "expectedResult"],
+            "properties": {
+              "name": { "type": "string" },
+              "steps": { "type": "array", "items": { "type": "string" } },
+              "expectedResult": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "marketing": {
+      "type": "object",
+      "properties": {
+        "target": { "type": "string" },
+        "mainCta": { "type": "string" },
+        "seo": {
+          "type": "object",
+          "properties": {
+            "keywords": { "type": "array", "items": { "type": "string" } },
+            "metaTags": { "type": "boolean" },
+            "sitemap": { "type": "boolean" }
+          }
+        },
+        "analytics": { "type": "string" },
+        "channels": { "type": "array", "items": { "type": "string" } },
+        "branding": { "type": "object" }
+      }
+    },
+    "research": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["topic", "verifiedAt", "result"],
+        "properties": {
+          "topic": { "type": "string" },
+          "verifiedAt": { "type": "string", "format": "date" },
+          "result": { "type": "string" },
+          "architectureImpact": { "type": "string" }
+        }
+      },
+      "description": "Technical research results (Phase C)"
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shikamaru.dev/schemas/session.schema.json",
+  "title": "Shikamaru Session State",
+  "description": "Schema for session save/load (.shikamaru/session.json)",
+  "type": "object",
+  "required": ["sessionId", "savedAt", "project", "mode", "state"],
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for the session"
+    },
+    "savedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the session was saved"
+    },
+    "project": {
+      "type": "string",
+      "description": "Name of the project directory"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["speccer", "runner", "review", "reflect"],
+      "description": "The active Shikamaru mode when saved"
+    },
+    "state": {
+      "type": "object",
+      "description": "Mode-specific state",
+      "properties": {
+        "currentStep": {
+          "type": "string",
+          "description": "Current step in the flow (e.g., 'ÉTAPE 3/6')"
+        },
+        "completedSteps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of completed steps"
+        },
+        "pendingQuestions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Questions awaiting user response"
+        },
+        "tempFiles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Temporary files created during the session"
+        },
+        "selectedTasks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Task IDs selected for the current run (runner mode)"
+        },
+        "triageResults": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "issueId": { "type": "string" },
+              "decision": { "type": "string", "enum": ["accept", "reject", "modify"] }
+            }
+          },
+          "description": "Review triage decisions (review mode)"
+        }
+      },
+      "additionalProperties": true
+    },
+    "context": {
+      "type": "object",
+      "description": "Snapshot of relevant context at save time",
+      "properties": {
+        "tasksSnapshot": {
+          "type": "string",
+          "description": "Content of TASKS.md at save time (for detecting changes)"
+        },
+        "lastUserInput": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Last user input before save"
+        },
+        "lastOutput": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Last Claude output before save (truncated)"
+        },
+        "runIntent": {
+          "type": "object",
+          "description": "run-intent.json content if applicable"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
