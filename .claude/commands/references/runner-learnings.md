@@ -305,3 +305,155 @@ Source : REX de la chaîne JCC (Ziggy, 01-02/10) — 10 h 25 de runner pour 4 h 
 - **Inventaire du 04/10** : le pilote lisait une intent à nom fixe, écrivait `chain.log` / `chain-wait.json` à noms fixes et lisait l'avancement dans le TASKS.md local ; le runner faisait `git checkout [baseBranch]` en §3.1 et §e.0. Deux chaînes simultanées se marchaient donc dessus sur 5 fichiers et sur le checkout lui-même.
 - **Ce qui remplace** : la session ne sort jamais de son worktree ; le sync TASKS.md se fait en `checkout --detach origin/<base>` + `push HEAD:<base>`, avec 3 essais sur refus non fast-forward en réappliquant ses statuts sur le fichier frais (ceux du voisin sont déjà dedans). Les fichiers partagés vont au dépôt principal, en ajout ; log et marqueur sont suffixés du runId ; l'avancement se lit sur `origin/<base>`, que les deux chaînes alimentent.
 - **Gardé** : #1 (racine avant git), #4 (`origin/` pour mesurer), #5 (review depuis `/tmp`), #6 (exclure `.claude/**` des tests — les worktrees y vivent désormais), #8 (commit + push du guard sur la base).
+
+## Review — pannes et chemins (déplacé de §d le 2026-10-05)
+
+T242 : ces gestes sont portés par `scripts/review.ts`. Le texte ci-dessous est l'ancienne procédure de §d, conservée pour ses mesures et ses « Pourquoi » ; le script en est la mise en œuvre.
+
+| Niveau | Chemin | Coût cible |
+|--------|--------|-----------|
+| `standard` (S) | codex abonnement si dispo ; sinon chemin API (modèle léger) ; sinon Edgee ; sinon reviewer-agent BORNÉ | ~0 / ~1 centime / ~0 / ~15K |
+| `opus` (M) découverte | même ordre : codex abonnement → API → Edgee → reviewer-agent COMPLET | ~0 / ~1 centime / ~0 / assumé |
+| `opus` confirmation, ET script destructif (tout tier : `--apply`, migration, suppression, écriture de données) | reviewer-agent COMPLET Claude (worktree, fixtures, corpus réel) | assumé |
+Procédure :
+1. **Prompt review CONTRACTUEL → `/tmp/review-[task-id].md`** — deux volets, remplis exactement, rien de plus. Le reviewer juge sur pièces.
+   **ENTRÉE — liste blanche :** (a) le périmètre du diff `[base de review] → HEAD` (base = `TASK_BASE`, le HEAD noté avant la task — §1.4, règle 2ter) ; (b) les critères `**Done:**` de la task, copiés depuis TASKS.md **non cochés** (`- [ ]`) — une case cochée est déjà une auto-évaluation. **NEVER** y mettre : auto-évaluation du runner, résumé de ce qu'il a fait, résultats de tests / validate / build, verdict smoke (inclure l'auto-évaluation de l'auteur divise par ~2 les signalements critiques du reviewer, TDS 2026). Critères `Done:` absents (task legacy) → fallback `Goal:` + diff seuls, warning dans le résumé du run.
+   **SORTIE — contrat recopié tel quel dans le prompt :**
+   ```
+   Ligne 1 : un verdict unique, seul sur sa ligne : DONE | NEEDS_WORK | BLOCKED
+   Puis, une par ligne, les findings localisés :
+   - [P1] fichier:ligne — description
+   - [P2] fichier:ligne — description
+   - [P3] fichier:ligne — description
+   P1 = bug réel, faille de sécurité, ou résultat publié faux (chiffre, décompte, affirmation qui sort du dépôt).
+   P2 = règle de la spec non tenue, sans effet sur un chiffre publié.
+   P3 = forme : style, nommage, documentation, suggestion.
+   Les résultats d'exécution (tests, preuve, sorties) sont ABSENTS du diff PAR CONCEPTION : ne pas réclamer leur preuve. Un fichier de test manquant reste signalable.
+   Aucun finding = review clean : le verdict seul suffit.
+   INTERDIT : proposer une réécriture en bloc, un patch complet ou un fichier entier.
+   ```
+   Une proposition de réécriture en bloc est **ignorée**, jamais appliquée (un reviewer autorisé à réécrire dégrade le code quand il doute : −8,6 pts, arXiv 2607.21656).
+   **Injection du contrat par chemin** — RE-MESURÉ le 2026-09-22 sur codex-cli **0.155.1** :
+
+   | Chemin | contrat injectable | Conséquence |
+   |--------|--------------------|-------------|
+   | 🥇 **`codex exec` + diff inline** (chemin PRINCIPAL, voir 2 ci-dessous) | ✅ prompt lu sur stdin (`cd /tmp && codex exec --skip-git-repo-check - < prompt.md`) | Les deux volets injectés tels quels. **Seul chemin CLI qui rende un verdict parsable.** |
+   | `codex review --base` / `--commit` | ❌ `error: the argument '--base <BRANCH>' cannot be used with '[PROMPT]'` — exit 2 immédiat, y compris avec `-`. **Identique avec `--commit <SHA>`** | Contrat non injectable. **C'est la CAUSE RACINE de la panne VERDICT ABSENT** (voir 2a) : sans contrat, codex rend de la prose libre, non parsable |
+   | Edgee (2a-ter) | ❌ même refus | idem |
+   | reviewer-agent (2b et COMPLET) | ✅ prompt passé directement dans l'appel | Les deux volets injectés tels quels |
+
+   🔴 **Ce tableau a longtemps servi d'excuse au lieu de servir d'alerte.** Sa version du 2026-08-12 concluait « la SORTIE est appliquée côté parsing à l'étape 4, jamais devinée » — autrement dit on acceptait de ne pas pouvoir imposer le format et on espérait parser ce qui sortait. C'est exactement ce qui échoue depuis : un modèle libre de son format rend de la prose, et le parsing n'a rien à mordre. **NEVER** traiter l'absence d'injection comme un détail d'implémentation : c'est le défaut qui rend le chemin inutilisable.
+
+2. **`standard` — chemin codex d'abord.** Check codex UNE fois en début de run, en DEUX temps : (a) watchdog présent (`command -v timeout || command -v gtimeout`), (b) **appel codex RÉEL** dont la sortie est inspectée — watchdog présent ≠ codex utilisable.
+
+   🥇 **Le chemin est `codex exec`, PAS `codex review`** — bascule du 2026-09-22, mesurée dans les deux sens :
+
+   ```bash
+   # 1. le prompt = contrat de sortie (ci-dessus, recopié tel quel) + critères Done + le diff INLINE
+   { cat contrat.md; git diff $TASK_BASE..HEAD; } > /tmp/review-[task-id].prompt
+   # 2. l'exécution — depuis /tmp, JAMAIS depuis le dépôt ; stdin accepte le prompt, `--base`/`--commit` le refusent
+   cd /tmp && timeout -k 30 420 codex exec --skip-git-repo-check - < /tmp/review-[task-id].prompt > /tmp/review-[task-id].log 2>&1
+   echo "CODEX_EXIT=$?" >> /tmp/review-[task-id].log
+   ```
+
+   **Pourquoi ce chemin et pas l'autre** — mesuré le 2026-09-22 sur le MÊME commit (Ziggy V22-3d, `47a59dc`), codex-cli 0.155.1 :
+
+   | Commande | Sortie | Verdict |
+   |----------|--------|---------|
+   | `codex review --commit 47a59dc` | 918 lignes de prose | ❌ aucun `[Pn]`, aucune ligne `DONE`/`NEEDS_WORK` |
+   | `codex exec` + contrat, diff propre | 290 lignes | ✅ `DONE` seul sur sa ligne |
+   | `codex exec` + contrat, diff fautif (témoin négatif) | — | ✅ `NEEDS_WORK` + 2 × `[P1] fichier:ligne` |
+
+   Le **témoin négatif fait partie de la mesure** : un chemin qui rend `DONE` sur du code propre mais ne sait pas rougir n'est pas un reviewer, c'est un tampon. Il a été joué sur un diff portant un défaut flagrant (garde de division retirée), et les deux `[P1]` sont sortis localisés et justes.
+
+   ⚠️ **Le diff va dans le PROMPT, pas dans le working tree.** C'est ce qui règle d'un même geste la panne « lit le working tree partagé » (6 occurrences) : `codex exec` **lancé depuis `/tmp`** ne voit que ce qu'on lui donne, donc le travail non commité d'une session voisine ne peut plus polluer le périmètre. Plus besoin de worktree jetable. ⚠️ **Lancé depuis le dépôt, il voit tout** : mesuré le 01/10, il explore les fichiers et relance les tests — 10 reviews depuis `/tmp` à 54 000 tokens au plus, contre 656 000 à 1 551 000 pour 4 des 10 lancées dans le dépôt, et une review expirée (« codex relançait pytest 10 min »).
+2-0. ⚠️ **Le watchdog doit tenir sous le plafond du tool Bash — 600 000 ms.** Un watchdog de **900s** (et a fortiori les **1800s** d'Edgee) ne peut **JAMAIS** se déclencher en avant-plan : le tool coupe l'appel AVANT lui, et le runner lit cette coupure comme une panne de codex. Mesuré 3+ fois (17 min perdues sur un run). **ALWAYS** lancer un bloc de review dont le watchdog dépasse 600s **en arrière-plan** (`run_in_background`), puis attendre sa sortie — le plafond de 600s ne s'applique pas à un appel détaché. **NEVER** raccourcir le watchdog pour rentrer dans les 600s : ça retire du temps à une review qui en a légitimement besoin. Une coupure à ~600s pile est le SYMPTÔME de cette erreur, **jamais** un verdict de codex : ne pas la router vers 2a.
+
+   🚨 **Le code de sortie d'une commande d'arrière-plan N'EST PAS FIABLE — ne jamais le lire.** 3+ occurrences (KONBINI T295, puis DEUX fois sur T227 dans le même run) : la notification de tâche de fond a annoncé « exit code 0 » pour un `npm test` réellement à 1, puis pour un `codex review` réellement à 1 (`out of credits`). Sans marqueur, ce run aurait conclu à une suite verte ET à une review réussie — donc `done` sans aucune review.
+   - **ALWAYS** appender `echo NOM_EXIT=$?` au log de toute commande lancée en arrière-plan, et ne lire QUE ce marqueur.
+   - **NEVER** cumuler `&` et `run_in_background` : le tool rend alors le code du dernier builtin (le `echo`) et fauche le groupe de processus — la commande peut n'avoir jamais tourné. Le `run_in_background` seul suffit à rendre la main.
+   - ⚠️ **`timeout N` ne tue pas `codex review`** : 2 passages dépassés dans un même run le 2026-09-10 (l'un rendu à ~20 min, l'autre encore vivant à **30 min**, log figé sur `failed to renew cache TTL`). Un watchdog qui ne se déclenche pas laisse le runner attendre indéfiniment, et l'absence de verdict se lit comme une review clean. **ALWAYS** `timeout -k` (borne effective) + contrôler que le log PROGRESSE avant de conclure quoi que ce soit.
+   - 🚨 **En headless (`--chain`, `--night`), attendre est un OUTIL, jamais un message.** Un tour terminé sur « j'attends son verdict » **ferme la session** : mesuré sur T213 le 2026-09-15 — message à 15:02:38, session close à 15:02:40, verdict jamais lu, relance par le pilote. Le geste attendu, au choix : (a) **boucle bloquante dans UN SEUL appel** — `until grep -q CODEX_EXIT /tmp/review-[task-id].log; do sleep 10; done` — ré-émise autant de fois que nécessaire tant que chaque appel tient sous le plafond de 600 s ; (b) `gtimeout -k` en **premier plan**, réservé aux attentes dont le watchdog tient sous ce plafond (smoke, CI courte) — **jamais** codex, dont les 900s imposent le lancement détaché ci-dessus.
+
+2a. **CINQ pannes distinctes, cinq remèdes — NEVER les confondre.** Inspecter la sortie du chemin codex. **NEVER router vers l'épuisement tout ce qui n'est pas une saturation** : les trois dernières pannes ne portent ni `at capacity` ni `out of credits`, et les envoyer au chemin API payant masque leur vrai remède alors que l'abonnement est utilisable.
+   - **SATURATION** (`at capacity`) → **retenter UNE fois sur le modèle alternatif** : `cd /tmp && timeout -k 30 420 codex exec -c 'model="gpt-5.6-terra"' --skip-git-repo-check - < /tmp/review-[task-id].prompt` (même prompt qu'à l'étape 2) (ou sol si terra était le modèle par défaut). Aux pics de charge les DEUX modèles OpenAI saturent ensemble (constaté 2026-08-12 11h) — ne pas boucler au-delà d'une alternance.
+   - **ÉPUISEMENT** (`out of credits`) → **NEVER jouer l'alternance** : les deux modèles partagent le MÊME pot, la rejouer brûle des tentatives dans le vide (3 gaspillées sur T174 le 2026-08-12, sol puis terra, sur un pot déjà vide). Passer DIRECTEMENT au chemin API (2a-bis).
+     ⚠️ L'épuisement se MÉMORISE au niveau du RUN, pas de la task : 4 runs consécutifs ont repayé ~2 min de watchdog pour un pot connu vide. Mais **NEVER** le graver dans une mémoire projet — le pot se recharge (constaté le 2026-09-10 après 3 sessions à sec). Un run peut aussi passer de disponible à sec EN COURS (T47b, 20 min d'écart) : un check unique en début de run ne vaut pas garantie pour tout le run.
+   - **ÉCART DE VERSION** (400 `The '<modèle>' model requires a newer version of Codex`, souvent précédé de `failed to load models cache: missing field base_instructions`) → **14 occurrences** entre le 2026-09-11 et le 2026-09-14, codex-cli **0.146.0** refusant son propre modèle par défaut. Ni saturation ni épuisement : **forcer un modèle que le CLI connaît** (`-c 'model="gpt-5.6-terra"'`), PUIS appliquer 2a au résultat.
+     ✅ **Correctif de fond APPLIQUÉ le 2026-09-22 : `npm i -g @openai/codex@latest`, 0.146.0 → 0.155.1** (neuf versions de retard, le CLI était figé au 30 juillet). Sonde jouée après : réponse normale, plus de 400, plus de cache corrompu. Le remède `-c model=…` devient donc un **repli historique**, plus le geste par défaut. ⚠️ La leçon de fond : cette panne a coûté 14 occurrences et son remède était documenté dès la 2ᵉ — mais le remède TRAITAIT LE SYMPTÔME, et personne n'a lu « mettre à jour la CLI » comme une action à faire. **ALWAYS** relire la ligne « correctif de fond attendu » d'un enseignement : elle nomme le geste qui ferme la famille entière.
+   - **REFUS DE CONTENU** (`flagged for possible cybersecurity risk`, aucun marqueur) → 1 occurrence (T183). Un diff qui touche un filtre de commandes shell et porte `rm -rf /` ou `curl evil` en fixtures adversariales le déclenche — c'est-à-dire précisément le diff qui MÉRITE le plus une review. Remède mesuré et efficace : escalade directe au chemin API (2a-bis).
+   - 🔴 **VERDICT ABSENT** (exit 0, prose cohérente, aucun bloc `[Pn]`, aucune ligne `DONE`/`NEEDS_WORK`) → **≥ 5 occurrences** : Equicty T179, puis Ziggy DA-8B, CRM-8, CRM-9 et V22-3d (les trois dernières en deux jours, dont une qui a jeté les TROIS chemins d'un coup). 🚨 **Un exit 0 sans bloc de findings n'est JAMAIS une review clean — c'est un échec de chemin.**
+     **⚠️ Ce n'est pas une panne de modèle, et changer de chemin ne la soigne pas.** Le diagnostic a mis cinq occurrences à tomber parce que la fiche disait « passer au chemin suivant » : or les trois chemins passaient par `codex review`, qui **refuse structurellement le prompt** (`--base` comme `--commit`, encore vrai en 0.155.1). Sans contrat injecté, le modèle est libre de son format et rend de la prose — les trois « chemins morts » du 2026-09-21 étaient trois façons d'appeler la même impasse. **Le remède est le chemin `codex exec` de l'étape 2**, pas un chemin de repli. Si un VERDICT ABSENT survient encore SUR `codex exec` (donc contrat injecté), alors seulement c'est une panne de modèle : passer au chemin suivant.
+   - Sortie portant les DEUX marqueurs → **l'épuisement l'emporte** : aucune alternance ne peut rien contre un pot vide.
+2a-bis. **Chemin API — crédits pay-per-use, modèle léger** (en l'annonçant, F13) : `cd /tmp && timeout -k 30 900 codex exec -p review --skip-git-repo-check - < /tmp/review-[task-id].prompt` (même prompt que l'étape 2 ; `codex review` refuse le contrat). Le profil `review` porte le provider ET le modèle — **NEVER** répéter le modèle dans la commande, il vit dans le profil. Pré-requis vérifiés UNE fois en début de run, en NON-INTERACTIF, les DEUX requis :
+   - (a) profil présent : `test -f ~/.codex/review.config.toml`,
+   - (b) clé présente : `[ -n "$OPENAI_API_KEY" ]` — elle doit vivre dans `~/.zshenv`, lu par TOUS les shells, et **NEVER** dans `~/.zshrc`, que les shells NON interactifs du runner ne lisent pas : la clé y serait invisible et le chemin muet alors qu'il est configuré (piège mesuré le 2026-08-12).
+   🚫 La clé n'est **JAMAIS** versionnée, ni recopiée dans ce skill, ni écrite dans une commande du run — le profil la lit via `env_key`. Un pré-requis manquant → annoncer (F13), sauter ce chemin, **JAMAIS** crasher.
+   *Pourquoi ce chemin existe* : l'abonnement ChatGPT et les crédits de la plateforme API sont **deux pots séparés** — codex s'authentifie par jetons OAuth au premier et ne voit jamais le second. Un abonnement à sec n'empêche donc pas de reviewer.
+2a-ter. **Échec/saturation persistante → dernière chance via Edgee** (en l'annonçant, F13) : `cd /tmp && edgee launch codex exec --skip-git-repo-check - < /tmp/review-[task-id].prompt` (même prompt qu'à l'étape 2 — ⚠️ passage d'arguments à `codex exec` via `edgee launch` non mesuré : un refus d'argument = Edgee indisponible → chemin suivant) sous watchdog **1800s** (le routage Edgee double la durée : ~20 min mesurées sur pennylane #98, 2026-08-12 — un watchdog de 900s coupe la review avant le verdict) — codex routé par Edgee, fallback/reroute vers un modèle NON-OpenAI selon `edgee settings codex`. Pré-requis vérifiés UNE fois en début de run, en NON-INTERACTIF, les DEUX requis :
+   - (a) `command -v edgee`,
+   - (b) profil codex présent : `test -f ~/.config/edgee/credentials.toml && grep -q '\[profiles\..*\.codex\]' ~/.config/edgee/credentials.toml`. Le `test -f` en tête n'est PAS décoratif : `grep` sur un fichier ABSENT rend **exit 2**, pas 1 — sans lui, « Edgee pas encore configuré » (premier lancement sur une machine neuve) est indiscernable d'une erreur de commande. Toute sortie non nulle, exit 2 compris, signifie **Edgee indisponible → chemin suivant**, JAMAIS un échec de run.
+   ⚠️ `edgee settings codex` est un TUI **interactif** — **NEVER** l'exécuter dans un run (crash « not a terminal ») ; configurer le reroute/fallback reste un geste user en terminal.
+   ⚠️ **Le mode de connexion décide si ce chemin sert à quelque chose** : une clé codex Edgee en `connection = "plan"` (vérifiable par `edgee auth status`) relaie vers l'abonnement OpenAI au lieu de facturer les crédits Edgee — Edgee et le chemin abonnement (étape 2) tapent alors dans le MÊME pot, et Edgee n'apporte aucune résilience de financement (mesuré le 2026-08-12 : `401` + `out of credits`). Ce chemin ne vaut que pour l'observabilité tant que le mode n'est pas changé.
+
+Ancienne table de §d.4 (désormais appliquée par le script) :
+
+4. **Verdict → action, PONDÉRÉ par la sévérité** (format des findings défini à l'étape 1 : `- [P1|P2|P3] fichier:ligne — description`) :
+
+| Sortie du reviewer | Action |
+|--------------------|--------|
+| LGTM / clean / DONE | `done` |
+| BLOCKED | `blocked` |
+| **≥1 finding P1**, OU `NEEDS_WORK` sans sévérités parsables | `needs_work` |
+| findings **UNIQUEMENT P2 / P3** | `done` + section « Review notes (P2/P3) » ajoutée au body de la PR — **sauf clause de mesure ci-dessous** |
+| sortie non parsable | `needs_work` (fail-safe, inchangé) |
+
+
+*Pourquoi* : le mapping uniforme traitait un nitpick comme un bug bloquant, gonflait les `needs_review` et privait les petites tasks du merge gate vert e.1. La pondération bloque sur le réel et note le cosmétique. Effet mesuré le 2026-08-12 : le reviewer léger sort un P2 sur un diff de 9 lignes de documentation — sans pondération, chaque review rapide finirait en `needs_review`.
+
+Récits et « Pourquoi » des règles de jugement restées dans §d (règles inchangées, texte déplacé pour tenir le plafond de taille) :
+
+- | 5 | **Avant la review** | Le chemin principal (`codex exec` lancé depuis `/tmp`, diff **inline** dans le prompt — §d.2) ne lit pas l'arbre de travail : le travail non commité d'une session voisine ne peut plus polluer le périmètre. Le piège (6 occurrences, un verdict crédible portant sur 4 fichiers d'une session voisine sans une ligne de la task) ne revient que si le diff est produit depuis l'arbre de travail : **ALWAYS** le produire par `git diff [base de review]..HEAD` (commits seulement, base = `TASK_BASE`, §1.4), et lire les chemins cités avant de croire un `NEEDS_WORK`. |
+- 3+ occurrences (KONBINI T18/T20/T24, 2026-08-26).
+- Clause de mesure : 5 occurrences (T206, T229, T253, T254, T259).
+- Sur T259 ce futur décrivait un fait déjà arrivé — 4 des 5 produits créés venaient d'un titre de section, et la démonstration centrale du livrable était fausse.
+- - *Pourquoi* : appliquée à la lettre, la règle a rendu `done` des PR publiant du faux — « aucun devis orphelin à rattraper (3/5) » avec 2 orphelins réels (T253/T254), une vérification faussement verte et un manifeste de rollback qui aurait supprimé de la donnée (T229, 4 vrais P1 étiquetés P2 sur 7 findings).
+- **Why** : la règle « pas de boucle en standard » a été contournée 3 runs consécutifs (T206 le 31/08, T207 et T208 le 01/09) précisément parce qu'aucune issue n'existait — livrer une régression connue en `needs_review` était pire que la corriger. Nommer l'issue la rend bornée et traçable au lieu d'être improvisée.
+- (pathologie mesurée : T78, 4 passes)
+- : mesuré, 2 contrastes sur 3 ne sortent QUE par lui.
+- Mesuré sur Ziggy le 2026-09-10 : 9 findings sur 11 contredisaient une charte documentée (police, palette crème, tirets cadratins).
+- (diagnostic posé le 2026-09-02 sur KONBINI)
+
+« Why » hors §d déplacés le même jour (T242, plafond de taille du runner) :
+
+- §1.4 — **Why** : REX jeu concours (2026-10-02) — 10 tasks M d'un même objectif = 10 sessions, 10 branches, 10 PR et 10 clôtures ; PR empilées, `needs_review` qui bloque la chaîne 75 min, merges et lancements à la main. La review PAR TASK est conservée : elle a corrigé 5 résultats publiés pour 16 min.
+- §e.0 — **Why** : mesuré sur le run run-2026-09-01-001. T182 = 19 lignes, 1 fichier, review 0 P1 — elle a payé une branche distante, une PR, puis a déclenché l'incident de pile (le `--delete-branch` de sa PR a FERMÉ la PR stackée en aval). Les trois incidents de ce run venaient tous de la logistique distante, aucun du code. Le rendement, lui, vient des fixtures adversariales et de la review : la voie courte les garde toutes les deux et ne retire que la publication.
+- §e.2 — **Why** : 3 occurrences en 4 jours sur Ziggy, et aucune n'est l'oubli d'une personne — le protocole n'avait pas d'étape. 13/09 : trois correctifs de densité mergés entre 19 h 48 et 21 h 14 laissent la page publique **sur-servir 49 % des chats pendant ~5 h**. 14/09 : deux tasks mergées restent invisibles jusqu'au lendemain matin. 16/09 : six PR mergées entre 16 h et 18 h alors que la page servait encore la version de **13 h 30** — écart trouvé parce que le user a demandé « tout est deploy ? », pas parce qu'un gate l'a dit.
+- §2 Attente — T213, 2026-09-15 : 2 s entre le message « j'attends » et la fermeture de la session.
+- **Why** : 21 % des tokens de sortie partent en bash d'exploration, refait à neuf à chaque session (mesure du 2026-09-13).
+- **Why** : A/B mesuré le 2026-09-10 — 50 findings sans lui, 5 avec, pour 10 % de tokens en moins.
+- **Why** : 19 % des tokens de sortie sont du texte adressé à Loïc — environ 45 k par task, pour un lecteur qui répond « go merge ».
+- §2.b habillage — (Ziggy MAQ-3, 2026-09-09 : 2 passes codex CLEAN, 6144 tests verts, `happy-dom` aveugle, défaut trouvé au raisonnement APRÈS le verdict)
+- §2.b boucle rouge/vert — (MAQ-28, 2026-09-15 : 19 min de tests sur 35, 20 lancements, la suite de 4 min 25 jouée **trois** fois, pour 4 éditions de code)
+- §c.1 ordre purge → build — 2 occurrences (KONBINI T280 le 2026-09-08, puis le 2026-09-03).
+- §c.1 gate vide — une page livrée avec un `ReferenceError` au démarrage a franchi ce gate avec 6 128 tests verts (Ziggy, 2026-09-09)
+- §e.0 — base locale périmée : 35 fichiers / 4 015 insertions annoncés pour un diff réel de 4 fichiers / +670-28 (6ᵉ occurrence, doublon de 0.5bis #4).
+- §c.1 ordre — La règle « purger avant le typecheck » **fabrique alors l'échec qu'elle prétend éviter**, et un runner qui l'applique à la lettre part corriger un bug inexistant.
+
+## Gates d'avant run (déplacé le 2026-10-05)
+
+§0.2, §1 et §1.1 de `shika-run.md` appellent `scripts/run-gates.ts` (T243) ; les procédures de comptage vivent dans le script, les raisons ici.
+
+- **§0 reprise automatique en `--chain`** : un checkpoint de fin de task laisse toujours un state non `completed` ; poser la question « Reprendre ? » tuerait la chaîne dès la task 2.
+- **§0.0bis fetch avant les gates** : l'ordre inverse fait juger les gates sur un fichier périmé — le 2026-09-02 le checkout local était figé 3 commits en arrière, T251 et T249 s'y lisaient `ready` alors qu'elles étaient `done` et mergées depuis 2 h. Le run a démarré sur du vide, rattrapé par la découverte fortuite d'une branche existante. D'où le `--ref origin/[baseBranch]` des appels.
+- **§0.1 gate global, run modulaire** : en modular monolith, `validate.ts --all` valide tous les `TASKS.md`. Une task mal formée écrite par une session concurrente dans un autre module rendrait le gate rouge sur un run sain — et « corriger avant review » inviterait à modifier le fichier d'un tiers.
+- **§0.2 instantané au démarrage** : recompter en cours de run déclenchait le gate sur les `needs_review` produits par le run lui-même, qui se bloquait sur sa propre sortie à la task suivante (2 occurrences). La file arbitrée est celle qui préexiste au run.
+- **§0.2 trois dialectes de statut** : `**Statut**:`, `- **status** :`, `**Statut:**` (deux-points dans le gras, `production-tool/TASKS.md`). Un grep sur les deux premiers seulement a rendu « aucune task en attente » alors qu'une `needs_review` y était. Motif : `STATUT_RE` de `run-gates.ts`.
+- **§0.2 exclusion des intents actifs en `--chain`** : la sortie de la chaîne n'est jamais sa file — Ziggy, 15/09, deux arrêts sur MAQ-19A, task du même intent. Registre illisible → aucune exclusion et avertissement nommé, jamais un faux zéro.
+- **§0.2 marqueur `chain-wait`** : sans lui, T214 a figé une chaîne ≈ 3 h 30 ; le pilote relit `origin/[baseBranch]:TASKS.md` toutes les 15 min et relance seul quand la file est vide.
+- **§1 validation de l'intent** : elle n'était portée par aucun script avant T243 — `validate.ts --all` ne lit que `TASKS.md` et `SPEC.md` et annonce « N fichier(s) validé(s) » sans toucher au run-intent. Son absence a laissé passer pendant des mois un pattern de `taskId` qui refusait `MTB-15`/`KLA-14` (corrigé le 2026-09-12). Un refus sur un intent qui a déjà tourné de bout en bout → suspecter le schéma. Mesure du 05/10 : `T-GUET-1` (KalioKool) est encore refusé par le pattern.
+- **§1 intents latéraux** : deux sessions qui speccent en parallèle — la seconde écrit `run-intent-<sujet>-<date>.json` parce que le nom canonique est pris. Conclure « intent consommé » alors que le sprint vivant est à côté est une panne mesurée (2026-09-11). Les `run-intent-archive-*` ne sont pas des latéraux : un runId qui n'y vit plus que là est périmé.
+- **§1 présence avant statut** : sur Ziggy, le commit des specs MTB-4..8 a atterri sur la branche de la task précédente 85 s après le merge de sa PR — `TASKS.md` sur la base ne portait aucune des 4 tasks de l'intent, qui passait tous les contrôles de forme.
+- **§1 intent périmé** : 3 occurrences étalées sur un mois, dont 2 en 24 h les 30-31/08 ; un intent consommé passe tous les contrôles de forme et fait démarrer un run sur du vide.
+- **§1 intents dans le dépôt principal** : depuis un worktree d'objectif, `.shikamaru/` (non versionné) n'existe que dans le dépôt principal ; le script y cherche l'intent après le projet (trouvé sur l'intent réel de T243).
+- **§1.1 motif `Quest` ancré** : `Quest` apparaît 194 fois dans le portefeuille pour 4 vrais champs (« Questions universelles », « ## Questions pour Laurence »…). Le motif tolère les 3 dialectes (`**Quest:** X`, `- **Quest**: X`, `**Quest**: X`) et rejette la prose. Champ absent ⇒ jamais compté : aucun rétro-blocage des tasks legacy.
