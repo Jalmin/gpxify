@@ -16,6 +16,7 @@ import { useGPXUpload } from '../hooks/useGPXUpload';
 import { useLeafletMap } from '../hooks/useLeafletMap';
 import { useDragAndDrop } from '../hooks/useDragAndDrop';
 import { GPX_COLORS } from '../constants/colors';
+import { destroyAllCharts } from '../lib/chartSetup';
 
 /**
  * Main workspace layout for analyzing GPX files
@@ -59,6 +60,15 @@ export function WorkspaceLayout() {
     setMap(mapInstance);
   };
 
+  const handleTabChange = (
+    tab: 'analyze' | 'merge' | 'aid-stations' | 'race-recovery',
+  ) => {
+    if (tab !== activeTab) {
+      destroyAllCharts();
+    }
+    setActiveTab(tab);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar
@@ -80,7 +90,7 @@ export function WorkspaceLayout() {
         <QuickGuide />
 
         {/* Tabs */}
-        <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
 
         {/* Tab Content: Analyze */}
         {activeTab === 'analyze' && (

@@ -16,3 +16,14 @@ export const GPX_COLORS: Array<{
 ];
 
 export type GPXColor = typeof GPX_COLORS[number];
+
+export function getSegmentColor(index: number): string {
+  return GPX_COLORS[index % GPX_COLORS.length].hex;
+}
+
+export function segmentColorWithAlpha(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}

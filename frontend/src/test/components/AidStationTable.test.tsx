@@ -16,6 +16,10 @@ vi.mock('@/components/Map/GPXMap', () => ({
   GPXMap: () => null,
 }));
 
+vi.mock('@/components/AidStationElevationProfile', () => ({
+  AidStationElevationProfile: () => <div data-testid="aid-station-elevation-profile" />,
+}));
+
 const sampleTrack: Track = {
   name: 'Test Track',
   points: [

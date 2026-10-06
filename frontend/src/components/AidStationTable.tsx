@@ -4,6 +4,8 @@ import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Tooltip } from './ui/Tooltip';
 import { GPXMap } from './Map/GPXMap';
+import { AidStationElevationProfile } from './AidStationElevationProfile';
+import { getSegmentColor } from '@/constants/colors';
 import {
   Track,
   AidStation,
@@ -493,8 +495,7 @@ export function AidStationTable({
           <div className="mt-4 flex flex-wrap gap-3 items-center">
             <span className="text-sm font-medium text-muted-foreground">Légende :</span>
             {tableResult.segments.map((segment, index) => {
-              const colors = ['#ef4444', '#a855f7', '#22c55e', '#f97316', '#ec4899'];
-              const color = colors[index % colors.length];
+              const color = getSegmentColor(index);
               return (
                 <div key={index} className="flex items-center gap-2">
                   <div
@@ -508,6 +509,14 @@ export function AidStationTable({
               );
             })}
           </div>
+        </Card>
+      )}
+
+      {/* Elevation profile with colored segments */}
+      {tableResult && (
+        <Card className="p-4">
+          <h3 className="font-semibold mb-4">Profil altimétrique</h3>
+          <AidStationElevationProfile track={track} segments={tableResult.segments} />
         </Card>
       )}
 
@@ -539,7 +548,16 @@ export function AidStationTable({
               <tbody>
                 {tableResult.segments.map((segment, index) => (
                   <tr key={index} className="border-b border-border/50 hover:bg-muted/30">
-                    <td className="p-2">{segment.from_station}</td>
+                    <td className="p-2">
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          className="w-2.5 h-2.5 rounded-sm shrink-0"
+                          style={{ backgroundColor: getSegmentColor(index) }}
+                          aria-hidden
+                        />
+                        {segment.from_station}
+                      </span>
+                    </td>
                     <td className="p-2">{segment.to_station}</td>
                     <td className="p-2 text-right font-medium">{segment.distance_km.toFixed(2)} km</td>
                     <td className="p-2 text-right">

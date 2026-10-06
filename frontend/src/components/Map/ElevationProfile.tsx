@@ -1,34 +1,15 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import L from 'leaflet';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { registerChartJs } from '@/lib/chartSetup';
 import { Track, ClimbSegment } from '@/types/gpx';
 import { gpxApi } from '@/services/api';
 import { ClimbsList } from '@/components/ClimbsList';
 import { Download, TrendingUp as TrendingUpIcon } from 'lucide-react';
 import { RangeSlider } from '@/components/ui/RangeSlider';
+import { useDestroyChartsBeforeMount } from '@/hooks/useDestroyChartsBeforeMount';
 
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+registerChartJs();
 
 interface ElevationProfileProps {
   track: Track;
@@ -44,6 +25,7 @@ interface SegmentStats {
 }
 
 export function ElevationProfile({ track, map }: ElevationProfileProps) {
+  useDestroyChartsBeforeMount();
   const markerRef = useRef<L.Marker | null>(null);
   const hoverMarkerRef = useRef<L.Marker | null>(null);
   const [segmentStart, setSegmentStart] = useState<number>(0);
