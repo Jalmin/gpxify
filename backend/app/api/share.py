@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.post("/save", response_model=SaveStateResponse)
 @limiter.limit("10/minute")
-async def save_state(request: SaveStateRequest, http_request: Request, db: Session = Depends(get_db)):
+async def save_state(request: Request, payload: SaveStateRequest, db: Session = Depends(get_db)):
     """
     Save application state and generate shareable URL
 
@@ -24,8 +24,11 @@ async def save_state(request: SaveStateRequest, http_request: Request, db: Sessi
     State expires after 30 days.
 
     Args:
-        request: Contains complete application state as JSON
-        http_request: FastAPI request object (for IP/user-agent)
+        request: Starlette request object (required by SlowAPI limiter; also
+            used for client IP/user-agent). MUST be named ``request`` and typed
+            as ``starlette.requests.Request`` — SlowAPI looks up the argument by
+            that exact name, so binding it to the Pydantic body returns HTTP 500.
+        payload: Contains complete application state as JSON
         db: Database session
 
     Returns:
@@ -46,7 +49,7 @@ async def save_state(request: SaveStateRequest, http_request: Request, db: Sessi
             raise HTTPException(status_code=500, detail="Failed to generate unique share ID")
 
         # Calculate state size
-        state_json_str = json.dumps(request.state_json)
+        state_json_str = json.dumps(payload.state_json)
         file_size = len(state_json_str.encode('utf-8'))
 
         # Limit: 50MB per share
@@ -58,8 +61,8 @@ async def save_state(request: SaveStateRequest, http_request: Request, db: Sessi
             )
 
         # Get client info for rate limiting
-        client_ip = http_request.client.host if http_request.client else None
-        user_agent = http_request.headers.get("user-agent")
+        client_ip = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
 
         # TODO: Implement rate limiting by IP (10 shares per hour)
         # For now, basic IP tracking for future implementation
@@ -67,7 +70,7 @@ async def save_state(request: SaveStateRequest, http_request: Request, db: Sessi
         # Create database record
         shared_state = SharedState(
             share_id=share_id,
-            state_json=request.state_json,
+            state_json=payload.state_json,
             ip_address=client_ip,
             user_agent=user_agent,
             file_size_bytes=file_size
