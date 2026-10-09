@@ -34,4 +34,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # --limit-request-line 0: no limit on request line size
 # --limit-request-fields 100: max header fields
 # --limit-request-field_size 0: no limit on header field size (important for large file uploads)
-CMD ["sh", "-c", "alembic upgrade head && pip install gunicorn && gunicorn app.main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 120 --graceful-timeout 30 --limit-request-line 0 --limit-request-fields 100 --limit-request-field_size 0"]
+CMD ["sh", "-c", "alembic upgrade head && gunicorn app.main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 120 --graceful-timeout 30 --limit-request-line 0 --limit-request-fields 100 --limit-request-field_size 0"]
