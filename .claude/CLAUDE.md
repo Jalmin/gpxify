@@ -1,7 +1,7 @@
 # GPXIFY - Claude Code Context
 
 > **Ce fichier est lu automatiquement par Claude Code au démarrage de chaque session.**
-> Derniere mise a jour : 2026-01-27
+> Derniere mise a jour : 2026-07-10
 > Derniere refactorisation : 2026-01-26
 > Sprint actuel : PTP (Profile to Print) - TERMINE (Phases 1-8)
 
@@ -67,11 +67,11 @@ Permettre aux athlètes d'analyser leurs traces GPX avec des profils d'altitude,
 GPXIFY/
 ├── frontend/                 # React SPA (218 MB avec node_modules)
 │   ├── src/
-│   │   ├── components/       # 33 composants React
+│   │   ├── components/       # 28 composants React
 │   │   │   ├── ui/           # Composants UI reutilisables
 │   │   │   ├── Dashboard/    # 7 composants Dashboard
 │   │   │   └── Map/          # Composants carte
-│   │   ├── pages/            # 5 pages (Marketing, FAQ, Legal, etc.)
+│   │   ├── pages/            # 7 pages (Marketing, FAQ, Legal, etc.)
 │   │   ├── store/            # Zustand store (useAppStore.ts)
 │   │   ├── services/         # API client (api.ts)
 │   │   ├── hooks/            # 4 custom hooks
@@ -84,14 +84,14 @@ GPXIFY/
 ├── backend/                  # FastAPI API (103 MB avec venv)
 │   ├── app/
 │   │   ├── api/              # 7 routers (gpx, share, contact, race_recovery, admin, races, ptp)
-│   │   ├── services/         # 13 services metier (+race_service, ptp_service)
+│   │   ├── services/         # 12 services metier (+race_service, ptp_service)
 │   │   ├── models/           # Pydantic models (40+ schemas, +race.py, ptp.py)
 │   │   ├── db/               # SQLAlchemy ORM + models (Race, RaceAidStation, AdminSettings)
 │   │   ├── core/             # Config, logging
 │   │   ├── middleware/       # Rate limiting (SlowAPI)
 │   │   └── utils/            # Helpers (elevation_quality, share_id)
-│   ├── tests/                # Tests pytest (7 fichiers)
-│   ├── alembic/              # Migrations DB (002_add_ptp_tables.py)
+│   ├── tests/                # Tests pytest (6 fichiers)
+│   ├── alembic/              # Migrations DB (3 migrations, dont 002_add_ptp_tables.py)
 │   └── requirements.txt
 │
 ├── scripts/                  # Scripts utilitaires
@@ -254,6 +254,7 @@ cd backend && alembic revision --autogenerate -m "description"  # Nouvelle migra
 - [x] Fichiers orphelins organises dans `scripts/` et `backend/tests/`
 - [x] Dossier `src/test/` vide supprime
 - [x] Backend PTP complet (CRUD races, parsing Claude, sun-times API)
+- [x] Migrations Alembic auto-executees au demarrage Docker (2026-07-10, CMD `alembic upgrade head` dans backend/Dockerfile)
 
 ### Termine (Sprint PTP 2026-01-27)
 - [x] Frontend Admin (AdminPage, formulaires, preview)
@@ -263,7 +264,6 @@ cd backend && alembic revision --autogenerate -m "description"  # Nouvelle migra
 - [x] Lien Marketing -> Roadbook
 
 ### Problemes Connus
-- Migrations Alembic skippees en production (voir Dockerfile backend ligne 33-34)
 - Monitoring frontend manquant (TODO Sentry dans ErrorBoundary.tsx:33)
 - Migration `002_add_ptp_tables.py` a executer en prod avant deploiement PTP
 
@@ -274,7 +274,6 @@ cd backend && alembic revision --autogenerate -m "description"  # Nouvelle migra
 - Integration Sentry pour error tracking
 
 ### Dette Technique
-- Les migrations Alembic ne sont pas executees automatiquement au demarrage Docker
 - Routes API avec nommage inconsistant (snake_case vs kebab-case)
 - Coverage tests basse (~20%, cible: 70%)
 
