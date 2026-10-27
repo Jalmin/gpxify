@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -12,8 +13,11 @@ interface ModalProps {
 export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  // Portal: a `fixed` element inside an ancestor with backdrop-filter (the
+  // sticky header) is positioned relative to that ancestor, not the viewport.
+  // z-[1100] sits above Leaflet panes and controls (400-1000)
+  return createPortal(
+    <div className="fixed inset-0 z-[1100] flex items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -41,6 +45,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
         {/* Content */}
         <div>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Share2, Copy, Check } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
@@ -69,11 +70,13 @@ export function ShareButton({ appState, className }: ShareButtonProps) {
         {isSharing ? 'Sauvegarde...' : 'Partager'}
       </Button>
 
-      {error && (
-        <div className="fixed bottom-4 right-4 p-4 bg-destructive/10 text-destructive rounded-lg border border-destructive max-w-md">
-          {error}
-        </div>
-      )}
+      {error &&
+        createPortal(
+          <div className="fixed bottom-4 right-4 z-[1100] p-4 bg-destructive/10 text-destructive rounded-lg border border-destructive max-w-md">
+            {error}
+          </div>,
+          document.body
+        )}
 
       <Modal
         isOpen={isModalOpen}

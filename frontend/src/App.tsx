@@ -23,8 +23,10 @@ function App() {
    */
   const handleStateLoaded = (state: Record<string, any>) => {
     if (state.gpxFiles && Array.isArray(state.gpxFiles)) {
+      const { files, addFile } = useAppStore.getState();
+      const existingIds = new Set(files.map((f) => f.id));
       state.gpxFiles.forEach((file: any) => {
-        useAppStore.getState().addFile(file);
+        if (!existingIds.has(file.id)) addFile(file);
       });
     }
 
