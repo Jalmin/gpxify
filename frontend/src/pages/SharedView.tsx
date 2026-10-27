@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { shareApi } from '@/services/api';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -13,8 +13,14 @@ export function SharedView({ onStateLoaded }: SharedViewProps) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // onStateLoaded is a new function on every App render: without this guard
+  // the effect re-ran and re-imported the share several times
+  const loadedShareId = useRef<string | null>(null);
 
   useEffect(() => {
+    if (loadedShareId.current === shareId) return;
+    loadedShareId.current = shareId ?? null;
+
     const loadSharedState = async () => {
       if (!shareId) {
         setError('ID de partage invalide');
@@ -30,7 +36,7 @@ export function SharedView({ onStateLoaded }: SharedViewProps) {
           onStateLoaded(response.state_json);
 
           // Navigate to the main app (dashboard)
-          navigate('/', { replace: true });
+          navigate('/analyze', { replace: true });
         } else {
           setError('Impossible de charger le partage');
         }

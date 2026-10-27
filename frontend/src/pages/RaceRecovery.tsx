@@ -7,6 +7,21 @@ import { raceApi } from '@/services/api';
 import { Footer } from '@/components/Footer';
 import { validateGPXFile, formatValidationError } from '@/utils/gpxValidator';
 
+/**
+ * Extract the backend `detail` message from an axios error.
+ * The recover call uses responseType 'blob', so error bodies arrive as a Blob.
+ */
+async function readErrorDetail(err: any): Promise<string | null> {
+  const data = err?.response?.data;
+  try {
+    const body = data instanceof Blob ? JSON.parse(await data.text()) : data;
+    if (typeof body?.detail === 'string') return body.detail;
+  } catch {
+    // Not JSON: fall through to the generic message
+  }
+  return null;
+}
+
 export function RaceRecovery() {
   const [incompleteFile, setIncompleteFile] = useState<File | null>(null);
   const [completeFile, setCompleteFile] = useState<File | null>(null);
@@ -77,7 +92,7 @@ export function RaceRecovery() {
       setSuccess(true);
     } catch (err: any) {
       console.error('Recovery error:', err);
-      setError(err.message || 'Erreur lors de la reconstitution');
+      setError((await readErrorDetail(err)) || 'Erreur lors de la reconstitution');
     } finally {
       setIsProcessing(false);
     }

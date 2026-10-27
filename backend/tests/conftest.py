@@ -12,6 +12,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.main import app
 from app.db.database import Base, get_db
+from app.middleware.rate_limit import limiter
 
 # Create test database engine
 TEST_DATABASE_URL = "sqlite:///./test.db"
@@ -34,6 +35,13 @@ def setup_database():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """Reset SlowAPI counters so tests don't hit each other's rate limits"""
+    limiter.reset()
+    yield
 
 
 @pytest.fixture
