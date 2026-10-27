@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shikamaru.dev/schemas/worktree.schema.json",
+  "title": "Shikamaru — préparation d'un worktree d'objectif",
+  "description": "Lu par `shika-wt prepare` dans `<dépôt principal>/.shikamaru/worktree.json`. Validé à la main par scripts/shika-wt.ts (validateWorktreeConfig), sans dépendance.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "links": {
+      "type": "array",
+      "description": "Fichiers locaux non versionnés (.env, .mcp.json…) liés depuis le dépôt principal. Chemins relatifs, sans `..`. Absent du dépôt principal → ignoré.",
+      "items": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$)).+$" }
+    },
+    "install": {
+      "type": "array",
+      "description": "Commandes shell lancées dans le worktree, dans l'ordre. La première en échec arrête la préparation (statut prepare-failed).",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

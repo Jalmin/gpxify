@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shikamaru.carapacebleue.com/schemas/team.schema.json",
+  "title": "Shikamaru Team Schema",
+  "description": "JSON Schema for team.json — defines team members and notification settings",
+  "type": "object",
+  "required": ["schemaVersion", "teamId", "members"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version - must be 1"
+    },
+    "teamId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique team identifier"
+    },
+    "members": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/member"
+      },
+      "description": "Team members"
+    },
+    "defaultReviewer": {
+      "type": "string",
+      "enum": ["other", "none"],
+      "default": "other",
+      "description": "Default reviewer assignment: 'other' assigns to another team member, 'none' skips auto-assignment"
+    },
+    "notifications": {
+      "$ref": "#/$defs/notifications"
+    }
+  },
+  "$defs": {
+    "member": {
+      "type": "object",
+      "required": ["id", "github"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "description": "Short unique identifier (lowercase, used in TASKS.md)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "github": {
+          "type": "string",
+          "description": "GitHub username"
+        },
+        "telegram": {
+          "type": "string",
+          "pattern": "^@[a-zA-Z0-9_]+$",
+          "description": "Telegram handle (with @)"
+        },
+        "slack": {
+          "type": "string",
+          "description": "Slack member ID"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["lead", "dev", "reviewer"],
+          "default": "dev",
+          "description": "Team role"
+        },
+        "active": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether member is active (false = on leave, won't be assigned)"
+        }
+      }
+    },
+    "notifications": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string",
+          "enum": ["telegram", "slack", "none"],
+          "default": "telegram",
+          "description": "Primary notification channel"
+        },
+        "onClaim": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notify when someone claims a task"
+        },
+        "onPush": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notify when someone pushes to main"
+        },
+        "onPRReady": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notify when a PR is ready for review"
+        },
+        "onRunComplete": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notify when a run completes"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shikamaru.dev/schemas/learning.schema.json",
+  "title": "Shikamaru Learning Entry",
+  "description": "Schema for learnings stored in memory/learnings.jsonl (append-only JSONL format)",
+  "type": "object",
+  "required": ["id", "timestamp", "type", "source", "title", "body"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for the learning entry"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the learning was recorded"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["error", "workaround", "decision", "pattern", "observation"],
+      "description": "Category of learning"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["runner", "speccer", "manual", "reflection"],
+      "description": "Origin of the learning"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "Short summary of the learning (max 100 chars)"
+    },
+    "body": {
+      "type": "string",
+      "description": "Full content of the learning in markdown format"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "Keywords for categorization and search"
+    },
+    "relatedTasks": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^T\\d+$" },
+      "default": [],
+      "description": "Task IDs related to this learning (e.g., ['T55', 'T56'])"
+    }
+  },
+  "additionalProperties": false
+}

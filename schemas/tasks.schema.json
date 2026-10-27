@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shikamaru.carapacebleue.com/schemas/tasks.schema.json",
+  "title": "Shikamaru TASKS Schema",
+  "description": "JSON Schema for TASKS.md validation (machine-readable contract)",
+  "type": "object",
+  "required": ["schemaVersion", "project", "tasks"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version - must be 1"
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Project identifier"
+    },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date",
+      "description": "Last update date (YYYY-MM-DD)"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/task"
+      },
+      "description": "List of all tasks"
+    }
+  },
+  "$defs": {
+    "task": {
+      "type": "object",
+      "required": ["id", "title", "status"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^T[0-9]+[a-z]?$",
+          "description": "Unique task identifier (e.g., T1, T17b)"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 100,
+          "description": "Short descriptive title"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "ready", "in_progress", "in_review", "needs_review", "needs_user_validation", "done", "blocked", "timeout", "backlog", "abandoned", "superseded"],
+          "description": "Current task status"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["setup", "core", "integration"],
+          "description": "Task type - determines required fields"
+        },
+        "review": {
+          "type": "string",
+          "enum": ["skip", "opus"],
+          "default": "opus",
+          "description": "Review level"
+        },
+        "dependsOn": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^T[0-9]+[a-z]?$"
+          },
+          "description": "Task dependencies"
+        },
+        "timeout": {
+          "type": "string",
+          "pattern": "^[0-9]+m$",
+          "default": "30m",
+          "description": "Task timeout (e.g., 30m)"
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 50,
+          "description": "Full Claude Code prompt - must be self-contained"
+        },
+        "context": {
+          "type": "string",
+          "description": "What exists already, files to read, dependencies"
+        },
+        "files_touched": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "Files this task is allowed to modify"
+        },
+        "criteria": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 10
+          },
+          "minItems": 1,
+          "description": "Done criteria - binary, verifiable"
+        },
+        "success_metrics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Quantitative success metrics (required for core/integration)"
+        },
+        "edge_cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["situation", "expected_behavior"],
+            "properties": {
+              "situation": { "type": "string" },
+              "expected_behavior": { "type": "string" }
+            }
+          },
+          "description": "Edge cases with expected behavior (required for core/integration)"
+        },
+        "boundaries": {
+          "type": "object",
+          "properties": {
+            "always": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "ask_first": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "never": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "description": "3-tier boundaries (Always/Ask first/Never)"
+        },
+        "completed": {
+          "type": "string",
+          "format": "date",
+          "description": "Completion date"
+        },
+        "pr": {
+          "type": "string",
+          "pattern": "^#[0-9]+$",
+          "description": "PR number"
+        },
+        "branch": {
+          "type": "string",
+          "description": "Git branch name"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes"
+        },
+        "assignee": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "description": "Team member ID who claimed this task (from team.json)"
+        },
+        "reviewer": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "description": "Team member ID who will review this task"
+        },
+        "claimedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp when the task was claimed"
+        },
+        "priority": {
+          "type": "object",
+          "description": "Scoring/priority based on community votes (yoyo-evolve pattern)",
+          "properties": {
+            "score": {
+              "type": "integer",
+              "description": "Net score = upvotes - downvotes"
+            },
+            "upvotes": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "description": "Number of thumbs up"
+            },
+            "downvotes": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "description": "Number of thumbs down"
+            },
+            "source": {
+              "type": "string",
+              "enum": ["manual", "github", "computed"],
+              "default": "manual",
+              "description": "Where the score comes from"
+            },
+            "lastUpdated": {
+              "type": "string",
+              "format": "date-time",
+              "description": "When the score was last updated"
+            }
+          }
+        },
+        "recettage": {
+          "type": "object",
+          "description": "Automated UI testing scenario (Playwright-based)",
+          "required": ["base_url", "steps"],
+          "properties": {
+            "base_url": {
+              "type": "string",
+              "pattern": "^https?://",
+              "description": "Base URL for the test (e.g., http://localhost:3000)"
+            },
+            "start_cmd": {
+              "type": "string",
+              "description": "Command to start the dev server (optional, e.g., npm run dev)"
+            },
+            "steps": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["action"],
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": ["goto", "screenshot", "click", "fill", "wait", "scroll"],
+                    "description": "Action type"
+                  },
+                  "target": {
+                    "type": "string",
+                    "description": "Path for goto, selector for click/fill/wait/scroll, name for screenshot"
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "Value for fill action"
+                  }
+                }
+              },
+              "description": "List of test steps to execute"
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "status": { "const": "ready" } }
+          },
+          "then": {
+            "required": ["prompt", "files_touched", "criteria"],
+            "properties": {
+              "files_touched": { "minItems": 1 },
+              "criteria": { "minItems": 2 }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "enum": ["core", "integration"] } }
+          },
+          "then": {
+            "required": ["success_metrics"]
+          }
+        }
+      ]
+    }
+  }
+}

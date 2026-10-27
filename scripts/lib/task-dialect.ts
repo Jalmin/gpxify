@@ -87,7 +87,7 @@ export function isTaskBoundary(line: string): boolean {
  * vidait le bloc de la task et perdait ses erreurs (confirmation T157).
  */
 export const FIELD_HEADING =
-  /^#{3,4}\s+(Statut|Status|Smoke|TDD|Prompt|Files?|Goal|Context|Contexte|Crit[eè]re|Done|Boundaries|Fallback|Rollback|Recettage|Review|Tier|Dur[ée]e|Progress|Notes?|Blocked|Completed|PR|Assignee|Reviewer|Edge cases?|Type|Depends|Created|Branch)\b/i;
+  /^#{3,4}\s+(Statut|Status|Smoke|TDD|Prompt|Files?|Goal|Context|Contexte|Crit[eè]re|Done|Boundaries|Fallback|Rollback|Recettage|Design|Review|Tier|Dur[ée]e|Progress|Notes?|Blocked|Completed|PR|Assignee|Reviewer|Edge cases?|Type|Depends|Created|Branch)\b/i;
 
 export interface TaskHeader {
   /** Index du début du heading dans le contenu. */
